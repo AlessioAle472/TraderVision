@@ -1,0 +1,34 @@
+import { Routes, Route } from 'react-router-dom';
+import DashboardLayout from './layout/DashboardLayout';
+import Dashboard from './pages/Dashboard';
+import AssetDetail from './pages/AssetDetail';
+import Markets from './pages/Markets';
+import Watchlist from './pages/Watchlist';
+import Community from './pages/Community';
+import TopicDetail from './pages/TopicDetail';
+import DailyNews from './pages/DailyNews';
+import MacroDeepDive from './pages/MacroDeepDive';
+import MacroRegionDetail from './pages/MacroRegionDetail';
+import RiskReport from './pages/RiskReport';
+
+function App() {
+  return (
+    <DashboardLayout>
+      <Routes>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/asset/:ticker" element={<AssetDetail />} />
+        <Route path="/markets" element={<Markets />} />
+        <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/community" element={<Community />} />
+        <Route path="/community/topic/:id" element={<TopicDetail />} />
+        <Route path="/daily-news" element={<DailyNews />} />
+        <Route path="/macro-deep-dive" element={<MacroDeepDive />} />
+        <Route path="/analysis/:ticker" element={<AssetDetail />} />
+        <Route path="/macro-analysis/:region" element={<MacroRegionDetail />} />
+        <Route path="/risk-report" element={<RiskReport />} />
+      </Routes>
+    </DashboardLayout>
+  );
+}
+
+export default App;
