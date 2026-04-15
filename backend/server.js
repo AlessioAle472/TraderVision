@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 49152;
 
 // Trust proxy is required if running behind a reverse proxy like Vercel, Railway, Render (for secure cookies, rate limiting, and HTTPS detection)
 app.set('trust proxy', 1);
