@@ -3,8 +3,22 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-background: #F5F5DC;
+    --color-surface: #EBEBD2;
+    --color-text: #111827;
+  }
+
+  .dark {
+    --color-background: #0B0F19;
+    --color-surface: #1E293B;
+    --color-text: #F3F4F6;
+  }
+
   body {
-    @apply bg-background text-gray-100 font-sans antialiased;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    @apply font-sans antialiased transition-colors duration-300;
   }
 }
 

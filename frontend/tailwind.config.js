@@ -8,8 +8,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: '#0B0F19',
-        surface: '#1E293B',
+        background: 'var(--color-background)',
+        surface: 'var(--color-surface)',
+        text: 'var(--color-text)',
         primary: '#3B82F6',
         success: '#10B981',
         danger: '#EF4444',
