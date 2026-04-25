@@ -19,6 +19,6 @@
     "nodemailer": "^6.9.13",
     "rss-parser": "^3.13.0",
     "xml2js": "^0.6.2",
-    "yahoo-finance2": "^2.11.3"
+    "yahoo-finance2": "^3.13.2"
   }
 }
