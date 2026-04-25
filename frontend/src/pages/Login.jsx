@@ -12,7 +12,10 @@ const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
 
-  const API_BASE_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api`;
+  const API_BASE_URL = (() => {
+    const url = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    return url.endsWith('/api') ? url : `${url}/api`;
+  })();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
