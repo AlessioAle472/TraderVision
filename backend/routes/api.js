@@ -177,7 +177,7 @@ router.get('/calendar', async (req, res) => {
 
   try {
     const scriptPath = path.join(__dirname, '../daily_news.py');
-    const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" --lang "${lang}"`);
+    const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" --lang "${lang}"`, { windowsHide: true });
     
     // Find the first occurrence of { and parse from there to ignore warnings
     const jsonStart = stdout.indexOf('{');

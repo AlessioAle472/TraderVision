@@ -75,6 +75,16 @@ class MarketDataService {
     }
   }
 
+  async _processInChunks(items, chunkSize, asyncFn) {
+    const results = [];
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      const chunkResults = await Promise.all(chunk.map(item => asyncFn(item)));
+      results.push(...chunkResults);
+    }
+    return results;
+  }
+
   async getDashboardData(customAssets = null) {
     let assets = customAssets;
     if (!assets) {
@@ -89,7 +99,8 @@ class MarketDataService {
 
     try {
       const overview = await this.getMarketOverview();
-      const rawResults = await Promise.all(Object.entries(assets).map(async ([name, yahooTicker]) => {
+      const assetEntries = Object.entries(assets);
+      const rawResults = await this._processInChunks(assetEntries, 4, async ([name, yahooTicker]) => {
         try {
           // 1. Fetch 7D history for sparkline
           const history = await yf.chart(yahooTicker, {
@@ -105,7 +116,7 @@ class MarketDataService {
 
           // 2. Call python script for Smart Score
           const scriptPath = path.join(__dirname, '../smart_score.py');
-          const { stdout } = await execPromise(`python3 "${scriptPath}" "${yahooTicker}"`, { timeout: 60000 }); // Added timeout
+          const { stdout } = await execPromise(`python3 "${scriptPath}" "${yahooTicker}"`, { timeout: 60000, windowsHide: true }); // Added timeout and windowsHide
           const parsedData = JSON.parse(stdout);
           
           if (parsedData.error || parsedData.score === undefined || !parsedData.raw_data || parsedData.raw_data.sma_200 === null) {
@@ -162,7 +173,7 @@ class MarketDataService {
           console.error(`Error processing ${name}:`, error.message);
           return null;
         }
-      }));
+      });
 
       const results = rawResults.filter(r => r !== null);
       results.sort((a, b) => (b.smartScore || 0) - (a.smartScore || 0));
