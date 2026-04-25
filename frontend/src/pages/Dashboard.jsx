@@ -4,6 +4,7 @@ import MacroCards from '../components/MacroCards';
 import WorldCalendar from '../components/WorldCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import SearchBar from '../components/SearchBar';
+import GoogleAd from '../components/GoogleAd';
 import apiClient from '../services/apiClient';
 import { useWatchlist } from '../context/WatchlistContext';
 import { TrendingUp, Activity, Shield, RefreshCw } from 'lucide-react';
@@ -118,6 +119,10 @@ const Dashboard = () => {
         />
       </section>
 
+      <section className="mb-10">
+        <GoogleAd />
+      </section>
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-surface p-6 rounded-2xl border border-slate-700/50 shadow-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -183,6 +188,10 @@ const Dashboard = () => {
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
         />
+      </section>
+
+      <section className="mb-12">
+        <GoogleAd />
       </section>
 
       <WorldCalendar id="world-calendar" lang="it" />

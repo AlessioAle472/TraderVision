@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const mongoose = require('mongoose');
 
 const app = express();
 const PORT = process.env.PORT || 49152;
@@ -31,9 +32,11 @@ app.use(express.json());
 
 // Routes
 const apiRoutes = require('./routes/api');
+const authRoutes = require('./routes/authRoutes');
 const { initAIJobs } = require('./services/aiBriefingJob');
 
 app.use('/api', apiRoutes);
+app.use('/api/auth', authRoutes);
 
 // Initialize AI Briefing Scheduler
 initAIJobs();
@@ -44,4 +47,12 @@ app.get('/health', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
+  
+  if (process.env.MONGODB_URI) {
+    mongoose.connect(process.env.MONGODB_URI)
+      .then(() => console.log('Connected to MongoDB Atlas'))
+      .catch(err => console.error('MongoDB connection error:', err));
+  } else {
+    console.warn('WARNING: MONGODB_URI not found. Authentication features will not work.');
+  }
 });

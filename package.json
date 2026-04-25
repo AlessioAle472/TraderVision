@@ -1,0 +1,15 @@
+{
+  "name": "trader-vision-workspace",
+  "version": "1.0.0",
+  "description": "Trader Vision Workspace with unified local development",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install && npm install --prefix frontend && npm install --prefix backend",
+    "dev": "concurrently -n \"BACKEND,FRONTEND\" -c \"bgBlue.bold,bgGreen.bold\" \"npm start --prefix backend\" \"npm run dev --prefix frontend\"",
+    "backend": "npm start --prefix backend",
+    "frontend": "npm run dev --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

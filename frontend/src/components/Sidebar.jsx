@@ -1,9 +1,22 @@
-import { LogIn, LayoutDashboard, LineChart, Wallet, Settings, MessageSquare, Calendar } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { LogIn, LogOut, LayoutDashboard, LineChart, Wallet, Settings, MessageSquare, Calendar } from 'lucide-react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../context/AuthContext';
 
 const Sidebar = () => {
   const { t } = useTranslation();
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleAuthAction = (e) => {
+    e.preventDefault();
+    if (user) {
+      logout();
+      navigate('/');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <aside className="w-64 bg-surface h-screen border-r border-slate-700/50 flex flex-col hidden md:flex">
@@ -64,14 +77,19 @@ const Sidebar = () => {
       </nav>
 
       <div className="p-4 border-t border-slate-700/50">
-        <a href="#" className="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white transition-colors">
+        <NavLink 
+          to="/settings" 
+          className={({ isActive }) => 
+            `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-gray-400 hover:bg-slate-800/50 hover:text-white font-medium'}`
+          }
+        >
           <Settings className="w-5 h-5" />
-          <span className="font-medium">{t('sidebar.settings')}</span>
-        </a>
-        <a href="#" className="flex items-center gap-3 px-4 py-3 mt-2 text-danger hover:text-red-400 transition-colors">
-          <LogIn className="w-5 h-5" />
-          <span className="font-medium">{t('sidebar.logout')}</span>
-        </a>
+          <span>{t('sidebar.settings')}</span>
+        </NavLink>
+        <button onClick={handleAuthAction} className={`flex w-full items-center gap-3 px-4 py-3 mt-2 transition-colors ${user ? 'text-danger hover:text-red-400' : 'text-indigo-400 hover:text-indigo-300'}`}>
+          {user ? <LogOut className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
+          <span className="font-medium">{user ? t('sidebar.logout') : 'Login'}</span>
+        </button>
       </div>
     </aside>
   );
