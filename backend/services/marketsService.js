@@ -183,7 +183,7 @@ class MarketsService {
       let momentum = 0;
       try {
         const scriptPath = path.join(__dirname, '../smart_score.py');
-        const { stdout } = await execPromise(`python3 "${scriptPath}" "${yahooTicker}"`, { timeout: 45000 });
+        const { stdout } = await execPromise(`python3 "${scriptPath}" "${yahooTicker}"`, { timeout: 45000, windowsHide: true });
         const parsed = JSON.parse(stdout);
         if (!parsed.error && parsed.score !== undefined) {
           smartScore = parsed.score;
@@ -220,6 +220,16 @@ class MarketsService {
     }
   }
 
+  async _processInChunks(items, chunkSize, asyncFn) {
+    const results = [];
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      const chunkResults = await Promise.all(chunk.map(item => asyncFn(item)));
+      results.push(...chunkResults);
+    }
+    return results;
+  }
+
   /**
    * Fetch all assets for a specific group.
    */
@@ -228,9 +238,9 @@ class MarketsService {
     if (!group) return { label: groupKey, assets: [] };
 
     const entries = Object.entries(group.tickers);
-    const results = await Promise.all(
-      entries.map(([ticker, name]) => this._fetchAsset(ticker, name))
-    );
+    
+    // Process assets in chunks of 5 to avoid spawning too many Python processes
+    const results = await this._processInChunks(entries, 5, ([ticker, name]) => this._fetchAsset(ticker, name));
 
     return {
       label: group.label,
@@ -278,11 +288,12 @@ class MarketsService {
     const start = Date.now();
 
     const groupKeys = Object.keys(ASSET_GROUPS);
-    const promises = groupKeys.map(key => this._fetchGroup(key));
-    promises.push(this._fetchFactors());
-    
-    const results = await Promise.all(promises);
-    const factors = results.pop(); // The last promise was factors
+    // Process groups sequentially to avoid massive CPU spikes on the server
+    const results = [];
+    for (const key of groupKeys) {
+      results.push(await this._fetchGroup(key));
+    }
+    const factors = await this._fetchFactors();
 
     // Reconstruct sections object
     const sections = {};
