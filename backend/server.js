@@ -12,7 +12,9 @@ app.set('trust proxy', 1);
 // Configure CORS
 const allowedOrigins = [
   'http://localhost:5173', // Vite default local dev
-  process.env.CORS_ORIGIN // e.g. https://tradervision-quantitativemarkets.com
+  'https://tradervision-quantitativemarkets.com',
+  'https://www.tradervision-quantitativemarkets.com',
+  process.env.CORS_ORIGIN // Fallback from env
 ].filter(Boolean); // Remove undefined if CORS_ORIGIN is not set (e.g., local dev)
 
 app.use(cors({
