@@ -1,6 +1,13 @@
 const axios = require('axios');
-const YF = require('yahoo-finance2').default;
-const yf = new YF({ suppressNotices: ['ripHistorical'] });
+const yahooFinance = require('yahoo-finance2').default;
+
+// Disable strict schema validation globally: Yahoo Finance occasionally adds
+// new fields that break the bundled JSON schema, causing 403-like validation
+// rejections even when the data is perfectly usable.
+yahooFinance.setGlobalConfig({
+  validation: { logErrors: false, logOptionsErrors: false },
+});
+const yf = yahooFinance;
 const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
@@ -11,7 +18,9 @@ class MarketDataService {
   constructor() {
     this.finnhubKey = process.env.FINNHUB_API_KEY;
     this.alphaVantageKey = process.env.ALPHA_VANTAGE_API_KEY;
-    this.lastKnownPrices = {}; 
+    this.lastKnownPrices = {};
+    // Tracks the last-sent SmartScore per ticker to compute live variation (±1 pt)
+    this.lastKnownScores = {};
   }
 
   async getTrendingTickers(count = 10) {
@@ -128,8 +137,19 @@ class MarketDataService {
           const currentPrice = parsedData.raw_data.price || (quote ? quote.regularMarketPrice : 0);
           const var1D = quote ? quote.regularMarketChangePercent : 0;
           const score = parsedData.score;
-          
-          console.log(`Keeping ${name}: Score ${score}`);
+
+          // ── SmartScore Variation Logic ────────────────────────────────────
+          // Compare current score with the last value sent to the frontend.
+          // scoreDelta > 0 → rising, < 0 → falling, 0 → unchanged.
+          const prevScore = this.lastKnownScores[name];
+          const scoreDelta = (prevScore !== undefined) ? (score - prevScore) : 0;
+          this.lastKnownScores[name] = score; // persist for next refresh
+
+          if (scoreDelta !== 0) {
+            console.log(`[SmartQuant] ${name}: Score ${prevScore} → ${score} (${scoreDelta > 0 ? '+' : ''}${scoreDelta})`);
+          } else {
+            console.log(`Keeping ${name}: Score ${score}`);
+          }
 
           let label = 'Hold';
           if (score >= 80) label = 'Strong Buy';
@@ -148,7 +168,7 @@ class MarketDataService {
 
           return {
             ticker: name,
-            name: name, // Ensure name is present for filtering
+            name: name,
             prezzo: currentPrice,
             var1D: var1D,
             momentum: momentumVal,
@@ -158,6 +178,8 @@ class MarketDataService {
             pe: parsedData.raw_data.asset_type_detected === 'EQUITY' ? (parsedData.raw_data.asset_specific_metric?.forward_pe?.toFixed(2) || '-') : '-',
             smartScore: finalScore,
             smartScoreLabel: finalLabel,
+            // scoreDelta: variation vs last refresh (+N/-N/0) — use in UI for ▲▼ badges
+            scoreDelta: scoreDelta,
             sparkline: sparklineData,
             trend: parsedData.raw_data.trend,
             fib_level_touched: parsedData.raw_data.fib_level_touched,

@@ -1,5 +1,6 @@
-const YF = require('yahoo-finance2').default;
-const yf = new YF({ suppressNotices: ['ripHistorical'] });
+const yahooFinance = require('yahoo-finance2').default;
+yahooFinance.setGlobalConfig({ validation: { logErrors: false, logOptionsErrors: false } });
+const yf = yahooFinance;
 const fs = require('fs');
 const path = require('path');
 const { getEconomicDirection } = require('./economicDirection');
