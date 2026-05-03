@@ -1,13 +1,8 @@
 const axios = require('axios');
-const yahooFinance = require('yahoo-finance2').default;
-
-// Disable strict schema validation globally: Yahoo Finance occasionally adds
-// new fields that break the bundled JSON schema, causing 403-like validation
-// rejections even when the data is perfectly usable.
-yahooFinance.setGlobalConfig({
-  validation: { logErrors: false, logOptionsErrors: false },
-});
-const yf = yahooFinance;
+// yahoo-finance2 v3: default export is the class itself — must use `new`
+const YahooFinance = require('yahoo-finance2').default;
+// suppressNotices silences the survey prompt; validateResult is passed per-call
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
@@ -25,9 +20,10 @@ class MarketDataService {
 
   async getTrendingTickers(count = 10) {
     try {
-      // Try to get trending tickers from Yahoo Finance
       console.log('[MarketDataService] Fetching trending tickers from screener...');
-      const result = await yf.screener({ scrIds: 'day_gainers' }, { count });
+      // validateResult: false — disables strict JSON schema check that fails when
+      // Yahoo adds new fields not yet reflected in yahoo-finance2's bundled schema
+      const result = await yf.screener({ scrIds: 'day_gainers' }, { count, validateResult: false });
       
       if (result && result.quotes && result.quotes.length > 0) {
         return result.quotes.map(q => ({

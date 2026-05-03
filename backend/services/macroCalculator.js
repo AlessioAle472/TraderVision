@@ -1,6 +1,6 @@
-const yahooFinance = require('yahoo-finance2').default;
-yahooFinance.setGlobalConfig({ validation: { logErrors: false, logOptionsErrors: false } });
-const yf = yahooFinance;
+// yahoo-finance2 v3: default export is the class — must instantiate with `new`
+const YahooFinance = require('yahoo-finance2').default;
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const fs = require('fs');
 const path = require('path');
 const { getEconomicDirection } = require('./economicDirection');
