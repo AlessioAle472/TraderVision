@@ -47,8 +47,8 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Trader Vision API is running' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server listening on port ${PORT} (0.0.0.0)`);
   
   if (process.env.MONGODB_URI) {
     mongoose.connect(process.env.MONGODB_URI)
