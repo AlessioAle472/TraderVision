@@ -96,11 +96,10 @@ const Dashboard = () => {
     <div className="max-w-7xl mx-auto space-y-8">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-white tracking-tight">Market Terminal</h1>
-          <p className="text-gray-500 font-medium">Professional quantitative overview and trending signals.</p>
+          <h1 className="text-3xl font-black text-white tracking-tight">Terminale di Mercato</h1>
+          <p className="text-gray-500 font-medium">Panoramica quantitativa professionale e segnali di tendenza.</p>
         </div>
         <div className="flex items-center gap-4 w-full md:w-auto">
-          <SearchBar onSearch={setSearchTerm} />
           <button 
             onClick={() => { fetchDashboardData(); fetchBriefing(); }}
             className="p-3 rounded-2xl bg-slate-900 border border-white/5 hover:border-indigo-500/30 text-gray-400 hover:text-white transition-all shadow-xl group shrink-0"
@@ -139,7 +138,7 @@ const Dashboard = () => {
               {overview?.sp500?.change ? `${overview.sp500.isUp ? '+' : ''}${overview.sp500.change.toFixed(2)}%` : '0.00%'}
             </div>
           </div>
-          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Standard & Poor's 500</p>
+          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Indice S&P 500</p>
         </div>
 
         <div className="bg-surface p-6 rounded-2xl border border-slate-700/50 shadow-xl relative overflow-hidden group">
@@ -154,10 +153,10 @@ const Dashboard = () => {
               {overview?.vix?.price ? overview.vix.price.toFixed(2) : '---'}
             </div>
             <div className={`text-sm px-2 py-0.5 rounded-full font-bold ${overview?.vix?.isScary ? 'bg-danger/20 text-danger' : 'bg-success/20 text-success'}`}>
-              {overview?.vix?.isScary ? 'High Volatility' : 'Stable'}
+              {overview?.vix?.isScary ? 'Alta Volatilità' : 'Stabile'}
             </div>
           </div>
-          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Market Volatility Index</p>
+          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Indice di Volatilità</p>
         </div>
 
         <div className="bg-surface p-6 rounded-2xl border border-slate-700/50 shadow-xl relative overflow-hidden group">
@@ -165,7 +164,7 @@ const Dashboard = () => {
             <Shield className="w-12 h-12 text-success" />
           </div>
           <h3 className="text-gray-400 font-medium text-sm mb-2 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-success" /> Alpha Opportunities
+            <Shield className="w-4 h-4 text-success" /> Opportunità Alpha
           </h3>
           <div className="flex items-baseline gap-3">
             <div className="text-2xl font-bold text-white">
@@ -175,7 +174,7 @@ const Dashboard = () => {
               Score ≥ 70
             </div>
           </div>
-          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Quant Signal Detection</p>
+          <p className="text-[10px] text-gray-500 mt-2 uppercase tracking-wider font-bold">Rilevamento Segnali Quantitativi</p>
         </div>
       </div>
 

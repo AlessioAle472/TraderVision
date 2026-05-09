@@ -42,6 +42,11 @@ const WorldCalendar = ({ lang, id }) => {
       </div>
       
       <div className="bg-slate-900/40 backdrop-blur-md rounded-3xl border border-white/5 p-6 shadow-2xl relative">
+        <div className="absolute inset-0 flex items-center justify-center -z-10">
+          <span className="text-gray-500/50 font-black uppercase tracking-widest text-xs">
+            Dati calendario non disponibili
+          </span>
+        </div>
         <div className="tradingview-widget-container" ref={container}>
           <div className="tradingview-widget-container__widget"></div>
         </div>
