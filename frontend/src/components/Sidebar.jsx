@@ -88,7 +88,7 @@ const Sidebar = () => {
         </NavLink>
         <button onClick={handleAuthAction} className={`flex w-full items-center gap-3 px-4 py-3 mt-2 transition-colors ${user ? 'text-danger hover:text-red-400' : 'text-indigo-400 hover:text-indigo-300'}`}>
           {user ? <LogOut className="w-5 h-5" /> : <LogIn className="w-5 h-5" />}
-          <span className="font-medium">{user ? t('sidebar.logout') : 'Login'}</span>
+          <span className="font-medium">{user ? t('sidebar.logout') : 'Accedi'}</span>
         </button>
       </div>
     </aside>

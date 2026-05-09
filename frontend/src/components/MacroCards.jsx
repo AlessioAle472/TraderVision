@@ -109,7 +109,7 @@ const MacroCards = ({ data }) => {
               onClick={() => navigate('/asset/SPY')}
               className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all duration-300 hover:scale-105 cursor-pointer pt-2 group/btn"
             >
-              Details <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
+              Dettagli <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
             </button>
           </div>
         </div>
@@ -176,7 +176,7 @@ const MacroCards = ({ data }) => {
               onClick={() => navigate('/macro-deep-dive')}
               className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all duration-300 hover:scale-105 cursor-pointer pt-4 group/btn"
             >
-              Analysis <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
+              Analisi <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
             </button>
           </div>
         </div>
@@ -246,7 +246,7 @@ const MacroCards = ({ data }) => {
               onClick={() => navigate(`/analysis/${item.ticker}`, { state: { regionalScore: item.score, change: item.change, data: item } })}
               className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-all duration-300 hover:scale-105 cursor-pointer self-start group/btn"
             >
-              Details <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover/btn:translate-x-1" />
+              Dettagli <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover/btn:translate-x-1" />
             </button>
           </div>
         ))}
