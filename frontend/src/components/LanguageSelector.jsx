@@ -37,25 +37,25 @@ const LanguageSelector = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-surface border border-slate-700/50 rounded-xl px-3 py-2 transition-colors hover:border-text-white focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
+        className="flex items-center gap-2 bg-surface border border-border rounded-xl px-3 py-2 transition-colors hover:border-primary focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50"
       >
-        <Globe className="w-4 h-4 text-gray-400" />
-        <span className="text-sm font-medium text-white flex items-center gap-2">
+        <Globe className="w-4 h-4 text-text-secondary" />
+        <span className="text-sm font-medium text-text flex items-center gap-2">
           <span>{currentLang.flag}</span>
           <span>{currentLang.label}</span>
         </span>
-        <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3 h-3 text-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-32 bg-surface border border-slate-700/50 rounded-xl shadow-xl overflow-hidden z-50">
+        <div className="absolute right-0 mt-2 w-32 bg-surface border border-border rounded-xl shadow-xl overflow-hidden z-50">
           <div className="py-1">
             {languages.map((lng) => (
               <button
                 key={lng.code}
                 onClick={() => handleSelect(lng.code)}
-                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-slate-800 transition-colors ${
-                  i18n.language === lng.code ? 'bg-primary/10 text-primary font-medium' : 'text-gray-300'
+                className={`w-full text-left px-4 py-2 text-sm flex items-center gap-3 hover:bg-surface-hover transition-colors ${
+                  i18n.language === lng.code ? 'bg-primary/10 text-primary font-medium' : 'text-text'
                 }`}
               >
                 <span>{lng.flag}</span>

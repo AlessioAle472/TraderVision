@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, TrendingUp, TrendingDown, AlertCircle, Star } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import apiClient from '../services/apiClient';
 import TradingViewWidget from '../components/TradingViewWidget';
 import { useWatchlist } from '../context/WatchlistContext';
+import InfoTooltip from '../components/InfoTooltip';
 
 // --- SVG Donut Chart for Smart Score ---
 const SmartScoreDonut = ({ score }) => {
@@ -23,7 +24,7 @@ const SmartScoreDonut = ({ score }) => {
     <div className="relative flex items-center justify-center">
       <svg height={radius * 2} width={radius * 2} className="-rotate-90">
         <circle
-          stroke="#1e293b"
+          stroke="var(--color-surface-hover)"
           fill="transparent"
           strokeWidth={stroke}
           r={normalizedRadius}
@@ -43,8 +44,8 @@ const SmartScoreDonut = ({ score }) => {
         />
       </svg>
       <div className="absolute flex flex-col items-center">
-        <span className="text-2xl font-bold text-white">{pct}</span>
-        <span className="text-xs text-gray-400">/ 100</span>
+        <span className="text-2xl font-bold text-text">{pct}</span>
+        <span className="text-xs text-text-secondary">/ 100</span>
       </div>
     </div>
   );
@@ -56,10 +57,10 @@ const PillarBar = ({ label, value, max, color }) => {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-sm">
-        <span className="text-gray-400">{label}</span>
-        <span className="font-semibold text-white">{value} <span className="text-gray-500 font-normal">/ {max}</span></span>
+        <span className="text-text-secondary">{label}</span>
+        <span className="font-semibold text-text">{value} <span className="text-text-secondary/50 font-normal">/ {max}</span></span>
       </div>
-      <div className="h-2 rounded-full bg-slate-700/60 overflow-hidden">
+      <div className="h-2 rounded-full bg-background overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
@@ -128,9 +129,17 @@ const AssetDetail = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <RefreshCw className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-gray-400 font-medium">Loading asset data…</p>
+      <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-6">
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <RefreshCw className="w-6 h-6 text-primary animate-pulse" />
+          </div>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <p className="text-xl font-black text-text animate-pulse">Caricamento Asset...</p>
+          <p className="text-text-secondary text-sm font-medium uppercase tracking-widest">Recupero dati di mercato</p>
+        </div>
       </div>
     );
   }
@@ -139,10 +148,10 @@ const AssetDetail = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
         <AlertCircle className="w-10 h-10 text-danger" />
-        <p className="text-white font-medium">Error loading asset</p>
-        <p className="text-gray-400 text-sm text-center max-w-sm">{error}</p>
-        <button onClick={() => navigate('/')} className="mt-2 px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white text-sm rounded-lg transition-colors flex items-center gap-2">
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        <p className="text-text font-medium">Errore nel caricamento dell'asset</p>
+        <p className="text-text-secondary text-sm text-center max-w-sm">{error}</p>
+        <button onClick={() => navigate('/')} className="mt-2 px-5 py-2 bg-surface hover:bg-surface-hover text-text text-sm rounded-lg border border-border transition-colors flex items-center gap-2">
+          <ArrowLeft className="w-4 h-4" /> Torna alla Dashboard
         </button>
       </div>
     );
@@ -181,12 +190,12 @@ const AssetDetail = () => {
 
       {/* --- Header --- */}
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate('/')} className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-gray-400 hover:text-white transition-colors">
+        <button onClick={() => navigate('/')} className="p-2 rounded-lg bg-surface-hover border border-border text-text-secondary hover:text-text transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
-            <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
+            <h1 className="text-3xl font-bold text-text tracking-tight flex items-center gap-3">
               {ticker}
               <button
                 onClick={() => toggleWatchlist(ticker)}
@@ -208,7 +217,7 @@ const AssetDetail = () => {
             )}
           </div>
           <div className="flex items-baseline gap-3 mt-1 flex-wrap">
-            <span className="text-2xl font-semibold text-white">
+            <span className="text-2xl font-semibold text-text">
               {asset?.prezzo ? Number(asset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
             </span>
             <span className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-success' : 'text-danger'}`}>
@@ -226,9 +235,9 @@ const AssetDetail = () => {
         <div className="xl:col-span-2 space-y-6">
           
           {/* SECTION 1: TradingView Advanced Chart */}
-          <div className="bg-surface border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-700/50 flex justify-between items-center">
-              <h2 className="text-base font-semibold text-white">Advanced Real-Time Chart</h2>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-border flex justify-between items-center">
+              <h2 className="text-base font-semibold text-text">Grafico Avanzato in Tempo Reale</h2>
               <span className="text-xs text-gray-500">Powered by TradingView</span>
             </div>
             <div className="p-0 h-[500px]">
@@ -237,16 +246,16 @@ const AssetDetail = () => {
           </div>
 
           {/* SECTION 2: Yahoo Finance Historical Area Chart */}
-          <div className="bg-surface border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
-            <div className="p-4 border-b border-slate-700/50 flex justify-between items-center bg-slate-800/10">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Yahoo Finance Historical Data</h2>
-              <span className="text-xs text-gray-500">Raw Ticker: {ticker}</span>
+          <div className="bg-surface border border-border rounded-2xl overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-border flex justify-between items-center bg-surface-hover/10">
+              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider">Dati Storici</h2>
+              <span className="text-xs text-text-secondary/50">Ticker: {ticker}</span>
             </div>
             <div className="p-4">
               {histData.length === 0 ? (
                 <div className="h-64 flex items-center justify-center text-center space-y-2 text-gray-500 text-sm">
                   <RefreshCw className="w-5 h-5 animate-spin mx-auto opacity-40" />
-                  <p>Loading historical data…</p>
+                  <p>Caricamento dati storici…</p>
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height={260}>
@@ -280,8 +289,8 @@ const AssetDetail = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Smart Score Card */}
-            <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-xl space-y-1">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-2 text-center md:text-left">Quant Smart Score</h2>
+            <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl space-y-1">
+              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-2 text-center md:text-left">Smart Score Quant</h2>
               <div className="flex items-center justify-between gap-6">
                 <SmartScoreDonut score={score} />
                 <div className="flex-1 text-right">
@@ -293,10 +302,10 @@ const AssetDetail = () => {
                   </div>
                   <div className="mt-4 space-y-1">
                     {asset?.rsi && asset.rsi !== '-' && (
-                      <div className="text-sm text-gray-400">RSI (14D) <span className="text-white font-semibold">{asset.rsi}</span></div>
+                      <div className="text-sm text-text-secondary">RSI (14D) <span className="text-text font-semibold">{asset.rsi}</span></div>
                     )}
                     {asset?.pe && asset.pe !== '-' && (
-                      <div className="text-sm text-gray-400">Fwd P/E Ratio <span className="text-white font-semibold">{asset.pe}</span></div>
+                      <div className="text-sm text-text-secondary">Fwd P/E Ratio <span className="text-text font-semibold">{asset.pe}</span></div>
                     )}
                   </div>
                 </div>
@@ -304,8 +313,8 @@ const AssetDetail = () => {
             </div>
 
             {/* Score Breakdown Pillars */}
-            <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-5">Score Breakdown</h2>
+            <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl">
+              <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-5">Analisi Score</h2>
               <div className="space-y-4">
                 <PillarBar label="🔬 Pillar 1: Technical Analysis (EMA/Fib)" value={bd.tech_score} max={40} color="#6366f1" />
                 <PillarBar label="🗓️ Pillar 2: Seasonal Trends" value={bd.seasonality_score} max={30} color="#22c55e" />
@@ -316,33 +325,45 @@ const AssetDetail = () => {
                 
                 {/* Technical Detail Badges */}
                 <div className="mt-6 grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">EMA 50 Trend</div>
-                    <div className={`text-sm font-bold ${asset?.trend === 'Long' ? 'text-success' : asset?.trend === 'Short' ? 'text-danger' : 'text-gray-400'}`}>
+                  <div className="p-3 rounded-xl bg-surface-hover border border-border">
+                    <div className="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-1 flex items-center">
+                      EMA 50 Trend
+                      <InfoTooltip text="Media Mobile Esponenziale a 50 periodi: indica la direzione del trend" />
+                    </div>
+                    <div className={`text-sm font-bold ${asset?.trend === 'Long' ? 'text-success' : asset?.trend === 'Short' ? 'text-danger' : 'text-text-secondary'}`}>
                       {asset?.trend || 'Neutral'}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Fib Zone</div>
-                    <div className="text-sm font-bold text-white">
+                  <div className="p-3 rounded-xl bg-surface-hover border border-border">
+                    <div className="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-1 flex items-center">
+                      Fib Zone
+                      <InfoTooltip text="Livelli di ritracciamento di Fibonacci" />
+                    </div>
+                    <div className="text-sm font-bold text-text">
                       {asset?.fib_level_touched || 'None'}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Volume vs Avg</div>
-                    <div className={`text-sm font-bold ${asset?.volume_vs_avg > 1 ? 'text-primary' : 'text-gray-400'}`}>
+                  <div className="p-3 rounded-xl bg-surface-hover border border-border">
+                    <div className="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-1 flex items-center">
+                      Volume vs Avg
+                      <InfoTooltip text="Volume odierno rispetto alla media 20 giorni" />
+                    </div>
+                    <div className={`text-sm font-bold ${asset?.volume_vs_avg > 1 ? 'text-primary' : 'text-text-secondary'}`}>
                       {asset?.volume_vs_avg ? `${asset.volume_vs_avg}x` : '1.0x'}
                     </div>
                   </div>
-                  <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                    <div className="text-[10px] text-gray-500 uppercase font-bold tracking-wider mb-1">Relative Strength</div>
-                    <div className="text-sm font-bold text-white">{asset?.rsi || '--'}</div>
+                  <div className="p-3 rounded-xl bg-surface-hover border border-border">
+                    <div className="text-[10px] text-text-secondary uppercase font-bold tracking-wider mb-1 flex items-center">
+                      Relative Strength
+                      <InfoTooltip text="Relative Strength Index (RSI a 14 giorni)" />
+                    </div>
+                    <div className="text-sm font-bold text-text">{asset?.rsi || '--'}</div>
                   </div>
                 </div>
 
                 {asset?.settore === 'FUTURE' && bd.macro_reason && (
-                  <div className={`mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-xs border ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-slate-700/40 border-slate-600/40 text-gray-400'}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-400' : 'bg-gray-500'}`} />
+                  <div className={`mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-xs border ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-500/10 border-amber-500/25 text-amber-300' : 'bg-surface-hover border-border text-text-secondary'}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-400' : 'bg-text-secondary/50'}`} />
                     <em className="not-italic leading-snug">{bd.macro_reason}</em>
                   </div>
                 )}
@@ -354,20 +375,20 @@ const AssetDetail = () => {
 
         {/* RIGHT: (1/3 width) Summary / Sidebar Card */}
         <div className="space-y-6">
-          <div className="bg-surface border border-slate-700/50 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Investment Summary</h2>
-            <p className="text-gray-300 text-sm leading-relaxed">
-              Analyzing <strong>{ticker}</strong> via our 3-Pillar Quantitative Algorithm. 
-              The current Technical Score is <strong>{bd.tech_score}/40</strong>, evaluating EMA 50 trend, 30-day Fibonacci retracements, and volume momentum.
-              Overall Smart Score of <strong>{score}</strong> suggests a <strong>{scoreLabel}</strong> outlook.
+          <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl">
+            <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4">Riepilogo Investimento</h2>
+            <p className="text-text-secondary text-sm leading-relaxed">
+              Analisi di <strong>{ticker}</strong> tramite il nostro Algoritmo Quantitativo a 3 Pilastri. 
+              Il punteggio tecnico attuale è <strong>{bd.tech_score}/40</strong>, valutando il trend EMA 50, i ritracciamenti di Fibonacci a 30 giorni e il momentum del volume.
+              Smart Score complessivo di <strong>{score}</strong> suggerisce una visione <strong>{scoreLabel}</strong>.
             </p>
-            <div className="mt-6 p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 flex items-center gap-3">
+            <div className="mt-6 p-4 rounded-xl bg-surface-hover border border-border flex items-center gap-3">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center ${scoreLabelColor} bg-white/5 font-bold text-lg`}>
                 {score}
               </div>
-              <div className="text-xs text-gray-400">
-                <div className="font-semibold text-white underline decoration-primary underline-offset-4 mb-0.5">Quant Edge Signal</div>
-                Algorithm: Pillar 1 (Technical) Active.
+              <div className="text-xs text-text-secondary">
+                <div className="font-semibold text-text underline decoration-primary underline-offset-4 mb-0.5">Segnale Quant Edge</div>
+                Algoritmo: Pillar 1 (Tecnico) Attivo.
               </div>
             </div>
           </div>

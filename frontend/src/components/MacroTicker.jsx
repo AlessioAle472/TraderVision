@@ -41,11 +41,9 @@ const MacroTicker = () => {
             }
 
             if (data && Array.isArray(data)) {
-                console.log('MacroTicker: Setting high impact events:', data.length);
                 const high = data.filter(e => e.impact === 'high' && e.title);
                 setHighImpactEvents([...high.slice(0, 15), ...high.slice(0, 15)]); 
             } else {
-                console.warn('MacroTicker: Invalid data format:', data);
                 setHighImpactEvents([]);
             }
         };
@@ -77,7 +75,7 @@ const MacroTicker = () => {
             
             <div className="flex items-center gap-2 mr-6 z-20 bg-slate-800 px-3 py-1 rounded-lg font-bold text-[10px] uppercase tracking-widest text-primary border border-primary/30 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
                <TerminalSquare className="w-3.5 h-3.5 text-primary animate-pulse" />
-               Live Macro Feed
+               Feed Macro in Tempo Reale
             </div>
             
             <div className="whitespace-nowrap flex animate-marquee">
@@ -90,7 +88,7 @@ const MacroTicker = () => {
                           
                           {evt.ai_projection && (
                               <span className="text-danger font-bold uppercase tracking-wider text-[9px] bg-danger/10 border border-danger/30 px-1.5 py-0.5 rounded flex items-center gap-1 ml-1 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
-                                <Sparkles className="w-2.5 h-2.5" /> AI Volatility Warning
+                                <Sparkles className="w-2.5 h-2.5" /> Avviso Volatilità AI
                               </span>
                           )}
                        </div>

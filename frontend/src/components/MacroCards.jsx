@@ -56,11 +56,11 @@ const MacroCards = ({ data }) => {
       {/* Main Macro Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Card 1: Economic Regime & Score */}
-        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] flex flex-col justify-between group transition-all duration-300 hover:border-orange-500/30">
+        <div className="relative overflow-hidden bg-surface backdrop-blur-md p-6 rounded-3xl border border-border shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] flex flex-col justify-between group transition-all duration-300 hover:border-orange-500/30">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/10 rounded-full blur-3xl group-hover:bg-orange-500/20 transition-colors duration-500" />
           
           <div>
-            <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+            <h3 className="text-text-secondary font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
               <Target className="w-3.5 h-3.5 text-orange-500" /> Stato dei Mercati
             </h3>
             
@@ -73,16 +73,16 @@ const MacroCards = ({ data }) => {
                 <span className="text-xs font-black tracking-widest uppercase">{regime}</span>
               </div>
               <div className="flex items-end gap-2 mb-2">
-                <span className="text-6xl font-black text-white leading-none tracking-tighter">{score}</span>
-                <span className="text-gray-500 font-bold text-lg mb-1">/ 100</span>
+                <span className="text-6xl font-black text-text leading-none tracking-tighter">{score}</span>
+                <span className="text-text-secondary font-bold text-lg mb-1">/ 100</span>
               </div>
-              <div className="text-[10px] text-gray-500 font-bold tracking-widest uppercase mb-6">
+              <div className="text-[10px] text-text-secondary font-bold tracking-widest uppercase mb-6">
                 Basato su Divergenza Macro
               </div>
 
               {/* Score Slider */}
               <div className="relative w-full px-1">
-                <div className="h-1.5 w-full bg-slate-800/50 rounded-full overflow-hidden flex backdrop-blur-sm border border-white/5">
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden flex backdrop-blur-sm border border-border">
                   <div className="h-full bg-gradient-to-r from-rose-500 via-orange-500 to-emerald-500 w-full opacity-80"></div>
                 </div>
                 <div 
@@ -95,19 +95,19 @@ const MacroCards = ({ data }) => {
             </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-white/5">
+          <div className="space-y-4 pt-6 border-t border-border">
             <div className="flex flex-col gap-1">
               <span className="text-[9px] uppercase tracking-widest font-black text-emerald-500/70">🟢 Asset Preferiti</span>
-              <p className="text-sm text-gray-200 font-semibold leading-relaxed">{recommendations.prefer?.join(' • ') || 'N/A'}</p>
+              <p className="text-sm text-text font-semibold leading-relaxed">{recommendations.prefer?.join(' • ') || 'N/A'}</p>
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-[9px] uppercase tracking-widest font-black text-rose-500/70">🔴 Da Evitare</span>
-              <p className="text-sm text-gray-200 font-semibold leading-relaxed">{recommendations.avoid?.join(' • ') || 'N/A'}</p>
+              <p className="text-sm text-text font-semibold leading-relaxed">{recommendations.avoid?.join(' • ') || 'N/A'}</p>
             </div>
             
             <button 
               onClick={() => navigate('/asset/SPY')}
-              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all duration-300 hover:scale-105 cursor-pointer pt-2 group/btn"
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text transition-all duration-300 hover:scale-105 cursor-pointer pt-2 group/btn"
             >
               Dettagli <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
             </button>
@@ -115,10 +115,10 @@ const MacroCards = ({ data }) => {
         </div>
 
         {/* Card 2: 6M Macro Trend */}
-        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] flex flex-col group transition-all duration-300 hover:border-blue-500/30">
+        <div className="relative overflow-hidden bg-surface backdrop-blur-md p-6 rounded-3xl border border-border shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] flex flex-col group transition-all duration-300 hover:border-blue-500/30">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl group-hover:bg-blue-500/20 transition-colors duration-500" />
           
-          <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <h3 className="text-text-secondary font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
             <Activity className="w-3.5 h-3.5 text-blue-500" /> Direzione Economia (6M)
           </h3>
           
@@ -157,11 +157,11 @@ const MacroCards = ({ data }) => {
             </ResponsiveContainer>
           </div>
 
-          <div className="mt-4 pt-6 border-t border-white/5">
+          <div className="mt-4 pt-6 border-t border-border">
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <span className="text-[9px] text-gray-500 uppercase tracking-widest font-bold">Baseline (AVG)</span>
-                <span className="text-xs text-gray-300 font-mono">{historicAvg !== undefined ? historicAvg : '0'}</span>
+                <span className="text-[9px] text-text-secondary uppercase tracking-widest font-bold">Media Storica</span>
+                <span className="text-xs text-text font-mono">{historicAvg !== undefined ? historicAvg : '0'}</span>
               </div>
               <div className={`flex flex-col items-end ${isTrendUp ? 'text-emerald-400' : 'text-rose-400'}`}>
                 <div className="flex items-center gap-1 font-black">
@@ -174,7 +174,7 @@ const MacroCards = ({ data }) => {
             
             <button 
               onClick={() => navigate('/macro-deep-dive')}
-              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-all duration-300 hover:scale-105 cursor-pointer pt-4 group/btn"
+              className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-text-secondary hover:text-text transition-all duration-300 hover:scale-105 cursor-pointer pt-4 group/btn"
             >
               Analisi <ChevronRight className="w-3 h-3 transition-transform group-hover/btn:translate-x-1" />
             </button>
@@ -182,10 +182,10 @@ const MacroCards = ({ data }) => {
         </div>
 
         {/* Card 3: Prossimi Eventi */}
-        <div className="relative overflow-hidden bg-slate-900/40 backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-[0_8px_32px_0_rgba(0,0,0,0.36)] flex flex-col group transition-all duration-300 hover:border-purple-500/30">
+        <div className="relative overflow-hidden bg-surface backdrop-blur-md p-6 rounded-3xl border border-border shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] flex flex-col group transition-all duration-300 hover:border-purple-500/30">
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-colors duration-500" />
           
-          <h3 className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+          <h3 className="text-text-secondary font-bold text-[10px] uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
             <Clock className="w-3.5 h-3.5 text-purple-500" /> Prossimi Eventi
           </h3>
           
@@ -199,15 +199,15 @@ const MacroCards = ({ data }) => {
                 <div className="flex-grow">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span className="px-1.5 py-0.5 rounded-sm bg-purple-500/20 text-purple-400 text-[8px] font-black uppercase">{event.cur}</span>
-                    <span className="text-[10px] text-gray-400 font-bold uppercase truncate max-w-[120px]">{event.event}</span>
+                    <span className="text-[10px] text-text-secondary font-bold uppercase truncate max-w-[120px]">{event.event}</span>
                   </div>
                 </div>
                 <Zap className="w-1.5 h-1.5 rounded-full text-yellow-500 opacity-50" />
               </div>
             )) : (
               <div className="flex flex-col items-center justify-center flex-grow opacity-50">
-                <Layers className="w-6 h-6 text-gray-700 mb-2" />
-                <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest">Nessun evento rilevante</p>
+                <Layers className="w-6 h-6 text-text-secondary mb-2 opacity-30" />
+                <p className="text-[10px] text-text-secondary uppercase font-black tracking-widest">Nessun evento rilevante</p>
               </div>
             )}
           </div>
@@ -216,7 +216,7 @@ const MacroCards = ({ data }) => {
             onClick={handleScrollToCalendar}
             className="mt-6 w-full py-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-500 text-[10px] font-black uppercase tracking-[0.2em] transition-all hover:bg-purple-500 hover:text-white group/btn"
           >
-            Full Calendar <ChevronRight className="inline w-3 h-3 ml-1 transition-transform group-hover/btn:translate-x-1" />
+            Calendario Completo <ChevronRight className="inline w-3 h-3 ml-1 transition-transform group-hover/btn:translate-x-1" />
           </button>
         </div>
       </div>
@@ -224,14 +224,14 @@ const MacroCards = ({ data }) => {
       {/* Global Outlook Section */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {GLOBAL_DATA.map((item, idx) => (
-          <div key={idx} className="bg-slate-900/40 backdrop-blur-md p-4 rounded-2xl border border-white/5 flex flex-col gap-3 group hover:border-white/10 transition-colors">
+          <div key={idx} className="bg-surface backdrop-blur-md p-4 rounded-2xl border border-border flex flex-col gap-3 group hover:border-primary/20 transition-colors">
             <div className="flex lg:items-center justify-between gap-2 flex-col lg:flex-row">
               <div className="flex items-center gap-2">
                 <div className={`w-1.5 h-1.5 rounded-full ${item.color} shadow-[0_0_8px_rgba(255,255,255,0.2)]`} />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.name}</span>
+                <span className="text-[10px] font-black text-text-secondary uppercase tracking-widest">{item.name}</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg font-black text-white">{item.score}</span>
+                <span className="text-lg font-black text-text">{item.score}</span>
                 <span className={`text-[10px] font-bold ${item.change.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {item.change}
                 </span>
@@ -244,7 +244,7 @@ const MacroCards = ({ data }) => {
 
             <button 
               onClick={() => navigate(`/analysis/${item.ticker}`, { state: { regionalScore: item.score, change: item.change, data: item } })}
-              className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-gray-600 hover:text-gray-400 transition-all duration-300 hover:scale-105 cursor-pointer self-start group/btn"
+              className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-text-secondary hover:text-text transition-all duration-300 hover:scale-105 cursor-pointer self-start group/btn"
             >
               Dettagli <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover/btn:translate-x-1" />
             </button>

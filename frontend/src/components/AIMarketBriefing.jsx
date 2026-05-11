@@ -20,12 +20,7 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
     );
   }
 
-  // Return null if there is no actual data
-  if (!data?.title && (!Array.isArray(data?.bullets) || data.bullets.length === 0)) {
-    return null;
-  }
-
-  // Fallback data if incomplete
+  // Fallback data
   const title = data?.title || "Mercati in Stasi: Nessun Aggiornamento Rilevante";
   const bullets = Array.isArray(data?.bullets) ? data.bullets : ["Attendendo dati macro dall'AI..."];
   const timestamp = data?.timestamp || "---";
@@ -74,16 +69,25 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
             ))}
           </div>
 
-          {onForceSend && (
-            <div className="flex flex-wrap items-center gap-4">
+          <div className="flex flex-wrap items-center gap-4">
+            <button 
+              onClick={onSubscribe}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg hover:shadow-indigo-500/20 group/btn"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              Approfondisci Briefing
+              <ChevronRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+            </button>
+
+            {onForceSend && (
               <button 
                 onClick={onForceSend}
                 className="px-5 py-2.5 rounded-xl font-black text-gray-500 border border-white/5 hover:border-indigo-500/30 hover:text-indigo-400 transition-all text-[10px] uppercase tracking-widest"
               >
-                Sync Now
+                Aggiorna Ora
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

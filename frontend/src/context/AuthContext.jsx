@@ -15,11 +15,17 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [simulatedPlan, setSimulatedPlan] = useState(null);
 
-  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'dark');
-
+  const [theme] = useState('dark');
   useEffect(() => {
     const fetchUser = async () => {
+      if (import.meta.env.DEV) {
+        setUser({ name: 'Admin', email: 'admin@local.dev', isMaster: true, plan: 'pro', theme: 'dark' });
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       if (token) {
         try {
@@ -28,7 +34,6 @@ export const AuthProvider = ({ children }) => {
           });
           setUser(res.data);
           if (res.data.theme) {
-            setTheme(res.data.theme);
             localStorage.setItem('theme', res.data.theme);
           }
         } catch (error) {
@@ -43,32 +48,18 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
-    const applyTheme = (currentTheme) => {
-      const root = document.documentElement;
-      const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      if (currentTheme === 'dark' || (currentTheme === 'auto' && isSystemDark)) {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
+    document.documentElement.classList.add('dark');
+  }, []);
 
-    applyTheme(theme);
-
-    if (theme === 'auto') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      const handleChange = () => applyTheme('auto');
-      mediaQuery.addEventListener('change', handleChange);
-      return () => mediaQuery.removeEventListener('change', handleChange);
-    }
-  }, [theme]);
+  const changeTheme = (newTheme) => {
+    // Theme is locked to dark
+    localStorage.setItem('theme', 'dark');
+  };
 
   const login = (userData, token) => {
     localStorage.setItem('token', token);
     setUser(userData);
     if (userData.theme) {
-      setTheme(userData.theme);
       localStorage.setItem('theme', userData.theme);
     }
   };
@@ -76,7 +67,6 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    setTheme('dark');
     localStorage.setItem('theme', 'dark');
   };
 
@@ -91,7 +81,6 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', res.data.token);
       }
       if (res.data.theme) {
-        setTheme(res.data.theme);
         localStorage.setItem('theme', res.data.theme);
       }
       return { success: true };
@@ -101,8 +90,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const effectivePlan = simulatedPlan ? simulatedPlan : (user?.isMaster ? 'pro' : user?.plan);
+  const effectiveIsMaster = simulatedPlan ? false : user?.isMaster;
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, theme, updateSettings }}>
+    <AuthContext.Provider value={{ 
+      user, loading, login, logout, theme, changeTheme, updateSettings, 
+      simulatedPlan, setSimulatedPlan, effectivePlan, effectiveIsMaster
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   );

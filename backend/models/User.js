@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['dark', 'light'],
     default: 'dark'
+  },
+  plan: {
+    type: String,
+    enum: ['free', 'pro'],
+    default: 'free'
   }
 }, { timestamps: true });
 

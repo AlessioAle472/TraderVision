@@ -24,6 +24,7 @@ const LightweightChart = ({ symbol, data, finnhubKey }) => {
         layout: {
           textColor: '#94a3b8',
           background: { type: 'solid', color: 'transparent' },
+          attributionLogo: false,
         },
         grid: {
           vertLines: { color: 'rgba(51, 65, 85, 0.4)' },
@@ -35,6 +36,17 @@ const LightweightChart = ({ symbol, data, finnhubKey }) => {
           borderColor: 'rgba(51, 65, 85, 0.4)',
           timeVisible: true,
           secondsVisible: false,
+          lockVisibleTimeRangeOnResize: true,
+        },
+        handleScroll: false,
+        handleScale: false,
+        watermark: {
+          color: 'rgba(255, 255, 255, 0.05)',
+          visible: true,
+          text: 'TRADER VISION',
+          fontSize: 48,
+          horzAlign: 'center',
+          vertAlign: 'center',
         },
       };
 
@@ -52,6 +64,9 @@ const LightweightChart = ({ symbol, data, finnhubKey }) => {
 
       if (data && data.length > 0) {
         candlestickSeries.setData(data);
+        setTimeout(() => {
+          if (chartRef.current) chartRef.current.timeScale().fitContent();
+        }, 50);
       }
 
       if (finnhubKey) {

@@ -34,7 +34,7 @@ const resources = {
         markets: 'Mercati',
         watchlist: 'Watchlist',
         community: 'Community',
-        dailyNews: 'Daily News',
+        dailyNews: 'Notizie del Giorno',
         settings: 'Impostazioni',
         logout: 'Esci',
       },
@@ -129,7 +129,7 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en', // Lingua di default come richiesto
+    lng: 'it', // Italiano come lingua di default
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false, // React already safes from xss

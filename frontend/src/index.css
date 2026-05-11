@@ -4,21 +4,18 @@
 
 @layer base {
   :root {
-    --color-background: #F5F5DC;
-    --color-surface: #EBEBD2;
-    --color-text: #111827;
-  }
-
-  .dark {
     --color-background: #0B0F19;
     --color-surface: #1E293B;
     --color-text: #F3F4F6;
+    --color-text-secondary: #94A3B8;
+    --color-border: transparent;
+    --color-surface-hover: #263248;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-text);
-    @apply font-sans antialiased transition-colors duration-300;
+    @apply font-sans antialiased;
   }
 }
 
@@ -34,4 +31,110 @@
 @keyframes marquee {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
+}
+
+/* ─── Skeleton Loader ─────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.06) 25%,
+    rgba(148, 163, 184, 0.12) 50%,
+    rgba(148, 163, 184, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+
+
+/* ─── Mobile Scrollable Tables ────────────────────────────────────── */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 4px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+/* ─── Mobile Overflow Prevention ──────────────────────────────────── */
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+}
+
+/* ─── Animated Counter ────────────────────────────────────────────── */
+@keyframes countPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.counter-animate {
+  animation: countPulse 0.3s ease-out;
+}
+
+/* ─── Hover Interactivity & Glow ──────────────────────────────────── */
+@keyframes scoreGlow {
+  0% { text-shadow: 0 0 5px rgba(255,255,255,0); }
+  50% { text-shadow: 0 0 15px rgba(255,255,255,0.8); }
+  100% { text-shadow: 0 0 5px rgba(255,255,255,0); }
+}
+
+.score-glow {
+  animation: scoreGlow 1.5s ease-out;
+}
+
+.interactive-row {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.interactive-row:hover {
+  transform: scale(1.005);
+  box-shadow: -4px 0 0 0 var(--color-primary);
+  background-color: rgba(99, 102, 241, 0.05); /* indigo-500/5 */
+}
+
+.interactive-row:active {
+  transform: scale(0.995);
+  background-color: rgba(99, 102, 241, 0.1); /* indigo-500/10 */
+}
+
+.btn-hover-glow {
+  transition: all 0.3s ease;
+}
+
+.btn-hover-glow:hover {
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+}
+
+.btn-hover-glow:active {
+  transform: translateY(1px);
+}
+
+/* ─── Sidebar Mobile Overlay ──────────────────────────────────────── */
+.sidebar-overlay {
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-slide {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

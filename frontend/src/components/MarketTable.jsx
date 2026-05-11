@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, Star, SlidersHorizontal, X } from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext';
 import Sparkline from './Sparkline';
+import { SkeletonRow } from './SkeletonLoader';
+import InfoTooltip from './InfoTooltip';
 
 // Smart Score ranges for filtering
 const SCORE_RANGES = [
-  { label: 'All', min: 0, max: 100 },
-  { label: 'Strong Buy ≥ 80', min: 80, max: 100 },
-  { label: 'Buy 60-79', min: 60, max: 79 },
-  { label: 'Hold 40-59', min: 40, max: 59 },
-  { label: 'Sell < 40', min: 0, max: 39 },
+  { label: 'Tutti', min: 0, max: 100 },
+  { label: 'Forte Acquisto ≥ 80', min: 80, max: 100 },
+  { label: 'Acquisto 60-79', min: 60, max: 79 },
+  { label: 'Mantieni 40-59', min: 40, max: 59 },
+  { label: 'Vendi < 40', min: 0, max: 39 },
 ];
 
 const MARKET_LABELS = {
@@ -83,19 +85,12 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
     return 'text-danger bg-danger/10 border-danger/20';
   };
 
-  if (loading && assets.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 py-24 bg-surface rounded-2xl border border-slate-700/50">
-        <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4" />
-        <p className="text-gray-400 font-medium tracking-wide">Synchronizing terminal data...</p>
-      </div>
-    );
-  }
+  // Removed early return for loading to handle it inside the table body
 
   return (
-    <div className="bg-surface rounded-2xl border border-slate-700/50 overflow-hidden shadow-2xl">
+    <div className="bg-surface rounded-2xl border border-border overflow-hidden shadow-2xl">
       {/* Table Header Filter Bar */}
-      <div className="px-6 py-4 border-b border-slate-700/30 bg-slate-800/20 flex flex-wrap gap-4 items-center justify-between">
+      <div className="px-6 py-4 border-b border-border bg-background flex flex-wrap gap-4 items-center justify-between">
         <div className="flex flex-wrap gap-1.5">
           {categories.map((cat) => (
             <button
@@ -104,7 +99,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
               className={`px-4 py-1.5 rounded-xl text-xs font-bold border transition-all duration-300 ${
                 activeCategory === cat
                   ? 'bg-primary text-white border-primary shadow-lg shadow-primary/30'
-                  : 'bg-slate-800/60 text-gray-400 border-slate-700/50 hover:border-slate-500 hover:text-white'
+                  : 'bg-background text-text-secondary border-border hover:border-primary/50 hover:text-text'
               }`}
             >
               {MARKET_LABELS[cat] ?? cat}
@@ -119,8 +114,8 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
               onClick={() => setScoreFilter(i)}
               className={`px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-tighter font-black border transition-all duration-300 ${
                 scoreFilter === i
-                  ? 'bg-slate-700 text-white border-slate-600'
-                  : 'bg-slate-800/60 text-gray-500 border-slate-700/50 hover:border-slate-500 hover:text-gray-300'
+                  ? 'bg-surface-hover text-text border-border'
+                  : 'bg-background text-text-secondary border-border hover:border-primary/50 hover:text-text'
               }`}
             >
               {range.label}
@@ -129,33 +124,42 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
           {hasActiveFilters && (
             <button
               onClick={resetFilters}
-              className="ml-2 flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] uppercase font-bold text-gray-400 hover:text-white bg-slate-800 border border-slate-700 transition-all"
+              className="ml-2 flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] uppercase font-bold text-text-secondary hover:text-text bg-surface border border-border transition-all"
             >
               <X className="w-3 h-3" />
-              Reset
+              Azzera
             </button>
           )}
         </div>
       </div>
 
       {/* Table Content */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left">
-          <thead className="bg-slate-800/50 border-b border-slate-700/50">
+      <div className="table-scroll" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <table className="w-full text-left min-w-[800px]">
+          <thead className="bg-surface-hover border-b border-border">
             <tr>
               <th className="p-4 w-10"></th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Asset</th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right">Price</th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right">24H %</th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-center">Momentum</th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-center">Trend (7D)</th>
-              <th className="p-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-center">Smart Quant</th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest">Asset</th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">Prezzo</th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">24H %</th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">
+                Momentum
+                <InfoTooltip text="Variazione percentuale dei prezzi negli ultimi 7 giorni" />
+              </th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">Trend (7G)</th>
+              <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">
+                Smart Quant
+                <InfoTooltip text="Punteggio quantitativo proprietario 0-100 basato su analisi tecnica, fondamentali e stagionalità" />
+              </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-700/30">
-            {filteredAssets.length === 0 ? (
+          <tbody className="divide-y divide-border">
+            {loading && assets.length === 0 ? (
+              // Mostra 8 righe skeleton durante il caricamento iniziale
+              [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
+            ) : filteredAssets.length === 0 ? (
               <tr>
-                <td colSpan="7" className="p-12 text-center text-gray-500 bg-slate-800/10">
+                <td colSpan="7" className="p-12 text-center text-text-secondary bg-surface-hover/10">
                   <div className="flex flex-col items-center gap-2">
                     <AlertCircle className="w-8 h-8 opacity-20" />
                     <p className="font-medium">Nessun asset corrispondente ai criteri di ricerca.</p>
@@ -166,7 +170,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
               filteredAssets.map((asset) => (
                 <tr
                   key={asset.ticker}
-                  className="hover:bg-indigo-500/5 transition-all group cursor-pointer border-l-2 border-transparent hover:border-primary"
+                  className="hover:bg-primary/5 transition-all group cursor-pointer border-l-2 border-transparent hover:border-primary"
                   onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
                 >
                   <td className="p-4 w-10" onClick={(e) => e.stopPropagation()}>
@@ -176,16 +180,16 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center font-black text-[12px] text-white border border-white/5">
+                      <div className="w-9 h-9 rounded-xl bg-surface-hover flex items-center justify-center font-black text-[12px] text-text border border-border">
                         {asset.ticker.substring(0, 1)}
                       </div>
                       <div>
-                        <div className="text-sm font-bold tracking-tight text-white group-hover:text-primary transition-colors">{asset.ticker}</div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-tighter opacity-60">{asset.settore}</div>
+                        <div className="text-sm font-bold tracking-tight text-text group-hover:text-primary transition-colors">{asset.ticker}</div>
+                        <div className="text-[10px] text-text-secondary uppercase font-black tracking-tighter opacity-60">{asset.settore}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="p-4 text-right font-mono text-sm text-white font-medium">
+                  <td className="p-4 text-right font-mono text-sm text-text font-medium">
                     {typeof asset.prezzo === 'number' ? `$${asset.prezzo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : '---'}
                   </td>
                   <td className="p-4 text-right">

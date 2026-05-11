@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { User, Lock, Mail, Moon, Sun, Monitor, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 const Settings = () => {
-  const { user, theme, updateSettings } = useAuth();
+  const { user, updateSettings } = useAuth();
   
   const [formData, setFormData] = useState({
     email: '',
@@ -11,24 +11,21 @@ const Settings = () => {
     confirmPassword: '',
   });
   
-  const [localTheme, setLocalTheme] = useState(theme || 'dark');
+
   const [status, setStatus] = useState({ type: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFormData(prev => ({ ...prev, email: user.email }));
-      setLocalTheme(user.theme || theme || 'dark');
     }
-  }, [user, theme]);
+  }, [user]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleThemeChange = (newTheme) => {
-    setLocalTheme(newTheme);
-  };
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,7 +41,6 @@ const Settings = () => {
     const updateData = {};
     if (formData.email !== user?.email) updateData.email = formData.email;
     if (formData.password) updateData.password = formData.password;
-    if (localTheme !== user?.theme) updateData.theme = localTheme;
 
     if (Object.keys(updateData).length === 0) {
       setStatus({ type: 'info', message: 'Nessuna modifica da salvare.' });
@@ -93,49 +89,7 @@ const Settings = () => {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        {/* Aspect & Theme Section */}
-        <section className="bg-surface p-6 rounded-2xl border border-slate-700/30 dark:border-slate-700/50 shadow-sm">
-          <h2 className="text-xl font-bold text-text mb-6 flex items-center gap-2">
-            Aspetto
-          </h2>
-          
-          <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-slate-700/10 dark:border-slate-700/50">
-            <div>
-              <h3 className="font-medium text-text">Tema dell'applicazione</h3>
-              <p className="text-sm text-gray-500">Scegli tra Dark Mode e Light Mode (Avorio).</p>
-            </div>
-            
-            <div className="flex bg-slate-200 dark:bg-slate-800 rounded-lg p-1">
-              <button
-                type="button"
-                onClick={() => handleThemeChange('light')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  localTheme === 'light' ? 'bg-white dark:bg-slate-700 text-amber-500 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <Sun className="w-4 h-4" /> Light
-              </button>
-              <button
-                type="button"
-                onClick={() => handleThemeChange('dark')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  localTheme === 'dark' ? 'bg-white dark:bg-slate-700 text-indigo-500 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <Moon className="w-4 h-4" /> Dark
-              </button>
-              <button
-                type="button"
-                onClick={() => handleThemeChange('auto')}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                  localTheme === 'auto' ? 'bg-white dark:bg-slate-700 text-primary shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
-              >
-                <Monitor className="w-4 h-4" /> Auto
-              </button>
-            </div>
-          </div>
-        </section>
+
 
         {/* Account Details Section */}
         <section className="bg-surface p-6 rounded-2xl border border-slate-700/30 dark:border-slate-700/50 shadow-sm">

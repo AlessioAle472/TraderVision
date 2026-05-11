@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import DashboardLayout from './layout/DashboardLayout';
 import Dashboard from './pages/Dashboard';
 import AssetDetail from './pages/AssetDetail';
+import TickerAnalysis from './pages/TickerAnalysis';
 import Markets from './pages/Markets';
 import Watchlist from './pages/Watchlist';
 import Community from './pages/Community';
@@ -27,6 +28,7 @@ function App() {
               <Routes>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/asset/:ticker" element={<AssetDetail />} />
+                <Route path="/ticker/:ticker" element={<TickerAnalysis />} />
                 <Route path="/markets" element={<Markets />} />
                 <Route path="/watchlist" element={<Watchlist />} />
                 <Route path="/community" element={<Community />} />

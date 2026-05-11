@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import apiClient from '../services/apiClient';
 import Sparkline from '../components/Sparkline';
+import PremiumGate from '../components/PremiumGate';
 
 const Markets = () => {
   const navigate = useNavigate();
@@ -119,7 +120,7 @@ const Markets = () => {
                   <Search className="w-4 h-4 text-gray-600 absolute left-3 top-1/2 -translate-y-1/2" />
                   <input 
                     type="text" 
-                    placeholder="Search asset..." 
+                    placeholder="Cerca asset..." 
                     className="bg-white/5 border border-white/5 rounded-xl py-2 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus:border-blue-500/50 transition-all w-48"
                   />
               </div>
@@ -132,15 +133,15 @@ const Markets = () => {
         {activeTab === 'crypto' && <CryptoDivergenceInsights />}
 
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
+          <div className="table-scroll">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Identity</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Price</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Trend (7D)</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">1D %</th>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">1W %</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest">Asset</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-right">Prezzo</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Trend (7G)</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">1G %</th>
+                  <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">1S %</th>
                   <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">1M %</th>
                   <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Momentum</th>
                   <th className="px-8 py-5 text-[10px] font-black text-gray-500 uppercase tracking-widest text-center">Smart Quant</th>
@@ -151,7 +152,7 @@ const Markets = () => {
                 {currentAssets.map((asset) => (
                   <tr 
                     key={asset.ticker}
-                    onClick={() => navigate(`/asset/${encodeURIComponent(asset.yahooTicker)}`)}
+                    onClick={() => navigate(`/ticker/${encodeURIComponent(asset.yahooTicker)}`)}
                     className="group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 relative z-10"
                   >
                     <td className="px-8 py-6">
@@ -428,37 +429,39 @@ const CryptoDivergenceInsights = () => {
             {/* Background effects */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
             
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                <div>
-                    <h3 className="text-sm font-black text-white flex items-center gap-2 tracking-tighter">
-                        <Sparkles className="w-4 h-4 text-emerald-400" /> AI Crypto Divergence
-                    </h3>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
-                        Analisi strutturale Bitcoin vs Altcoin Dominance
-                    </p>
+            <PremiumGate>
+                <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div>
+                        <h3 className="text-sm font-black text-white flex items-center gap-2 tracking-tighter">
+                            <Sparkles className="w-4 h-4 text-emerald-400" /> AI Crypto Divergence
+                        </h3>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
+                            Analisi strutturale Bitcoin vs Altcoin Dominance
+                        </p>
+                    </div>
+
+                    {!insight && !loading && (
+                        <button 
+                            onClick={fetchDivergence}
+                            className="px-4 py-2 bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg"
+                        >
+                            Analizza Divergenza Altcoin
+                        </button>
+                    )}
+
+                    {loading && (
+                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400/70">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Elaborazione modello quantitativo...
+                        </div>
+                    )}
                 </div>
 
-                {!insight && !loading && (
-                    <button 
-                        onClick={fetchDivergence}
-                        className="px-4 py-2 bg-white/5 border border-white/10 hover:border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg"
-                    >
-                        Analizza Divergenza Altcoin
-                    </button>
-                )}
-
-                {loading && (
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400/70">
-                        <Loader2 className="w-3 h-3 animate-spin" /> Elaborazione modello quantitativo...
+                {insight && (
+                    <div className="mt-4 pt-4 border-t border-white/5 text-sm font-medium text-gray-300 leading-relaxed animate-in fade-in slide-in-from-top-2">
+                        {insight}
                     </div>
                 )}
-            </div>
-
-            {insight && (
-                <div className="mt-4 pt-4 border-t border-white/5 text-sm font-medium text-gray-300 leading-relaxed animate-in fade-in slide-in-from-top-2">
-                    {insight}
-                </div>
-            )}
+            </PremiumGate>
         </div>
     );
 };
@@ -486,19 +489,23 @@ const MacroAlertBanner = () => {
         <div className="bg-rose-500/10 border border-rose-500/20 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.1)] flex gap-4 items-start animate-in fade-in slide-in-from-top-4">
             <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 blur-[60px] rounded-full pointer-events-none" />
             
-            <div className="p-3 bg-rose-500/20 rounded-xl">
-                <AlertTriangle className="w-6 h-6 text-rose-500" />
-            </div>
-            
-            <div className="space-y-1 relative z-10">
-                <h3 className="text-sm font-black text-rose-400 capitalize tracking-wide flex items-center gap-2">
-                    Alert Macroeconomico Rilevato
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                </h3>
-                <p className="text-sm text-gray-300 leading-relaxed font-medium">
-                    {alert}
-                </p>
-            </div>
+            <PremiumGate>
+                <div className="flex gap-4 items-start">
+                    <div className="p-3 bg-rose-500/20 rounded-xl">
+                        <AlertTriangle className="w-6 h-6 text-rose-500" />
+                    </div>
+                    
+                    <div className="space-y-1 relative z-10">
+                        <h3 className="text-sm font-black text-rose-400 capitalize tracking-wide flex items-center gap-2">
+                            Alert Macroeconomico Rilevato
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                        </h3>
+                        <p className="text-sm text-gray-300 leading-relaxed font-medium">
+                            {alert}
+                        </p>
+                    </div>
+                </div>
+            </PremiumGate>
         </div>
     );
 };
@@ -523,41 +530,43 @@ const GlobalCapitalFlowBox = () => {
         <div className="bg-slate-900/40 backdrop-blur-2xl border border-white/5 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-50" />
             
-            <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div>
-                    <h3 className="text-xl font-black text-white flex items-center gap-3 tracking-tighter">
-                        <Globe className="w-6 h-6 text-blue-400" />
-                        Global Capital Flow Engine
-                    </h3>
-                    <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">
-                        Tracking liquidità istituzionale tra Economie Sviluppate ed Emergenti
-                    </p>
+            <PremiumGate>
+                <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div>
+                        <h3 className="text-xl font-black text-white flex items-center gap-3 tracking-tighter">
+                            <Globe className="w-6 h-6 text-blue-400" />
+                            Global Capital Flow Engine
+                        </h3>
+                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">
+                            Tracking liquidità istituzionale tra Economie Sviluppate ed Emergenti
+                        </p>
+                    </div>
+
+                    {!insight && !loading && (
+                        <button 
+                            onClick={fetchFlow}
+                            className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20"
+                        >
+                            Analizza Macro Flussi
+                        </button>
+                    )}
+
+                    {loading && (
+                        <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-blue-400">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Elaborazione Aggregati...
+                        </div>
+                    )}
                 </div>
 
-                {!insight && !loading && (
-                    <button 
-                        onClick={fetchFlow}
-                        className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20"
-                    >
-                        Analizza Macro Flussi
-                    </button>
-                )}
-
-                {loading && (
-                    <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-blue-400">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Elaborazione Aggregati...
+                {insight && (
+                    <div className="mt-6 pt-6 border-t border-white/5 relative z-10">
+                        <div 
+                            className="text-sm font-medium text-gray-300 leading-relaxed space-y-2 animate-in fade-in slide-in-from-top-4"
+                            dangerouslySetInnerHTML={{ __html: insight }}
+                        />
                     </div>
                 )}
-            </div>
-
-            {insight && (
-                <div className="mt-6 pt-6 border-t border-white/5 relative z-10">
-                    <div 
-                        className="text-sm font-medium text-gray-300 leading-relaxed space-y-2 animate-in fade-in slide-in-from-top-4"
-                        dangerouslySetInnerHTML={{ __html: insight }}
-                    />
-                </div>
-            )}
+            </PremiumGate>
         </div>
     );
 };

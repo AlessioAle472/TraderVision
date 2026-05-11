@@ -2,8 +2,17 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
+// ─── DEV BYPASS ──────────────────────────────────────────────────────────────
+// In locale (npm run dev) l'auth è disabilitata per comodità.
+// In produzione (build) il guard è pienamente attivo.
+const DEV_BYPASS = import.meta.env.DEV;
+// ─────────────────────────────────────────────────────────────────────────────
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+
+  // Bypass completo in sviluppo locale
+  if (DEV_BYPASS) return children;
 
   if (loading) {
     return (
@@ -21,3 +30,4 @@ const ProtectedRoute = ({ children }) => {
 };
 
 export default ProtectedRoute;
+

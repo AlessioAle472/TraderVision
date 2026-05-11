@@ -21,11 +21,13 @@ router.post('/register', async (req, res) => {
     }
 
     const isMaster = email === 'alessio199621@gmail.com';
+    const plan = isMaster ? 'pro' : 'free';
 
     const user = await User.create({
       email,
       password,
-      isMaster
+      isMaster,
+      plan
     });
 
     if (user) {
@@ -33,6 +35,7 @@ router.post('/register', async (req, res) => {
         _id: user._id,
         email: user.email,
         isMaster: user.isMaster,
+        plan: user.plan,
         theme: user.theme,
         token: generateToken(user._id)
       });
@@ -55,6 +58,7 @@ router.post('/login', async (req, res) => {
         _id: user._id,
         email: user.email,
         isMaster: user.isMaster,
+        plan: user.plan,
         theme: user.theme,
         token: generateToken(user._id)
       });
@@ -100,6 +104,7 @@ router.put('/settings', protect, async (req, res) => {
       _id: updatedUser._id,
       email: updatedUser.email,
       isMaster: updatedUser.isMaster,
+      plan: updatedUser.plan,
       theme: updatedUser.theme,
       token: generateToken(updatedUser._id) // Optionally return new token, but old one still works
     });

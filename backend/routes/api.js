@@ -15,6 +15,8 @@ const macroDeepDiveService = require('../services/macroDeepDiveService');
 const { generateSynthesis } = require('../services/aiSynthesisService');
 const { generateRiskReport } = require('../services/riskReportService');
 const marketsService = require('../services/marketsService');
+const TickerMapping = require('../models/TickerMapping');
+const { protect, master } = require('../middleware/authMiddleware');
 
 // POST /api/newsletter/subscribe — subscribes a user to the daily briefing email
 router.post('/newsletter/subscribe', (req, res) => {
@@ -43,6 +45,35 @@ router.post('/briefing/force-send', async (req, res) => {
   }
 });
 
+// GET /api/ticker-mapping/:yfSymbol
+router.get('/ticker-mapping/:yfSymbol', async (req, res) => {
+  try {
+    const mapping = await TickerMapping.findOne({ yfSymbol: req.params.yfSymbol.toUpperCase() });
+    res.json({ tvSymbol: mapping ? mapping.tvSymbol : null });
+  } catch (error) {
+    console.error('API Error in GET /ticker-mapping:', error);
+    res.status(500).json({ error: 'Failed to fetch mapping' });
+  }
+});
+
+// POST /api/ticker-mapping
+router.post('/ticker-mapping', protect, master, async (req, res) => {
+  try {
+    const { yfSymbol, tvSymbol } = req.body;
+    if (!yfSymbol || !tvSymbol) {
+      return res.status(400).json({ error: 'Both yfSymbol and tvSymbol are required' });
+    }
+    const mapping = await TickerMapping.findOneAndUpdate(
+      { yfSymbol: yfSymbol.toUpperCase() },
+      { tvSymbol: tvSymbol.toUpperCase() },
+      { upsert: true, new: true }
+    );
+    res.json(mapping);
+  } catch (error) {
+    console.error('API Error in POST /ticker-mapping:', error);
+    res.status(500).json({ error: 'Failed to save mapping' });
+  }
+});
 
 // GET /api/macro-deep-dive
 router.get('/macro-deep-dive', async (req, res) => {

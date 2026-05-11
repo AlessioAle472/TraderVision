@@ -3,6 +3,7 @@ import { Calendar as CalendarIcon, Sparkles, Clock, Mail, ChevronRight, Zap } fr
 import { useTranslation } from 'react-i18next';
 import WorldCalendar from '../components/WorldCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
+import PremiumGate from '../components/PremiumGate';
 
 // ── Components ────────────────────────────────────────────────────────────
 
@@ -161,12 +162,14 @@ const DailyNews = () => {
            <Zap className="w-4 h-4 text-primary fill-primary" />
            <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">AI Market Briefing</h3>
         </div>
-        <AIMarketBriefing 
-          data={briefing} 
-          loading={briefingLoading} 
-          onSubscribe={() => setIsModalOpen(true)}
-          onForceSend={handleForceSend}
-        />
+        <PremiumGate>
+          <AIMarketBriefing 
+            data={briefing} 
+            loading={briefingLoading} 
+            onSubscribe={() => setIsModalOpen(true)}
+            onForceSend={handleForceSend}
+          />
+        </PremiumGate>
       </section>
 
       {/* ── TradingView Calendar Section ── */}

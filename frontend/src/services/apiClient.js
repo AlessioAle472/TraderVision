@@ -122,6 +122,24 @@ const apiClient = {
       console.error('Failed to fetch global capital flow calculation', error);
       throw error;
     }
+  },
+  getTickerMapping: async (yfSymbol) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/ticker-mapping/${encodeURIComponent(yfSymbol)}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch ticker mapping', error);
+      return { tvSymbol: null }; // Silent fail, just use fallback
+    }
+  },
+  saveTickerMapping: async (yfSymbol, tvSymbol) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/ticker-mapping`, { yfSymbol, tvSymbol });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to save ticker mapping', error);
+      throw error;
+    }
   }
 };
 
