@@ -77,11 +77,18 @@ async function getEconomicDirection() {
             }
         }
         
-        // Return exactly the last 126 items
-        return trend6m.slice(-requiredCalculated);
+        const currentClose = closes[closes.length - 1];
+        const pastClose = closes[closes.length - 126] || closes[0];
+        const percentChange6m = ((currentClose - pastClose) / pastClose) * 100;
+
+        // Return exactly the last 126 items and the percent change
+        return {
+            trend6m: trend6m.slice(-requiredCalculated),
+            percentChange6m: Math.round(percentChange6m * 100) / 100
+        };
     } catch (error) {
         console.error('[EconomicDirection] Failed to calculate:', error.message);
-        return [];
+        return { trend6m: [], percentChange6m: 0 };
     }
 }
 

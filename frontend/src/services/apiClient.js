@@ -140,6 +140,24 @@ const apiClient = {
       console.error('Failed to save ticker mapping', error);
       throw error;
     }
+  },
+  getCentralBanks: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/macro/central-banks`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch central banks data', error);
+      throw error;
+    }
+  },
+  getRegionalRegime: async (region) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/macro/regime/${region}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch regional macro regime', error);
+      throw error;
+    }
   }
 };
 

@@ -9,24 +9,24 @@ const DEV_BYPASS = import.meta.env.DEV;
 // ─────────────────────────────────────────────────────────────────────────────
 
 const ProtectedRoute = ({ children }) => {
-  const { user, loading } = useAuth();
+ const { user, loading } = useAuth();
 
-  // Bypass completo in sviluppo locale
-  if (DEV_BYPASS) return children;
+ // Bypass completo in sviluppo locale
+ if (DEV_BYPASS) return children;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-text">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+ if (loading) {
+ return (
+ <div className="min-h-screen flex items-center justify-center bg-background text-text">
+ <div className="animate-spin rounded-full h-12 w-12"></div>
+ </div>
+ );
+ }
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
+ if (!user) {
+ return <Navigate to="/login"replace />;
+ }
 
-  return children;
+ return children;
 };
 
 export default ProtectedRoute;

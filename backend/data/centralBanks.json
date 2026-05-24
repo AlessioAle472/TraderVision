@@ -1,0 +1,32 @@
+{
+  "usa": {
+    "name": "Federal Reserve (FED)",
+    "tone": "Hawkish",
+    "nextMeeting": "12-06-2026"
+  },
+  "europe": {
+    "name": "European Central Bank (ECB)",
+    "tone": "Dovish",
+    "nextMeeting": "04-06-2026"
+  },
+  "japan": {
+    "name": "Bank of Japan (BOJ)",
+    "tone": "Hawkish",
+    "nextMeeting": "19-06-2026"
+  },
+  "asia": {
+    "name": "People's Bank of China (PBOC)",
+    "tone": "Dovish",
+    "nextMeeting": "20-06-2026"
+  },
+  "australia": {
+    "name": "Reserve Bank of Australia (RBA)",
+    "tone": "Neutral",
+    "nextMeeting": "18-06-2026"
+  },
+  "canada": {
+    "name": "Bank of Canada (BOC)",
+    "tone": "Neutral",
+    "nextMeeting": "05-06-2026"
+  }
+}

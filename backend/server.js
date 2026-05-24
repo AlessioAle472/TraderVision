@@ -12,6 +12,8 @@ app.set('trust proxy', 1);
 // Configure CORS
 const allowedOrigins = [
   'http://localhost:5173', // Vite default local dev
+  'http://localhost:5174', // Vite fallback
+  'http://localhost:5175', // Vite fallback
   'https://tradervision-quantitativemarkets.com',
   'https://www.tradervision-quantitativemarkets.com',
   process.env.CORS_ORIGIN // Fallback from env
@@ -36,12 +38,16 @@ app.use(express.json());
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/authRoutes');
 const { initAIJobs } = require('./services/aiBriefingJob');
+const marketCronJob = require('./services/marketCronJob');
 
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
 
 // Initialize AI Briefing Scheduler
 initAIJobs();
+
+// Initialize Daily Market Data Cron (06:00 AM)
+marketCronJob.init();
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Trader Vision API is running' });

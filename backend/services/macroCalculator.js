@@ -59,7 +59,7 @@ const isDataCurrent = (storedData) => {
     return storedDate >= cutoff;
 };
 
-const calculateCurrentRegime = async () => {
+const calculateCurrentRegime = async (customTickers = null) => {
     try {
         const storedData = getStoredMacroData();
         
@@ -71,7 +71,10 @@ const calculateCurrentRegime = async () => {
 
         console.log('[MacroService] 07:00 AM threshold passed. Fetching new historical data from Yahoo Finance...');
         
-        const tickers = ['SPY', 'TLT', 'GLD', 'USO', '^VIX'];
+        // Expected roles: [Equity (e.g. SPY), Bond (e.g. TLT), SafeHaven (e.g. GLD), Energy (e.g. USO), Volatility (e.g. ^VIX)]
+        const tickers = customTickers || ['SPY', 'TLT', 'GLD', 'USO', '^VIX'];
+        const [eqTicker, bondTicker, goldTicker, oilTicker, vixTicker] = tickers;
+        
         const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000); 
 
         const results = await Promise.all(tickers.map(async (ticker) => {
@@ -127,16 +130,16 @@ const calculateCurrentRegime = async () => {
             return round2(sum / daysToSmooth);
         };
 
-        const spy = calcSmoothedTrend('SPY');
-        const tlt = calcSmoothedTrend('TLT');
-        const gld = calcSmoothedTrend('GLD');
-        const uso = calcSmoothedTrend('USO');
+        const spy = calcSmoothedTrend(eqTicker);
+        const tlt = calcSmoothedTrend(bondTicker);
+        const gld = calcSmoothedTrend(goldTicker);
+        const uso = calcSmoothedTrend(oilTicker);
         
         // Also use yesterday's close for VIX to maintain temporal consistency
-        const currentVix = round2(histories['^VIX'][histories['^VIX'].length - 2].close);
+        const currentVix = round2(histories[vixTicker][histories[vixTicker].length - 2].close);
 
         // --- Log for Debugging ---
-        console.log(`[MacroService] Institutional Trends (Yesterday Close) - SPY: ${spy}%, TLT: ${tlt}%, GLD: ${gld}%, USO: ${uso}%`);
+        console.log(`[MacroService] Institutional Trends (Yesterday Close) - Equity(${eqTicker}): ${spy}%, Bond(${bondTicker}): ${tlt}%, SafeHaven(${goldTicker}): ${gld}%, Energy(${oilTicker}): ${uso}%`);
 
         // --- Outlier Capping (Rounded) ---
         const cap = (val) => round2(Math.max(-15, Math.min(15, val)));
@@ -147,7 +150,10 @@ const calculateCurrentRegime = async () => {
 
         // --- Regime Algorithm Implementation ---
         let regime = "NEUTRO";
-        let recommendations = { prefer: [], avoid: [] };
+        let recommendations = { 
+            prefer: ["Azioni Value", "Titoli a Dividendo", "Diversified ETF"], 
+            avoid: ["Altissima Volatilità", "Concentrated Bets"] 
+        };
 
         if (cSpy < 0 && cTlt > 0) {
             regime = "DEFLAZIONE";
@@ -217,9 +223,13 @@ const calculateCurrentRegime = async () => {
         let finalScore = rawScore;
 
         // --- Sparkline Data ---
-        let trend6m = await getEconomicDirection();
+        let ecoDir = await getEconomicDirection();
+        let trend6m = ecoDir.trend6m;
+        let percentChange6m = ecoDir.percentChange6m;
+        
         if (!trend6m || trend6m.length === 0) {
             trend6m = storedData?.trend6m || [0, 0, 0, 0, 0, 0];
+            percentChange6m = storedData?.percentChange6m || 0;
         }
 
         // The Baseline in UI is 0
@@ -230,6 +240,7 @@ const calculateCurrentRegime = async () => {
             score: finalScore,
             recommendations,
             trend6m,
+            percentChange6m,
             historicAvg
         };
 

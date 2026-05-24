@@ -4,18 +4,31 @@
 
 @layer base {
   :root {
-    --color-background: #0B0F19;
-    --color-surface: #1E293B;
-    --color-text: #F3F4F6;
-    --color-text-secondary: #94A3B8;
-    --color-border: transparent;
-    --color-surface-hover: #263248;
+    --color-background: #030712; /* Deeper slate/gray-950 */
+    --color-surface: #111827; /* Gray-900 */
+    --color-text: #F9FAFB;
+    --color-text-secondary: #9CA3AF;
+    --color-border: rgba(255, 255, 255, 0.05);
+    --color-surface-hover: #1F2937;
   }
 
   body {
     background-color: var(--color-background);
     color: var(--color-text);
     @apply font-sans antialiased;
+    background-image: radial-gradient(circle at top, rgba(30, 58, 138, 0.1) 0%, transparent 40%);
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-gray-900/60 backdrop-blur-xl border border-white/5 shadow-2xl;
+  }
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-400;
+  }
+  .smart-quant-gauge {
+    @apply relative flex items-center justify-center rounded-full shadow-[inset_0_-4px_10px_rgba(0,0,0,0.5)];
   }
 }
 

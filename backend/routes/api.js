@@ -12,10 +12,14 @@ const macroCalculator = require('../services/macroCalculator');
 const economicCalendar = require('../services/economicCalendar');
 const communityMock = require('../data/community_mock');
 const macroDeepDiveService = require('../services/macroDeepDiveService');
+const fredService = require('../services/fredService');
+const centralBanksData = require('../data/centralBanks.json');
 const { generateSynthesis } = require('../services/aiSynthesisService');
 const { generateRiskReport } = require('../services/riskReportService');
 const marketsService = require('../services/marketsService');
 const TickerMapping = require('../models/TickerMapping');
+const MarketConfig = require('../models/MarketConfig');
+const PreloadedMarketData = require('../models/PreloadedMarketData');
 const { protect, master } = require('../middleware/authMiddleware');
 
 // POST /api/newsletter/subscribe — subscribes a user to the daily briefing email
@@ -260,18 +264,64 @@ router.get('/community/topic/:id', (req, res) => {
 // GET /api/macro-outlook — returns aggregated macro data and economic events
 router.get('/macro-outlook', async (req, res) => {
   try {
-    const [macro, events] = await Promise.all([
-      macroCalculator.calculateCurrentRegime(),
-      economicCalendar.getHighImpactEvents()
-    ]);
-
-    res.json({
-      ...macro,
-      events
-    });
+    const latest = await PreloadedMarketData.findOne({ dataId: 'latest' });
+    if (!latest || !latest.macroOutlook) {
+        return res.status(202).json({
+            regime: "CALCULATING",
+            score: 50,
+            recommendations: { prefer: [], avoid: [] },
+            trend6m: [0, 0, 0, 0, 0, 0],
+            events: []
+        });
+    }
+    res.json(latest.macroOutlook);
   } catch (error) {
     console.error('Error fetching macro outlook:', error);
     res.status(500).json({ error: 'Failed to fetch macro outlook data' });
+  }
+});
+
+// GET /api/admin/config
+router.get('/admin/config', protect, master, async (req, res) => {
+  try {
+    let config = await MarketConfig.findOne({ configId: 'default' });
+    if (!config) {
+      config = new MarketConfig();
+      await config.save();
+    }
+    res.json(config);
+  } catch (error) {
+    console.error('Error in GET /admin/config:', error);
+    res.status(500).json({ error: 'Failed to fetch config' });
+  }
+});
+
+// POST /api/admin/config
+router.post('/admin/config', protect, master, async (req, res) => {
+  try {
+    const { assetGroups } = req.body;
+    let config = await MarketConfig.findOneAndUpdate(
+      { configId: 'default' },
+      { assetGroups },
+      { upsert: true, new: true }
+    );
+    res.json(config);
+  } catch (error) {
+    console.error('Error in POST /admin/config:', error);
+    res.status(500).json({ error: 'Failed to update config' });
+  }
+});
+
+// POST /api/admin/force-refresh
+router.post('/admin/force-refresh', protect, master, async (req, res) => {
+  try {
+    const marketCronJob = require('../services/marketCronJob');
+    // Run it asynchronously so we don't block the request for 30s
+    marketCronJob.runCalculations().catch(e => console.error("Force refresh error:", e));
+    res.json({ message: 'Refresh started in background. Data will update in a few minutes.' });
+  } catch (error) {
+    console.error('Error in POST /admin/force-refresh:', error);
+    res.status(500).json({ error: 'Failed to force refresh' });
   }
 });
 
@@ -375,6 +425,61 @@ router.get('/capital-flow', async (req, res) => {
   } catch (error) {
     console.error(`Error fetching capital flow:`, error);
     res.status(500).json({ error: 'Failed to fetch capital flow' });
+  }
+});
+
+// GET /api/macro/central-banks — Fetches Central Banks tones and FRED rates
+router.get('/macro/central-banks', async (req, res) => {
+  try {
+    const response = {};
+    const regions = Object.keys(centralBanksData);
+    
+    // Fetch rates in parallel
+    const ratePromises = regions.map(region => fredService.getLatestRate(region));
+    const rates = await Promise.all(ratePromises);
+
+    regions.forEach((region, index) => {
+      response[region] = {
+        name: centralBanksData[region].name,
+        tone: centralBanksData[region].tone,
+        nextMeeting: centralBanksData[region].nextMeeting,
+        rate: rates[index]
+      };
+    });
+
+    res.json(response);
+  } catch (error) {
+    console.error('Error fetching central banks data:', error);
+    res.status(500).json({ error: 'Failed to fetch central banks data' });
+  }
+});
+
+// GET /api/macro/regime/:region — Calculates macro regime based on regional equity proxy
+router.get('/macro/regime/:region', async (req, res) => {
+  try {
+    const { region } = req.params;
+    
+    // Map regions to custom equity tickers
+    // [Equity, Bond, Gold, Oil, Vix]
+    const regionalMapping = {
+      usa: ['SPY', 'TLT', 'GLD', 'USO', '^VIX'],
+      europe: ['VGK', 'TLT', 'GLD', 'USO', '^VIX'],
+      japan: ['EWJ', 'TLT', 'GLD', 'USO', '^VIX'],
+      asia: ['MCHI', 'TLT', 'GLD', 'USO', '^VIX'],
+      australia: ['EWA', 'TLT', 'GLD', 'USO', '^VIX'],
+      canada: ['EWC', 'TLT', 'GLD', 'USO', '^VIX']
+    };
+
+    const tickers = regionalMapping[region];
+    if (!tickers) {
+      return res.status(400).json({ error: 'Unsupported region' });
+    }
+
+    const regimeData = await macroCalculator.calculateCurrentRegime(tickers);
+    res.json(regimeData);
+  } catch (error) {
+    console.error(`Error fetching regime for ${req.params.region}:`, error);
+    res.status(500).json({ error: 'Failed to fetch regional macro regime' });
   }
 });
 
