@@ -158,6 +158,145 @@ const apiClient = {
       console.error('Failed to fetch regional macro regime', error);
       throw error;
     }
+  },
+  getEconomicCalendar: async (timeframe = 'today') => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/economic-calendar`, { params: { timeframe } });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch economic calendar', error);
+      throw error;
+    }
+  },
+  
+  // SOCIAL ENDPOINTS
+  getFeed: async (page = 1, limit = 20, groupId = null) => {
+    try {
+      let url = `${API_BASE_URL}/social/posts?page=${page}&limit=${limit}`;
+      if (groupId) {
+        url += `&groupId=${groupId}`;
+      }
+      const response = await axios.get(url);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch social feed', error);
+      throw error;
+    }
+  },
+  createPost: async (formData) => {
+    // formData is used because we might send an image (multipart/form-data)
+    try {
+      const response = await axios.post(`${API_BASE_URL}/social/posts`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create post', error);
+      throw error;
+    }
+  },
+  reactToPost: async (id, type) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/social/posts/${id}/react`, { type });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to react to post', error);
+      throw error;
+    }
+  },
+  repostPost: async (id, data = {}) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/social/posts/${id}/repost`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to repost post', error);
+      throw error;
+    }
+  },
+  deletePost: async (id) => {
+    try {
+      const response = await axios.delete(`${API_BASE_URL}/social/posts/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to delete post', error);
+      throw error;
+    }
+  },
+  getComments: async (postId) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/social/posts/${postId}/comments`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch comments', error);
+      throw error;
+    }
+  },
+  createComment: async (postId, content) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/social/posts/${postId}/comments`, { content });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create comment', error);
+      throw error;
+    }
+  },
+  reportPost: async (id) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/social/posts/${id}/report`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to report post', error);
+      throw error;
+    }
+  },
+  
+  // GROUPS & ADS
+  createGroup: async (groupData) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/groups`, groupData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create group', error);
+      throw error;
+    }
+  },
+  searchGroups: async (query) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/groups/search`, { params: { q: query } });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to search groups', error);
+      throw error;
+    }
+  },
+  getMyGroups: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/groups/my-groups`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch my groups', error);
+      throw error;
+    }
+  },
+  joinGroup: async (id) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/groups/${id}/join`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to join group', error);
+      throw error;
+    }
+  },
+  getActiveAds: async () => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/ads/active`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch ads', error);
+      throw error;
+    }
   }
 };
 

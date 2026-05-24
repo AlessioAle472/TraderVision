@@ -153,4 +153,38 @@ async function generateCapitalFlow(averages) {
     }
 }
 
-module.exports = { generateSynthesis, generateQuickInsight, generateCryptoDivergence, generateStagflationAlert, generateCapitalFlow };
+async function moderateContent(text) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return { isApproved: true, reason: 'No API Key' };
+
+    try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const prompt = `Sei un moderatore AI per un social network finanziario premium.
+        Valuta il seguente testo e decidi se deve essere segnalato (isFlagged: true).
+        Segnala il testo SOLO se contiene: linguaggio altamente offensivo, minacce, truffe (scam/phishing confermati), o incitamento all'odio.
+        Non segnalare semplici previsioni di mercato errate o critiche legittime.
+        
+        Testo da valutare: "${text}"
+        
+        Rispondi esclusivamente in formato JSON valido con questa struttura esatta:
+        {"isApproved": true/false, "reason": "breve spiegazione del perché"}
+        `;
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const textResponse = response.text().trim();
+        
+        // Remove markdown formatting if present
+        const jsonStr = textResponse.replace(/```json/g, '').replace(/```/g, '').trim();
+        const parsed = JSON.parse(jsonStr);
+        return parsed;
+    } catch (error) {
+        console.error(`Error in AI content moderation:`, error.message);
+        // Default to approve on failure to prevent breaking the flow
+        return { isApproved: true, reason: 'AI service unavailable' };
+    }
+}
+
+module.exports = { generateSynthesis, generateQuickInsight, generateCryptoDivergence, generateStagflationAlert, generateCapitalFlow, moderateContent };

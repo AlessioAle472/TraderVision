@@ -6,6 +6,8 @@ import TickerAnalysis from './pages/TickerAnalysis';
 import Markets from './pages/Markets';
 import CryptoMarkets from './pages/CryptoMarkets';
 import GlobalMacro from './pages/GlobalMacro';
+import WorldMonitorOSINT from './pages/WorldMonitorOSINT';
+import CustomCalendar from './components/ExperimentalCalendar/CustomCalendar';
 
 import Community from './pages/Community';
 import TopicDetail from './pages/TopicDetail';
@@ -35,6 +37,8 @@ function App() {
  <Route path="/markets"element={<Markets />} />
  <Route path="/crypto"element={<CryptoMarkets />} />
  <Route path="/global-macro"element={<GlobalMacro />} />
+ <Route path="/osint"element={<WorldMonitorOSINT />} />
+ <Route path="/test-calendar"element={<CustomCalendar />} />
 
  <Route path="/community"element={<Community />} />
  <Route path="/community/topic/:id"element={<TopicDetail />} />

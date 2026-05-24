@@ -1,4 +1,4 @@
-import { LogIn, LogOut, LayoutDashboard, LineChart, Settings, MessageSquare, Calendar, Globe, Coins } from 'lucide-react';
+import { LogIn, LogOut, LayoutDashboard, LineChart, Settings, MessageSquare, Calendar, Globe, Coins, Radar, FlaskConical } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -88,6 +88,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  </NavLink>
 
  <NavLink 
+ to="/osint"
+ className={({ isActive }) => 
+`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
+ }
+ onClick={closeMobile}
+ >
+ <Radar className="w-5 h-5"/>
+ <span>Geopolitica OSINT</span>
+ </NavLink>
+
+ <NavLink 
  to="/community"
  className={({ isActive }) => 
 `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
@@ -106,6 +117,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  >
  <Calendar className="w-5 h-5"/>
  <span>{t('sidebar.dailyNews')}</span>
+ </NavLink>
+
+ <NavLink 
+ to="/test-calendar"
+ className={({ isActive }) => 
+`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-indigo-500/10 text-indigo-400 font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
+ }
+ onClick={closeMobile}
+ >
+ <FlaskConical className="w-5 h-5"/>
+ <span>Test Calendario</span>
  </NavLink>
  </nav>
 

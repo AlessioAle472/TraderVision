@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 49152;
@@ -33,15 +34,25 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Serve static uploads (for social images etc.)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Routes
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/authRoutes');
+const socialRoutes = require('./routes/social');
+const groupsRoutes = require('./routes/groups');
+const adsRoutes = require('./routes/ads');
 const { initAIJobs } = require('./services/aiBriefingJob');
 const marketCronJob = require('./services/marketCronJob');
 
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/social', socialRoutes);
+app.use('/api/groups', groupsRoutes);
+app.use('/api/ads', adsRoutes);
 
 // Initialize AI Briefing Scheduler
 initAIJobs();

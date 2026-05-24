@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const axios = require('axios');
 const { exec } = require('child_process');
 const util = require('util');
 const path = require('path');
@@ -230,6 +231,91 @@ router.get('/calendar', async (req, res) => {
   } catch (error) {
     console.error('Error fetching economic calendar from python script:', error.message);
     res.status(500).json({ error: 'Failed to fetch economic calendar' });
+  }
+});
+
+// GET /api/economic-calendar — fetch live economic calendar via Finnhub
+router.get('/economic-calendar', async (req, res) => {
+  try {
+    const { timeframe = 'today' } = req.query;
+    const apiKey = process.env.FINNHUB_API_KEY;
+    if (!apiKey) throw new Error("Finnhub API key missing");
+
+    const now = new Date();
+    let fromDate = new Date(now);
+    let toDate = new Date(now);
+    let localDates = []; // array of local date strings to filter by
+
+    if (timeframe === 'yesterday') {
+      fromDate.setDate(now.getDate() - 1);
+      toDate = new Date(fromDate);
+      localDates.push(fromDate.toLocaleDateString());
+    } else if (timeframe === 'tomorrow') {
+      fromDate.setDate(now.getDate() + 1);
+      toDate = new Date(fromDate);
+      localDates.push(fromDate.toLocaleDateString());
+    } else if (timeframe === 'this_week') {
+      const day = now.getDay();
+      const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+      fromDate.setDate(diffToMonday);
+      toDate = new Date(fromDate);
+      toDate.setDate(toDate.getDate() + 6);
+      
+      // Populate localDates for the whole week
+      for(let i=0; i<7; i++) {
+        let d = new Date(fromDate);
+        d.setDate(d.getDate() + i);
+        localDates.push(d.toLocaleDateString());
+      }
+    } else {
+      // today
+      localDates.push(now.toLocaleDateString());
+    }
+
+    // Add padding to Finnhub request to handle UTC conversions safely
+    const fetchFrom = new Date(fromDate);
+    fetchFrom.setDate(fetchFrom.getDate() - 1);
+    const fetchTo = new Date(toDate);
+    fetchTo.setDate(fetchTo.getDate() + 1);
+    
+    const fromStr = fetchFrom.toISOString().split('T')[0];
+    const toStr = fetchTo.toISOString().split('T')[0];
+
+    const response = await axios.get(`https://finnhub.io/api/v1/calendar/economic?from=${fromStr}&to=${toStr}&token=${apiKey}`);
+    
+    const events = response.data.economicCalendar || [];
+    
+    const mappedEvents = events.map((ev, index) => {
+      // Finnhub times are in UTC "YYYY-MM-DD HH:MM:SS"
+      const eventTime = new Date(ev.time + " UTC");
+      const isPast = eventTime < now;
+      const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      
+      return {
+        id: index,
+        time: timeString,
+        country: ev.country, // ISO2 code (e.g. US, EU, JP)
+        event: ev.event,
+        impact: ev.impact ? ev.impact.toUpperCase() : 'LOW',
+        actual: ev.actual !== null ? String(ev.actual) : "",
+        consensus: ev.estimate !== null ? String(ev.estimate) : "",
+        previous: ev.prev !== null ? String(ev.prev) : "",
+        isPast: isPast,
+        timestamp: eventTime.getTime(),
+        localDateStr: eventTime.toLocaleDateString(),
+        dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+      };
+    });
+
+    // Filter only events that fall exactly in our desired dates locally
+    const filteredEvents = mappedEvents.filter(ev => {
+      return localDates.includes(ev.localDateStr);
+    }).sort((a, b) => a.timestamp - b.timestamp);
+
+    res.json(filteredEvents);
+  } catch (error) {
+    console.error("Error fetching economic calendar:", error.message);
+    res.status(500).json({ error: "Failed to fetch calendar data" });
   }
 });
 
