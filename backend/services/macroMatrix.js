@@ -29,8 +29,13 @@ async function getCorrelationMatrix() {
         let rawData = {};
         
         for (const t of tickers) {
-            const h = await yf.chart(t, { period1, interval: '1d' });
-            rawData[t] = h.quotes.filter(q => q.close !== null);
+            try {
+                const h = await yf.chart(t, { period1, interval: '1d' });
+                rawData[t] = h.quotes.filter(q => q.close !== null);
+            } catch (e) {
+                console.error(`Failed to fetch matrix data for ${t}: ${e.message}`);
+                rawData[t] = [];
+            }
         }
 
         // Align by date
@@ -58,9 +63,13 @@ async function getCorrelationMatrix() {
         // Performance fallback logic
         const performance30d = {};
         for (const t of tickers) {
-            const start = prices[t][0];
-            const end = prices[t][prices[t].length - 1];
-            performance30d[t] = parseFloat(((end - start) / start * 100).toFixed(2));
+            if (!prices[t] || prices[t].length === 0) {
+                performance30d[t] = 0;
+            } else {
+                const start = prices[t][0];
+                const end = prices[t][prices[t].length - 1];
+                performance30d[t] = parseFloat(((end - start) / start * 100).toFixed(2));
+            }
         }
 
         const result = {

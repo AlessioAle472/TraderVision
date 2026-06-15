@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import WorldCalendar from '../components/WorldCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import PremiumGate from '../components/PremiumGate';
+import { useAiBriefing } from '../hooks/useApiQuery';
 
 // ── Components ────────────────────────────────────────────────────────────
 
@@ -75,27 +76,11 @@ const Toast = ({ message, visible }) => {
 
 const DailyNews = () => {
  const { t, i18n } = useTranslation();
- const [briefing, setBriefing] = useState(null);
- const [briefingLoading, setBriefingLoading] = useState(true);
- 
- // Newsletter States
- const [isModalOpen, setIsModalOpen] = useState(false);
- const [toast, setToast] = useState({ visible: false, message: '' });
-
- useEffect(() => {
- const fetchBriefing = async () => {
- try {
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/briefing/latest`);
- const data = await res.json();
- setBriefing(data);
- } catch (err) {
- console.error("Failed to fetch briefing:", err);
- } finally {
- setBriefingLoading(false);
- }
- };
- fetchBriefing();
- }, []);
+  const { data: briefing, isLoading: briefingLoading } = useAiBriefing();
+  
+  // Newsletter States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '' });
 
  const handleSubscribe = async (email) => {
  try {

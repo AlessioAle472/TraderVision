@@ -4,8 +4,13 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
 
+// Fail-fast: JWT_SECRET must be set in environment variables. No insecure fallback.
+if (!process.env.JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start securely.');
+}
+
 const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'fallback_secret_key', {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: '30d',
   });
 };
@@ -20,7 +25,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    const isMaster = email === 'alessio199621@gmail.com';
+    const isMaster = email === process.env.MASTER_EMAIL;
     const plan = isMaster ? 'pro' : 'free';
 
     const user = await User.create({

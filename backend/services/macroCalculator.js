@@ -5,7 +5,8 @@ const fs = require('fs');
 const path = require('path');
 const { getEconomicDirection } = require('./economicDirection');
 
-const DATA_FILE = path.join(__dirname, '../data/daily_macro.json');
+const { getCache, setCache, isCacheCurrent } = require('../utils/cache');
+const DATA_FILENAME = 'daily_macro.json';
 
 // Memory fallback structure
 const defaultMacro = {
@@ -18,53 +19,12 @@ const defaultMacro = {
     trend6m: [0, 0, 0, 0, 0, 0]
 };
 
-const getStoredMacroData = () => {
-    try {
-        if (fs.existsSync(DATA_FILE)) {
-            const fileContent = fs.readFileSync(DATA_FILE, 'utf8');
-            return JSON.parse(fileContent);
-        }
-    } catch (error) {
-        console.error('[MacroService] Failed to read daily_macro.json', error);
-    }
-    return null;
-};
-
-const storeMacroData = (data) => {
-    try {
-        const dir = path.dirname(DATA_FILE);
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        
-        data.timestamp = new Date().toISOString();
-        fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
-    } catch (error) {
-        console.error('[MacroService] Failed to store macro data:', error);
-    }
-};
-
-const isDataCurrent = (storedData) => {
-    if (!storedData || !storedData.timestamp) return false;
-    
-    const now = new Date();
-    const storedDate = new Date(storedData.timestamp);
-    
-    // Valid from 07:00 AM today (or yesterday if currently < 07:00 AM)
-    let cutoff = new Date(now);
-    cutoff.setHours(7, 0, 0, 0);
-    
-    if (now < cutoff) {
-        cutoff.setDate(cutoff.getDate() - 1);
-    }
-    
-    return storedDate >= cutoff;
-};
-
 const calculateCurrentRegime = async (customTickers = null) => {
     try {
-        const storedData = getStoredMacroData();
+        const storedData = getCache(DATA_FILENAME);
         
         // 1. Check if we have valid, current data (calculated after 07:00 AM)
-        if (isDataCurrent(storedData)) {
+        if (isCacheCurrent(storedData)) {
             console.log(`[MacroService] Returning daily frozen macro data from JSON (Created: ${storedData.timestamp})...`);
             return storedData;
         }
@@ -84,8 +44,8 @@ const calculateCurrentRegime = async (customTickers = null) => {
                     interval: '1d'
                 });
 
-                if (!history || !history.quotes || history.quotes.length < 25) {
-                    throw new Error(`Insufficient data for ${ticker}`);
+                if (!history || !history.quotes || history.quotes.length < 21) {
+                    throw new Error(`Insufficient data for ${ticker} (got ${history?.quotes?.length} quotes)`);
                 }
 
                 return { ticker, quotes: history.quotes.filter(q => q.close !== null) };
@@ -107,7 +67,8 @@ const calculateCurrentRegime = async (customTickers = null) => {
         validResults.forEach(r => histories[r.ticker] = r.quotes);
 
         // --- Math Helpers ---
-        const round2 = (num) => Math.round(num * 100) / 100;
+        const { roundDecimals } = require('../utils/math');
+        const round2 = (num) => roundDecimals(num, 2);
 
         // --- Smoothing Logic ---
         const calcTrendForDay = (tickerQuotes, offset = 0) => {
@@ -244,14 +205,14 @@ const calculateCurrentRegime = async (customTickers = null) => {
             historicAvg
         };
 
-        storeMacroData(freshData);
+        setCache(DATA_FILENAME, freshData);
         
         console.log(`[MacroService] New Daily Calculation complete. Raw: ${rawScore}, Final: ${finalScore} (${regime})`);
         return freshData;
 
     } catch (error) {
         console.error('[MacroService] Critical error in smoothed calculation:', error);
-        return getStoredMacroData() || defaultMacro;
+        return getCache(DATA_FILENAME) || defaultMacro;
     }
 };
 

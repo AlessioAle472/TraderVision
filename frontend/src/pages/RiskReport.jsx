@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import axios from 'axios';
 import PremiumGate from '../components/PremiumGate';
+import DOMPurify from 'dompurify';
 
 const RiskReport = () => {
  const navigate = useNavigate();
@@ -194,7 +195,7 @@ const RiskReport = () => {
  <div className="flex-grow">
  <div 
  className="risk-analysis-content space-y-6 animate-fade-in delay-1000"
- dangerouslySetInnerHTML={{ __html: analysis }}
+ dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(analysis) }}
  />
  </div>
 

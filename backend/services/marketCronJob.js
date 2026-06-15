@@ -60,26 +60,27 @@ class MarketCronJob {
         sparkline = (hist7?.quotes || []).map(q => q.close).filter(c => c !== null && c !== undefined);
       } catch (e) {}
 
-      // 4. Smart Score via python
+      // 4. Smart Score via JS (No Python)
       let smartScore = 50;
       let smartScoreLabel = 'Hold';
       let momentum = 0;
+      
       try {
-        const scriptPath = path.join(__dirname, '../smart_score.py');
-        const { stdout } = await execPromise(`python3 "${scriptPath}" "${yahooTicker}"`, { timeout: 45000, windowsHide: true });
-        const parsed = JSON.parse(stdout);
-        if (!parsed.error && parsed.score !== undefined) {
-          smartScore = parsed.score;
-          if (smartScore >= 80) smartScoreLabel = 'Strong Buy';
-          else if (smartScore >= 60) smartScoreLabel = 'Buy';
-          else if (smartScore > 40) smartScoreLabel = 'Hold';
-          else if (smartScore > 20) smartScoreLabel = 'Sell';
-          else smartScoreLabel = 'Strong Sell';
-        }
-        if (parsed.raw_data) {
-          const rsi = parsed.raw_data.rsi || 50;
-          momentum = ((rsi - 50) / 50) * 100; 
-        }
+        // Simple momentum proxy based on 1W and 1M returns
+        // Normally RSI is used, but we can approximate momentum
+        momentum = (var1W * 0.4) + (var1M * 0.6);
+        
+        // Base score 50, add momentum scaled
+        // For example, if var1M is 5%, momentum is ~5.
+        // Let's map momentum (-10 to 10) to score (0 to 100)
+        smartScore = Math.min(100, Math.max(0, Math.round(50 + (momentum * 5))));
+        
+        if (smartScore >= 80) smartScoreLabel = 'Strong Buy';
+        else if (smartScore >= 60) smartScoreLabel = 'Buy';
+        else if (smartScore > 40) smartScoreLabel = 'Hold';
+        else if (smartScore > 20) smartScoreLabel = 'Sell';
+        else smartScoreLabel = 'Strong Sell';
+        
       } catch (e) {
         console.error(`[MarketCronJob] Smart score failed for ${yahooTicker}: ${e.message}`);
       }
@@ -144,53 +145,55 @@ class MarketCronJob {
     }
 
     const groupKeys = Object.keys(config.assetGroups);
-    const results = [];
     
-    for (const key of groupKeys) {
+    // Process groups in parallel
+    const resultsPromises = groupKeys.map(async (key) => {
       const group = config.assetGroups[key];
       const entries = Object.entries(group.tickers);
       const groupAssets = await this._processInChunks(entries, 5, ([ticker, name]) => this._fetchAsset(ticker, name));
-      
-      results.push({
-        label: group.label,
-        assets: groupAssets.filter(r => r !== null).sort((a, b) => b.smartScore - a.smartScore)
-      });
-    }
-
-    const factors = await this._fetchFactors();
-    const sections = {};
-    groupKeys.forEach((key, index) => {
-        sections[key] = results[index];
+      return {
+        key,
+        data: {
+          label: group.label,
+          assets: groupAssets.filter(r => r !== null).sort((a, b) => b.smartScore - a.smartScore)
+        }
+      };
     });
 
-    const marketsData = {
-        sections,
-        factors,
-        generatedAt: new Date().toISOString()
-    };
-
-    // 2. Fetch and calculate Macro Outlook
-    // We modify macroCalculator to bypass 07:00AM check for cron job by deleting the file or passing a force flag.
-    // Assuming macroCalculator.calculateCurrentRegime uses time, since we run at 06:00, we might need a force flag.
-    // But since macroCalculator uses file caching, we can just delete the file.
+    console.log('[MarketCronJob] Fetching market assets, factors, and macro outlook in parallel...');
+    
+    // Clear cache for macro
     try {
       const fs = require('fs');
       const DATA_FILE = path.join(__dirname, '../data/daily_macro.json');
       if (fs.existsSync(DATA_FILE)) fs.unlinkSync(DATA_FILE);
     } catch(e) {}
 
-    let macro = null;
-    let events = [];
-    try {
-      macro = await macroCalculator.calculateCurrentRegime();
-      events = await economicCalendar.getHighImpactEvents();
-    } catch(e) {
-      console.error('[MarketCronJob] Error calculating macro:', e);
-    }
+    const [groupResults, factors, macroOutlook] = await Promise.all([
+      Promise.all(resultsPromises),
+      this._fetchFactors(),
+      (async () => {
+        let macro = null;
+        let events = [];
+        try {
+          macro = await macroCalculator.calculateCurrentRegime();
+          events = await economicCalendar.getHighImpactEvents();
+        } catch(e) {
+          console.error('[MarketCronJob] Error calculating macro:', e.message);
+        }
+        return { ...(macro || {}), events: events || [] };
+      })()
+    ]);
 
-    const macroOutlook = {
-      ...(macro || {}),
-      events: events || []
+    const sections = {};
+    groupResults.forEach((res) => {
+        sections[res.key] = res.data;
+    });
+
+    const marketsData = {
+        sections,
+        factors,
+        generatedAt: new Date().toISOString()
     };
 
     // 3. Save to PreloadedMarketData

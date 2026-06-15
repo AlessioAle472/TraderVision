@@ -8,6 +8,7 @@ import CryptoMarkets from './pages/CryptoMarkets';
 import GlobalMacro from './pages/GlobalMacro';
 import WorldMonitorOSINT from './pages/WorldMonitorOSINT';
 import CustomCalendar from './components/ExperimentalCalendar/CustomCalendar';
+import CotDashboard from './pages/CotDashboard';
 
 import Community from './pages/Community';
 import TopicDetail from './pages/TopicDetail';
@@ -20,7 +21,8 @@ import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import ProtectedRoute from './components/ProtectedRoute';
-
+import AdminRoute from './components/AdminRoute';
+import ErrorBoundary from './components/ErrorBoundary';
 function App() {
  return (
  <>
@@ -37,16 +39,17 @@ function App() {
  <Route path="/markets"element={<Markets />} />
  <Route path="/crypto"element={<CryptoMarkets />} />
  <Route path="/global-macro"element={<GlobalMacro />} />
- <Route path="/osint"element={<WorldMonitorOSINT />} />
- <Route path="/test-calendar"element={<CustomCalendar />} />
+  <Route path="/osint" element={<WorldMonitorOSINT />} />
+  <Route path="/cot" element={<CotDashboard />} />
+  <Route path="/calendar" element={<ErrorBoundary><CustomCalendar /></ErrorBoundary>} />
 
  <Route path="/community"element={<Community />} />
  <Route path="/community/topic/:id"element={<TopicDetail />} />
- <Route path="/daily-news"element={<DailyNews />} />
+ <Route path="/daily-news"element={<AdminRoute><DailyNews /></AdminRoute>} />
  <Route path="/macro-deep-dive"element={<MacroDeepDive />} />
  <Route path="/analysis/:ticker"element={<AssetDetail />} />
  <Route path="/macro-analysis/:region"element={<MacroRegionDetail />} />
- <Route path="/risk-report"element={<RiskReport />} />
+ <Route path="/risk-report"element={<AdminRoute><RiskReport /></AdminRoute>} />
  <Route path="/settings"element={<Settings />} />
  <Route path="/admin"element={<Admin />} />
  </Routes>

@@ -10,8 +10,13 @@ async function getDeepDiveData() {
 
         // 1. Fetch 6M History for main chart
         for (const t of tickers) {
-            const h = await yf.chart(t, { period1, interval: '1mo' });
-            chartData[t] = h.quotes.filter(q => q.close !== null);
+            try {
+                const h = await yf.chart(t, { period1, interval: '1mo' });
+                chartData[t] = h.quotes.filter(q => q.close !== null);
+            } catch (e) {
+                console.error(`Failed to fetch deep dive chart for ${t}: ${e.message}`);
+                chartData[t] = [];
+            }
         }
 
         // Align chart data by date and normalize to base 100

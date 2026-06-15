@@ -4,7 +4,9 @@ import TradingViewWidget from '../components/TradingViewWidget';
 import { Globe, Building2, TrendingUp, AlertTriangle, ShieldCheck, Zap } from 'lucide-react';
 import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader';
 
-import apiClient from '../services/apiClient';
+import { useCentralBanks, useMacroRegime } from '../hooks/useApiQuery';
+import ErrorBoundary from '../components/ErrorBoundary';
+import WidgetErrorFallback from '../components/WidgetErrorFallback';
 
 const regionalTabs = {
  usa: { label: 'USA', ticker: 'SPY' },
@@ -42,45 +44,17 @@ const getRegimeColor = (regime) => {
 
 const GlobalMacro = () => {
  const [activeTab, setActiveTab] = useState('usa');
- const [loading, setLoading] = useState(true);
- const [macroData, setMacroData] = useState({
- centralBank: { name: 'Loading...', rate: '0.0%', tone: 'Neutral' },
- regime: 'NEUTRO',
- sectors: fallbackSectors
- });
- const [centralBanksDict, setCentralBanksDict] = useState({});
-
- useEffect(() => {
- // Fetch central banks tones and rates once on mount
- apiClient.getCentralBanks()
- .then(data => setCentralBanksDict(data))
- .catch(err => console.error("Error fetching central banks", err));
- }, []);
-
- useEffect(() => {
- let isMounted = true;
- setLoading(true);
-
- apiClient.getRegionalRegime(activeTab)
- .then(regimeData => {
- if (!isMounted) return;
- 
- const cbData = centralBanksDict[activeTab] || { name: 'Unknown', rate: '0.0%', tone: 'Neutral' };
- 
- setMacroData({
- centralBank: cbData,
- regime: regimeData.regime || 'NEUTRO',
- sectors: fallbackSectors
- });
- setLoading(false);
- })
- .catch(err => {
- console.error("Error fetching regional regime", err);
- if (isMounted) setLoading(false);
- });
-
- return () => { isMounted = false; };
- }, [activeTab, centralBanksDict]);
+  const { data: centralBanksDict = {}, isLoading: cbLoading } = useCentralBanks();
+  const { data: regimeData = {}, isLoading: regimeLoading } = useMacroRegime(activeTab);
+  
+  const loading = cbLoading || regimeLoading;
+  
+  const cbData = centralBanksDict[activeTab] || { name: 'Unknown', rate: '0.0%', tone: 'Neutral' };
+  const macroData = {
+    centralBank: cbData,
+    regime: regimeData.regime || 'NEUTRO',
+    sectors: fallbackSectors
+  };
 
  const handleTabChange = (key) => {
  if (key === activeTab) return;
@@ -141,7 +115,9 @@ const GlobalMacro = () => {
  <div className="w-10 h-10 /20 -blue-500 rounded-full animate-spin"/>
  </div>
  ) : (
+ <ErrorBoundary fallback={<WidgetErrorFallback title="TradingView Error" />}>
  <TradingViewWidget symbol={currentTabInfo.ticker} />
+ </ErrorBoundary>
  )}
  </div>
  </div>

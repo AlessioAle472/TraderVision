@@ -11,12 +11,17 @@ const SearchBar = ({ onAddTicker, onSearch }) => {
  const [isOpen, setIsOpen] = useState(false);
  const dropdownRef = useRef(null);
 
+ const onSearchRef = useRef(onSearch);
+ useEffect(() => {
+   onSearchRef.current = onSearch;
+ }, [onSearch]);
+
  // Real-time filtering for Dashboard
  useEffect(() => {
- if (onSearch) {
- onSearch(query);
- }
- }, [query, onSearch]);
+   if (onSearchRef.current) {
+     onSearchRef.current(query);
+   }
+ }, [query]);
 
  // Debounce logic for server-side search
  useEffect(() => {

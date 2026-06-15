@@ -1,0 +1,18 @@
+# ============================================================
+# TRADER VISION — BACKEND .gitignore
+# ============================================================
+
+# --- Dependencies ---
+node_modules/
+
+# --- Environment Files (NEVER commit these) ---
+.env
+.env.*
+!.env.example
+
+# --- Logs ---
+*.log
+backend.log
+
+# --- OS ---
+.DS_Store

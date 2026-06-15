@@ -94,7 +94,7 @@ async function sendBriefingEmail(briefing) {
   for (const email of subscribers) {
     try {
       await transporter.sendMail({
-        from: 'Trader Vision AI <newsletter@tradervision-quantitativemarkets.com>',
+        from: process.env.EMAIL_FROM || 'Trader Vision AI <newsletter@example.com>',
         to: email,
         subject: `Daily Briefing: ${briefing.title.substring(0, 50)}...`,
         html: htmlContent

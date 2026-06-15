@@ -110,7 +110,7 @@ const AssetDetail = () => {
  'EURUSD': 'EURUSD=X', 'Gold': 'GC=F', 'WTI': 'CL=F',
  'SP500': '^GSPC', 'BTC': 'BTC-USD'
  };
- const chartTicker = yahooMap[ticker] || ticker;
+ const chartTicker = detail.yahooTicker || yahooMap[ticker] || ticker;
 
  const to = Math.floor(Date.now() / 1000);
  const from = to - (365 * 24 * 60 * 60);
@@ -148,7 +148,7 @@ const AssetDetail = () => {
  return (
  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
  <AlertCircle className="w-10 h-10 text-danger"/>
- <p className="text-text font-medium">Errore nel caricamento dell'asset</p>
+ <p className="text-text font-medium">Dati del mercato non disponibili</p>
  <p className="text-text-secondary text-sm text-center max-w-sm">{error}</p>
  <button onClick={() => navigate('/')} className="mt-2 px-5 py-2 bg-surface hover:bg-surface-hover text-text text-sm rounded-lg transition-colors flex items-center gap-2">
  <ArrowLeft className="w-4 h-4"/> Torna alla Dashboard
@@ -206,8 +206,8 @@ const AssetDetail = () => {
  </button>
  </h1>
  {asset?.settore && (
- <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${getTypeColor(asset.settore)}`}>
- {asset.settore}
+ <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${getTypeColor(asset?.settore)}`}>
+ {asset?.settore}
  </span>
  )}
  {asset?.offline && (
@@ -218,7 +218,7 @@ const AssetDetail = () => {
  </div>
  <div className="flex items-baseline gap-3 mt-1 flex-wrap">
  <span className="text-2xl font-semibold text-text">
- {asset?.prezzo ? Number(asset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
+ {asset?.prezzo ? Number(asset?.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
  </span>
  <span className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-success' : 'text-danger'}`}>
  {isPositive ? <TrendingUp className="w-4 h-4"/> : <TrendingDown className="w-4 h-4"/>}
@@ -241,7 +241,7 @@ const AssetDetail = () => {
  <span className="text-xs text-gray-500">Powered by TradingView</span>
  </div>
  <div className="p-0 h-[500px]">
- <TradingViewWidget symbol={ticker} />
+ <TradingViewWidget symbol={asset?.yahooTicker || ticker} />
  </div>
  </div>
 
@@ -302,10 +302,10 @@ const AssetDetail = () => {
  </div>
  <div className="mt-4 space-y-1">
  {asset?.rsi && asset.rsi !== '-' && (
- <div className="text-sm text-text-secondary">RSI (14D) <span className="text-text font-semibold">{asset.rsi}</span></div>
+ <div className="text-sm text-text-secondary">RSI (14D) <span className="text-text font-semibold">{asset?.rsi}</span></div>
  )}
  {asset?.pe && asset.pe !== '-' && (
- <div className="text-sm text-text-secondary">Fwd P/E Ratio <span className="text-text font-semibold">{asset.pe}</span></div>
+ <div className="text-sm text-text-secondary">Fwd P/E Ratio <span className="text-text font-semibold">{asset?.pe}</span></div>
  )}
  </div>
  </div>
@@ -349,7 +349,7 @@ const AssetDetail = () => {
  <InfoTooltip text="Volume odierno rispetto alla media 20 giorni"/>
  </div>
  <div className={`text-sm font-bold ${asset?.volume_vs_avg > 1 ? 'text-primary' : 'text-text-secondary'}`}>
- {asset?.volume_vs_avg ?`${asset.volume_vs_avg}x`: '1.0x'}
+ {asset?.volume_vs_avg ?`${asset?.volume_vs_avg}x`: '1.0x'}
  </div>
  </div>
  <div className="p-3 rounded-xl bg-surface-hover">

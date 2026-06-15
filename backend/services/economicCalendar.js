@@ -1,157 +1,127 @@
-/**
- * Economic Calendar Service
- * Fetches high-impact economic events from ForexFactory (primary) or
- * Trading Economics RSS (fallback if 403/blocked).
- */
 const axios = require('axios');
+const { getCache, setCache, isCacheCurrent } = require('../utils/cache');
+
+const CACHE_FILENAME = 'economic_calendar.json';
+
 const xml2js = require('xml2js');
 
-// Cache for calendar events to avoid redundant requests
-let calendarCache = null;
-let lastUpdate = 0;
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+const fetchFinnhubCalendar = async (timeframe = 'today') => {
+    // Switch to XML feed to bypass aggressive JSON Cloudflare caching/blocking
+    const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
+    
+    const headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/xml, text/xml, */*; q=0.01'
+    };
 
-// Realistic browser User-Agent pool — rotated randomly to avoid blocks
-const USER_AGENTS = [
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0',
-    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-];
-
-const randomUA = () => USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-
-const commonHeaders = () => ({
-    'User-Agent': randomUA(),
-    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-    'Accept-Language': 'en-US,en;q=0.9',
-    'Cache-Control': 'no-cache',
-    'Pragma': 'no-cache',
-});
-
-// ── Primary source: ForexFactory XML feed ────────────────────────────────────
-const fetchFromForexFactory = async () => {
-    const response = await axios.get('https://www.forexfactory.com/ff_calendar_thisweek.xml', {
-        timeout: 8000,
-        headers: commonHeaders(),
-    });
-
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(response.data);
-
-    if (!result.weeklyevents || !result.weeklyevents.event) {
-        throw new Error('Invalid ForexFactory XML structure');
+    let eventsRaw = [];
+    try {
+        const response = await axios.get(url, { headers });
+        const parser = new xml2js.Parser({ explicitArray: false });
+        const parsed = await parser.parseStringPromise(response.data);
+        if (parsed && parsed.weeklyevents && parsed.weeklyevents.event) {
+            eventsRaw = Array.isArray(parsed.weeklyevents.event) ? parsed.weeklyevents.event : [parsed.weeklyevents.event];
+        }
+    } catch (err) {
+        console.warn('[CalendarService] XML Fetch failed:', err.message);
+        return [{
+            id: 999,
+            time: '--:--',
+            country: 'All',
+            event: 'API Unavailable - Riprova più tardi',
+            impact: 'HIGH',
+            actual: 'ERR',
+            consensus: '',
+            previous: '',
+            isPast: false,
+            timestamp: new Date().getTime(),
+            localDateStr: new Date().toLocaleDateString(),
+            dateString: new Date().toLocaleDateString()
+        }];
     }
 
-    const todayDate = new Date().toLocaleDateString('en-US', {
-        month: '2-digit',
-        day: '2-digit',
-        year: '4-digit'
-    }).split('/').join('-'); // MM-DD-YYYY
+    const now = new Date();
+    
+    let localDates = [];
+    if (timeframe === 'yesterday') {
+        const d = new Date(); d.setDate(now.getDate() - 1);
+        localDates.push(d.toLocaleDateString());
+    } else if (timeframe === 'tomorrow') {
+        const d = new Date(); d.setDate(now.getDate() + 1);
+        localDates.push(d.toLocaleDateString());
+    } else if (timeframe === 'this_week') {
+        const day = now.getDay();
+        const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+        const d = new Date(now);
+        d.setDate(diffToMonday);
+        for(let i=0; i<7; i++) {
+            let temp = new Date(d);
+            temp.setDate(temp.getDate() + i);
+            localDates.push(temp.toLocaleDateString());
+        }
+    } else {
+        localDates.push(now.toLocaleDateString()); // 'today'
+    }
 
-    const events = Array.isArray(result.weeklyevents.event)
-        ? result.weeklyevents.event
-        : [result.weeklyevents.event];
-
-    console.log(`[CalendarService] ForexFactory: ${events.length} total events. Today: ${todayDate}`);
-
-    const filtered = events
-        .filter(e => e.date === todayDate && e.impact === 'High')
-        .map(e => ({
-            time: e.time,
-            cur: e.country,
-            event: e.title,
-            impact: e.impact,
-        }))
-        .slice(0, 5);
-
-    console.log(`[CalendarService] ForexFactory: ${filtered.length} high-impact events for today`);
-    return filtered;
-};
-
-// ── Fallback source: Trading Economics RSS ────────────────────────────────────
-const fetchFromTradingEconomics = async () => {
-    // TE provides a public RSS feed with major economic releases
-    const response = await axios.get('https://tradingeconomics.com/rss/calendar.aspx', {
-        timeout: 8000,
-        headers: commonHeaders(),
+    const mappedEvents = eventsRaw.map((ev, index) => {
+        // Parse date "MM-DD-YYYY" and time "9:15am"
+        let eventTime = new Date();
+        try {
+            if (ev.date && typeof ev.date === 'string') {
+                const parts = ev.date.split('-');
+                if (parts.length === 3) {
+                    // new Date(YYYY, MM-1, DD)
+                    eventTime = new Date(parts[2], parseInt(parts[0])-1, parts[1]);
+                }
+            }
+        } catch(e) {}
+        
+        let impactStr = 'LOW';
+        if (ev.impact === 'High') impactStr = 'HIGH';
+        else if (ev.impact === 'Medium') impactStr = 'MEDIUM';
+        
+        return {
+            id: index,
+            time: ev.time || '--:--',
+            country: ev.country || 'All',
+            event: ev.title || '',
+            impact: impactStr,
+            actual: ev.actual || "",
+            consensus: ev.forecast || "",
+            previous: ev.previous || "",
+            isPast: eventTime < now,
+            timestamp: eventTime.getTime(),
+            localDateStr: eventTime.toLocaleDateString(),
+            dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
+        };
     });
 
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const result = await parser.parseStringPromise(response.data);
+    if (timeframe === 'this_week') {
+        return mappedEvents.sort((a, b) => a.timestamp - b.timestamp);
+    }
 
-    const items = result?.rss?.channel?.item;
-    if (!items) throw new Error('Invalid Trading Economics RSS structure');
-
-    const list = Array.isArray(items) ? items : [items];
-
-    // TE RSS items use pubDate; filter to "today" by matching ISO date prefix
-    const todayISO = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    const filtered = list
-        .filter(item => {
-            const pub = new Date(item.pubDate);
-            return pub.toISOString().startsWith(todayISO);
-        })
-        .map(item => ({
-            time: new Date(item.pubDate).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-            cur: 'USD',  // TE RSS doesn't always expose currency; default USD
-            event: item.title || 'Economic Event',
-            impact: 'High',
-        }))
-        .slice(0, 5);
-
-    console.log(`[CalendarService] TradingEconomics fallback: ${filtered.length} events for today`);
-    return filtered;
+    return mappedEvents.filter(ev => localDates.includes(ev.localDateStr)).sort((a, b) => a.timestamp - b.timestamp);
 };
 
-// ── Dynamic placeholder (last resort) ────────────────────────────────────────
-const buildPlaceholderEvents = () => {
-    const now = new Date();
-    const isWeekend = now.getDay() === 0 || now.getDay() === 6;
-    const label = isWeekend ? 'Weekend — Markets Closed' : 'Calendar Unavailable';
-
-    return [
-        { time: '--:--', cur: 'USD', event: `${label}: Check Investing.com for live data`, impact: 'High' },
-    ];
-};
-
-// ── Public API ────────────────────────────────────────────────────────────────
 const getHighImpactEvents = async () => {
     try {
-        const now = Date.now();
-        if (calendarCache && (now - lastUpdate) < CACHE_DURATION) {
-            return calendarCache;
+        const cached = getCache(CACHE_FILENAME);
+        if (isCacheCurrent(cached)) {
+            return cached.events;
         }
 
-        let events = null;
+        const events = await fetchFinnhubCalendar('today');
+        const highImpact = events.filter(e => e.impact === 'HIGH').slice(0, 5);
 
-        // 1. Try ForexFactory (primary)
-        try {
-            console.log('[CalendarService] Fetching from ForexFactory...');
-            events = await fetchFromForexFactory();
-        } catch (ffError) {
-            console.warn(`[CalendarService] ForexFactory failed (${ffError.message}). Trying Trading Economics fallback...`);
-
-            // 2. Try Trading Economics (secondary)
-            try {
-                events = await fetchFromTradingEconomics();
-            } catch (teError) {
-                console.warn(`[CalendarService] TradingEconomics fallback also failed (${teError.message}). Using placeholder.`);
-                events = buildPlaceholderEvents();
-            }
-        }
-
-        calendarCache = events;
-        lastUpdate = now;
-        return calendarCache;
-
+        setCache(CACHE_FILENAME, { events: highImpact, timestamp: new Date().toISOString() });
+        return highImpact;
     } catch (error) {
-        console.error('[CalendarService] Unexpected error:', error.message);
-        return buildPlaceholderEvents();
+        console.error('[CalendarService] Error fetching high impact events:', error.message);
+        return [{ time: '--:--', country: 'USD', event: 'Calendar Unavailable', impact: 'HIGH' }];
     }
 };
 
 module.exports = {
+    fetchFinnhubCalendar,
     getHighImpactEvents
 };

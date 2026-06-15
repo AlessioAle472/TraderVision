@@ -90,8 +90,8 @@ export const AuthProvider = ({ children }) => {
  }
  };
 
- const effectivePlan = simulatedPlan ? simulatedPlan : (user?.isMaster ? 'pro' : user?.plan);
- const effectiveIsMaster = simulatedPlan ? false : user?.isMaster;
+  const effectivePlan = simulatedPlan ? simulatedPlan : (user?.isMaster || user?.role === 'admin' ? 'pro' : user?.plan);
+  const effectiveIsMaster = simulatedPlan ? false : (user?.isMaster || user?.role === 'admin');
 
  return (
  <AuthContext.Provider value={{ 

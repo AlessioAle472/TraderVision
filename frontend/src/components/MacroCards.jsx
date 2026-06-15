@@ -129,11 +129,8 @@ const MacroCards = ({ data, overview }) => {
   }, []);
 
   const handleScrollToCalendar = () => {
- const el = document.getElementById('world-calendar');
- if (el) {
- el.scrollIntoView({ behavior: 'smooth', block: 'start' });
- }
- };
+    navigate('/calendar');
+  };
 
  return (
  <div className="flex flex-col gap-6 mb-8">
@@ -330,7 +327,7 @@ const MacroCards = ({ data, overview }) => {
  </div>
 
  <button 
- onClick={() => navigate(`/analysis/${item.ticker}`, { state: { regionalScore: item.score, change: item.change, data: item } })}
+ onClick={() => navigate(`/macro-analysis/${item.region}`, { state: { regionalScore: item.score, change: item.change, data: item } })}
  className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-text-secondary hover:text-text transition-all duration-300 hover:scale-105 cursor-pointer self-start group/btn"
  >
  Dettagli <ChevronRight className="w-2.5 h-2.5 transition-transform group-hover/btn:translate-x-1"/>

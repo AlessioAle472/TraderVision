@@ -10,7 +10,7 @@ const protect = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret_key');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
       return next();
     } catch (error) {
@@ -18,9 +18,11 @@ const protect = async (req, res, next) => {
     }
   }
 
+  // In development, if no token is provided, allow requests to pass through
+  // for easier local testing but DO NOT inject a fake admin user.
   if (process.env.NODE_ENV === 'development') {
-    // Fallback for local testing without login. Use a valid ObjectId to prevent Mongoose CastErrors
-    req.user = { _id: '652136d89a74a12345678901', name: 'Admin', email: 'admin@local.dev', isMaster: true };
+    console.warn('[Auth] No token in DEV mode — proceeding without authenticated user.');
+    req.user = null;
     return next();
   }
 
@@ -28,11 +30,19 @@ const protect = async (req, res, next) => {
 };
 
 const master = (req, res, next) => {
-  if (req.user && req.user.isMaster) {
+  if (req.user && (req.user.isMaster || req.user.role === 'admin')) {
     next();
   } else {
     res.status(403).json({ message: 'Not authorized as master user' });
   }
 };
 
-module.exports = { protect, master };
+const verifyAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Forbidden: Admin access required for AI features' });
+  }
+};
+
+module.exports = { protect, master, verifyAdmin };

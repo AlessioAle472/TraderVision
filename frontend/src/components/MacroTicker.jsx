@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, TerminalSquare } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const MacroTicker = () => {
  const { t, i18n } = useTranslation();
+ const { user } = useAuth();
  const [highImpactEvents, setHighImpactEvents] = useState([]);
 
  useEffect(() => {
@@ -29,9 +31,7 @@ const MacroTicker = () => {
 
  if (!data) {
  try {
- const startStr =`${year}-${String(month+1).padStart(2,'0')}-01`;
- const endStr =`${year}-${String(month+1).padStart(2,'0')}-${new Date(year, month+1, 0).getDate()}`;
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/calendar?start=${startStr}&end=${endStr}&lang=${i18n.language}`);
+ const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/economic-calendar?timeframe=this_week`);
  if (res.ok) {
  data = await res.json();
  localStorage.setItem(cacheKey, JSON.stringify(data));
@@ -41,7 +41,7 @@ const MacroTicker = () => {
  }
 
  if (data && Array.isArray(data)) {
- const high = data.filter(e => e.impact === 'high' && e.title);
+ const high = data.filter(e => e.impact === 'HIGH' && e.event);
  setHighImpactEvents([...high.slice(0, 15), ...high.slice(0, 15)]); 
  } else {
  setHighImpactEvents([]);
@@ -84,9 +84,9 @@ const MacroTicker = () => {
  <div key={idx} className="flex items-center gap-2.5 text-xs">
  <span className="text-gray-500 font-mono tracking-tighter">{evt.time}</span>
  <span className="font-bold text-white uppercase bg-slate-700 px-1.5 py-0.5 rounded text-[10px]">{evt.country}</span>
- <span className="text-gray-300 font-medium pl-1">{evt.title}</span>
+ <span className="text-gray-300 font-medium pl-1">{evt.event}</span>
  
- {evt.ai_projection && (
+ {evt.ai_projection && user?.role === 'admin' && (
  <span className="text-danger font-bold uppercase tracking-wider text-[9px] bg-danger/10 px-1.5 py-0.5 rounded flex items-center gap-1 ml-1 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
  <Sparkles className="w-2.5 h-2.5"/> Avviso Volatilità AI
  </span>

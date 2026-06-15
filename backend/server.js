@@ -15,10 +15,10 @@ const allowedOrigins = [
   'http://localhost:5173', // Vite default local dev
   'http://localhost:5174', // Vite fallback
   'http://localhost:5175', // Vite fallback
-  'https://tradervision-quantitativemarkets.com',
-  'https://www.tradervision-quantitativemarkets.com',
-  process.env.CORS_ORIGIN // Fallback from env
-].filter(Boolean); // Remove undefined if CORS_ORIGIN is not set (e.g., local dev)
+  process.env.CORS_ORIGIN_1,   // Primary production origin (e.g. https://yourdomain.com)
+  process.env.CORS_ORIGIN_2,   // www variant or secondary origin
+  process.env.CORS_ORIGIN      // Legacy fallback from env
+].filter(Boolean); // Remove undefined if vars are not set
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -47,12 +47,15 @@ const groupsRoutes = require('./routes/groups');
 const adsRoutes = require('./routes/ads');
 const { initAIJobs } = require('./services/aiBriefingJob');
 const marketCronJob = require('./services/marketCronJob');
+const cotCronJob = require('./services/cotCronJob');
+const cotRoutes = require('./routes/cot');
 
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/social', socialRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/ads', adsRoutes);
+app.use('/api', cotRoutes);
 
 // Initialize AI Briefing Scheduler
 initAIJobs();
@@ -60,8 +63,20 @@ initAIJobs();
 // Initialize Daily Market Data Cron (06:00 AM)
 marketCronJob.init();
 
+// Initialize Weekly COT Data Cron (Saturday 06:00 AM)
+cotCronJob.init();
+
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Trader Vision API is running' });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('Unhandled Server Error:', err.stack || err);
+  res.status(500).json({
+    error: 'Internal Server Error',
+    message: process.env.NODE_ENV === 'development' ? err.message : 'Something went wrong.'
+  });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

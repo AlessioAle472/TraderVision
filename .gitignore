@@ -1,10 +1,20 @@
+# ============================================================
+# TRADER VISION — ROOT .gitignore
+# ============================================================
+
+# --- Dependencies ---
 node_modules/
+
+# --- Build Output ---
 dist/
 build/
+
+# --- Environment Files (NEVER commit these) ---
 .env
 .env.*
+# Allow only the template/example files (no real secrets)
 !.env.example
-!.env.production
-node_modules/
+
+# --- OS & Editor ---
 .DS_Store
 *.log

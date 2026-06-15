@@ -1,4 +1,4 @@
-import { LogIn, LogOut, LayoutDashboard, LineChart, Settings, MessageSquare, Calendar, Globe, Coins, Radar, FlaskConical } from 'lucide-react';
+import { LogIn, LogOut, LayoutDashboard, LineChart, Settings, MessageSquare, Calendar, Globe, Coins, Radar, FlaskConical, BarChart2 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
@@ -99,6 +99,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  </NavLink>
 
  <NavLink 
+ to="/cot"
+ className={({ isActive }) => 
+`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
+ }
+ onClick={closeMobile}
+ >
+ <BarChart2 className="w-5 h-5" />
+ <span>Commitment of Traders</span>
+ </NavLink>
+
+ <NavLink 
  to="/community"
  className={({ isActive }) => 
 `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
@@ -108,6 +119,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  <MessageSquare className="w-5 h-5"/>
  <span>{t('sidebar.community')}</span>
  </NavLink>
+ {user?.role === 'admin' && (
  <NavLink 
  to="/daily-news"
  className={({ isActive }) => 
@@ -118,16 +130,17 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  <Calendar className="w-5 h-5"/>
  <span>{t('sidebar.dailyNews')}</span>
  </NavLink>
+ )}
 
  <NavLink 
- to="/test-calendar"
+ to="/calendar"
  className={({ isActive }) => 
 `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-indigo-500/10 text-indigo-400 font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
  }
  onClick={closeMobile}
  >
  <FlaskConical className="w-5 h-5"/>
- <span>Test Calendario</span>
+ <span>Calendario Economico</span>
  </NavLink>
  </nav>
 

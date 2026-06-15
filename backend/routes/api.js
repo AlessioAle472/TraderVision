@@ -21,8 +21,9 @@ const marketsService = require('../services/marketsService');
 const TickerMapping = require('../models/TickerMapping');
 const MarketConfig = require('../models/MarketConfig');
 const PreloadedMarketData = require('../models/PreloadedMarketData');
-const { protect, master } = require('../middleware/authMiddleware');
-
+const { protect, master, verifyAdmin } = require('../middleware/authMiddleware');
+const { getEconomicCalendar } = require('../controllers/calendarController');
+const { getMarkets, getDashboard, searchMarkets, getHistory, getAssetDetails } = require('../controllers/marketController');
 // POST /api/newsletter/subscribe — subscribes a user to the daily briefing email
 router.post('/newsletter/subscribe', (req, res) => {
   const { email } = req.body;
@@ -92,18 +93,10 @@ router.get('/macro-deep-dive', async (req, res) => {
 });
 
 // GET /api/markets — full multi-section markets data
-router.get('/markets', async (req, res) => {
-    try {
-        const data = await marketsService.getMarketsData();
-        res.json(data);
-    } catch (error) {
-        console.error('API Error in /markets:', error.message);
-        res.status(500).json({ error: 'Failed to fetch markets data' });
-    }
-});
+router.get('/markets', getMarkets);
 
 // POST /api/ai-synthesis
-router.post('/ai-synthesis', async (req, res) => {
+router.post('/ai-synthesis', protect, verifyAdmin, async (req, res) => {
     try {
         const { chartData, fundamentals, correlations, regime } = req.body;
         const synthesis = await generateSynthesis(chartData, fundamentals, correlations, regime);
@@ -115,7 +108,7 @@ router.post('/ai-synthesis', async (req, res) => {
 });
 
 // POST /api/risk/report
-router.post('/risk/report', async (req, res) => {
+router.post('/risk/report', protect, verifyAdmin, async (req, res) => {
     try {
         const { chartData, fundamentals, correlations } = req.body;
         const report = await generateRiskReport(chartData, fundamentals, correlations);
@@ -127,7 +120,7 @@ router.post('/risk/report', async (req, res) => {
 });
 
 // GET /api/briefing/latest — returns the latest AI-generated market briefing
-router.get('/briefing/latest', async (req, res) => {
+router.get('/briefing/latest', protect, verifyAdmin, async (req, res) => {
   try {
     const news = await aiBriefingService.fetchLatestNews();
     const briefing = await aiBriefingService.generateAIBriefing(news);
@@ -139,46 +132,10 @@ router.get('/briefing/latest', async (req, res) => {
 });
 
 // GET /api/search?q={query} — search for assets via Yahoo Finance
-router.get('/search', async (req, res) => {
-  const { q } = req.query;
-  if (!q) {
-    return res.status(400).json({ error: 'Query parameter "q" is required' });
-  }
-
-  try {
-    const results = await marketDataService.search(q);
-    res.json(results);
-  } catch (error) {
-    console.error('Error in /api/search:', error);
-    res.status(500).json({ error: 'Failed to search for assets' });
-  }
-});
+router.get('/search', searchMarkets);
 
 // GET /api/dashboard — returns dashboard data, supports optional ?tickers=...
-router.get('/dashboard', async (req, res) => {
-  try {
-    const { tickers } = req.query;
-    let customAssets = null;
-
-    if (tickers) {
-      // Expecting tickers=AAPL,BTC-USD,GC=F
-      customAssets = {};
-      tickers.split(',').forEach(t => {
-        const cleanTicker = t.trim();
-        if (cleanTicker) {
-          // We use the ticker as the name too for custom assets
-          customAssets[cleanTicker] = cleanTicker;
-        }
-      });
-    }
-
-    const data = await marketDataService.getDashboardData(customAssets);
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-    res.status(500).json({ error: 'Failed to fetch market data' });
-  }
-});
+router.get('/dashboard', getDashboard);
 
 // Endpoint to provide safe API configuration to frontend
 router.get('/config', (req, res) => {
@@ -188,136 +145,10 @@ router.get('/config', (req, res) => {
 });
 
 // Endpoint to get historical stock/forex data for charts
-router.get('/history', async (req, res) => {
-  const { ticker, resolution, from, to } = req.query;
-  
-  if (!ticker || !resolution || !from || !to) {
-    return res.status(400).json({ error: 'Missing required query parameters: ticker, resolution, from, to' });
-  }
-
-  try {
-    const data = await marketDataService.getHistoricalData(ticker, resolution, from, to);
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching historical data:', error);
-    res.status(500).json({ error: 'Failed to fetch historical data' });
-  }
-});
-
-// GET /api/calendar — retrieves real economic events via Python script
-router.get('/calendar', async (req, res) => {
-  const { start, end, lang = 'en' } = req.query;
-  if (!start || !end) {
-    return res.status(400).json({ error: 'Missing start or end date parameters' });
-  }
-
-  try {
-    const scriptPath = path.join(__dirname, '../daily_news.py');
-    const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" --lang "${lang}"`, { windowsHide: true });
-    
-    // Find the first occurrence of { and parse from there to ignore warnings
-    const jsonStart = stdout.indexOf('{');
-    if (jsonStart === -1) {
-      throw new Error(`Invalid output from script: ${stdout}`);
-    }
-    const jsonStr = stdout.substring(jsonStart);
-    const parsedData = JSON.parse(jsonStr);
-    
-    if (parsedData.error) {
-      throw new Error(parsedData.error);
-    }
-    
-    res.json(parsedData.events || []);
-  } catch (error) {
-    console.error('Error fetching economic calendar from python script:', error.message);
-    res.status(500).json({ error: 'Failed to fetch economic calendar' });
-  }
-});
+router.get('/history', getHistory);
 
 // GET /api/economic-calendar — fetch live economic calendar via Finnhub
-router.get('/economic-calendar', async (req, res) => {
-  try {
-    const { timeframe = 'today' } = req.query;
-    const apiKey = process.env.FINNHUB_API_KEY;
-    if (!apiKey) throw new Error("Finnhub API key missing");
-
-    const now = new Date();
-    let fromDate = new Date(now);
-    let toDate = new Date(now);
-    let localDates = []; // array of local date strings to filter by
-
-    if (timeframe === 'yesterday') {
-      fromDate.setDate(now.getDate() - 1);
-      toDate = new Date(fromDate);
-      localDates.push(fromDate.toLocaleDateString());
-    } else if (timeframe === 'tomorrow') {
-      fromDate.setDate(now.getDate() + 1);
-      toDate = new Date(fromDate);
-      localDates.push(fromDate.toLocaleDateString());
-    } else if (timeframe === 'this_week') {
-      const day = now.getDay();
-      const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-      fromDate.setDate(diffToMonday);
-      toDate = new Date(fromDate);
-      toDate.setDate(toDate.getDate() + 6);
-      
-      // Populate localDates for the whole week
-      for(let i=0; i<7; i++) {
-        let d = new Date(fromDate);
-        d.setDate(d.getDate() + i);
-        localDates.push(d.toLocaleDateString());
-      }
-    } else {
-      // today
-      localDates.push(now.toLocaleDateString());
-    }
-
-    // Add padding to Finnhub request to handle UTC conversions safely
-    const fetchFrom = new Date(fromDate);
-    fetchFrom.setDate(fetchFrom.getDate() - 1);
-    const fetchTo = new Date(toDate);
-    fetchTo.setDate(fetchTo.getDate() + 1);
-    
-    const fromStr = fetchFrom.toISOString().split('T')[0];
-    const toStr = fetchTo.toISOString().split('T')[0];
-
-    const response = await axios.get(`https://finnhub.io/api/v1/calendar/economic?from=${fromStr}&to=${toStr}&token=${apiKey}`);
-    
-    const events = response.data.economicCalendar || [];
-    
-    const mappedEvents = events.map((ev, index) => {
-      // Finnhub times are in UTC "YYYY-MM-DD HH:MM:SS"
-      const eventTime = new Date(ev.time + " UTC");
-      const isPast = eventTime < now;
-      const timeString = eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      
-      return {
-        id: index,
-        time: timeString,
-        country: ev.country, // ISO2 code (e.g. US, EU, JP)
-        event: ev.event,
-        impact: ev.impact ? ev.impact.toUpperCase() : 'LOW',
-        actual: ev.actual !== null ? String(ev.actual) : "",
-        consensus: ev.estimate !== null ? String(ev.estimate) : "",
-        previous: ev.prev !== null ? String(ev.prev) : "",
-        isPast: isPast,
-        timestamp: eventTime.getTime(),
-        localDateStr: eventTime.toLocaleDateString(),
-        dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' })
-      };
-    });
-
-    // Filter only events that fall exactly in our desired dates locally
-    const filteredEvents = mappedEvents.filter(ev => {
-      return localDates.includes(ev.localDateStr);
-    }).sort((a, b) => a.timestamp - b.timestamp);
-
-    res.json(filteredEvents);
-  } catch (error) {
-    console.error("Error fetching economic calendar:", error.message);
-    res.status(500).json({ error: "Failed to fetch calendar data" });
-  }
-});
+router.get('/economic-calendar', getEconomicCalendar);
 
 // GET /api/community — returns mock community data
 router.get('/community', (req, res) => {
@@ -412,26 +243,10 @@ router.post('/admin/force-refresh', protect, master, async (req, res) => {
 });
 
 // GET /api/asset-details/:ticker — completely standalone endpoint for Full Analysis page
-router.get('/asset-details/:ticker', async (req, res) => {
-  try {
-    const { ticker } = req.params;
-    
-    // We send a single asset dictionary payload, reusing the python logic core
-    const data = await marketDataService.getDashboardData({ [ticker]: ticker });
-    
-    if (!data || !data.assets || data.assets.length === 0) {
-      return res.status(404).json({ error: 'Asset data calculation failed or unsupported.' });
-    }
-    
-    res.json(data.assets[0]);
-  } catch (error) {
-    console.error(`Error fetching single asset details for ${req.params.ticker}:`, error);
-    res.status(500).json({ error: 'Failed to fetch specific asset details' });
-  }
-});
+router.get('/asset-details/:ticker', getAssetDetails);
 
 // GET /api/quick-insight/:ticker — returns a quick AI insight using Gemini for assets crossing the >80 smart score
-router.get('/quick-insight/:ticker', async (req, res) => {
+router.get('/quick-insight/:ticker', protect, verifyAdmin, async (req, res) => {
   try {
     const { ticker } = req.params;
     const { price } = req.query; // optional
@@ -445,7 +260,7 @@ router.get('/quick-insight/:ticker', async (req, res) => {
 });
 
 // GET /api/crypto-divergence — returns an AI analysis of crypto divergence
-router.get('/crypto-divergence', async (req, res) => {
+router.get('/crypto-divergence', protect, verifyAdmin, async (req, res) => {
   try {
     const { generateCryptoDivergence } = require('../services/aiSynthesisService');
     const marketsData = await marketsService.getMarketsData();
@@ -459,7 +274,7 @@ router.get('/crypto-divergence', async (req, res) => {
 });
 
 // GET /api/stagflation-alert — checks if stagflation macro conditions are met and returns AI warning
-router.get('/stagflation-alert', async (req, res) => {
+router.get('/stagflation-alert', protect, verifyAdmin, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     const usa = marketsData.sections.usa?.assets || [];
@@ -486,7 +301,7 @@ router.get('/stagflation-alert', async (req, res) => {
 });
 
 // GET /api/capital-flow
-router.get('/capital-flow', async (req, res) => {
+router.get('/capital-flow', protect, verifyAdmin, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     

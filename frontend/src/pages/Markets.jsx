@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
  TrendingUp, 
@@ -18,38 +18,32 @@ import {
  Sparkles,
  AlertTriangle
 } from 'lucide-react';
-import apiClient from '../services/apiClient';
 import Sparkline from '../components/Sparkline';
-import PremiumGate from '../components/PremiumGate';
 import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader';
+import { useAuth } from '../context/AuthContext';
+import { useMarkets } from '../hooks/useApiQuery';
+import ErrorBoundary from '../components/ErrorBoundary';
+import WidgetErrorFallback from '../components/WidgetErrorFallback';
+
+// Import extracted components
+import AIInsightInline from '../components/ai/AIInsightInline';
+import CryptoDivergenceInsights from '../components/ai/CryptoDivergenceInsights';
+import MacroAlertBanner from '../components/ai/MacroAlertBanner';
+import GlobalCapitalFlowBox from '../components/ai/GlobalCapitalFlowBox';
 
 const Markets = () => {
  const navigate = useNavigate();
- const [loading, setLoading] = useState(true);
- const [data, setData] = useState({ sections: {}, factors: [] });
  const [activeTab, setActiveTab] = useState('usa');
+ const [searchTerm, setSearchTerm] = useState('');
  const stickyHeaderRef = useRef(null);
 
- useEffect(() => {
- const fetchData = async () => {
- try {
- setLoading(true);
- const res = await apiClient.getMarketsData();
- setData(res);
- } catch (err) {
- console.error('Failed to fetch markets data', err);
- } finally {
- setLoading(false);
- }
- };
- fetchData();
- }, []);
+ const { data, isLoading: loading } = useMarkets();
 
- const sections = data.sections || {};
+ const sections = data?.sections || {};
  const currentAssets = sections[activeTab]?.assets || [];
  const heroAssets = sections.usa?.assets?.slice(0, 3) || [];
 
- const isInitialLoad = loading && !data.sections.usa;
+ const isInitialLoad = loading && !sections.usa;
 
  return (
  <div className="max-w-7xl mx-auto space-y-12 pb-24 animate-in fade-in duration-700">
@@ -63,7 +57,9 @@ const Markets = () => {
  </header>
  
  {/* Global Macro Alert Banner */}
+ <ErrorBoundary fallback={<WidgetErrorFallback title="Macro Alert Error" />}>
  <MacroAlertBanner />
+ </ErrorBoundary>
 
  {/* Hero Cards Grid */}
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -95,7 +91,7 @@ const Markets = () => {
  </div>
  ))
  ) : (
- data.factors.map((factor) => (
+ data?.factors?.map((factor) => (
  <FactorBar key={factor.name} factor={factor} />
  ))
  )}
@@ -103,7 +99,9 @@ const Markets = () => {
  </section>
 
  {/* Global Capital Flow AI Engine */}
+ <ErrorBoundary fallback={<WidgetErrorFallback title="Global Capital Flow Error" />}>
  <GlobalCapitalFlowBox />
+ </ErrorBoundary>
 
  {/* Main Table Section */}
  <section className="space-y-6">
@@ -132,6 +130,8 @@ const Markets = () => {
  <input 
  type="text"
  placeholder="Cerca asset..."
+ value={searchTerm}
+ onChange={(e) => setSearchTerm(e.target.value)}
  className="bg-white/5 rounded-xl py-2 pl-10 pr-4 text-xs font-bold text-white focus:outline-none focus: focus:/50 transition-all w-48"
  />
  </div>
@@ -141,7 +141,11 @@ const Markets = () => {
  </div>
  </div>
 
- {activeTab === 'crypto' && <CryptoDivergenceInsights />}
+ {activeTab === 'crypto' && (
+   <ErrorBoundary fallback={<WidgetErrorFallback title="Crypto Insights Error" />}>
+     <CryptoDivergenceInsights />
+   </ErrorBoundary>
+ )}
 
  <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] overflow-hidden shadow-2xl">
  <div className="table-scroll">
@@ -163,10 +167,10 @@ const Markets = () => {
  {isInitialLoad ? (
  [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
  ) : (
- currentAssets.map((asset) => (
+ currentAssets.filter(a => (a.ticker || '').toLowerCase().includes(searchTerm.toLowerCase())).map((asset) => (
  <tr 
  key={asset.ticker}
- onClick={() => navigate(`/ticker/${encodeURIComponent(asset.yahooTicker)}`)}
+ onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
  className="group hover:bg-white/[0.04] transition-all duration-300 cursor-pointer hover:shadow-2xl hover:-translate-y-0.5 relative z-10"
  >
  <td className="px-8 py-6">
@@ -253,7 +257,7 @@ const HeroCard = ({ asset, index }) => {
 
  <div className="flex items-center gap-6">
  <div className="relative h-20 w-20">
- <svg className="h-full w-full"viewBox="0 0 100 100">
+ <svg className="h-full w-full" viewBox="0 0 100 100">
  <circle 
  className="text-white/5"
  strokeWidth="10"
@@ -276,7 +280,7 @@ const HeroCard = ({ asset, index }) => {
  cy="50"
  transform="rotate(-90 50 50)"
  />
- <text x="50"y="55"textAnchor="middle"className="text-2xl font-black fill-white"dy=".3em">
+ <text x="50" y="55" textAnchor="middle" className="text-2xl font-black fill-white" dy=".3em">
  {asset.smartScore}
  </text>
  </svg>
@@ -290,7 +294,7 @@ const HeroCard = ({ asset, index }) => {
  <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
  <div 
  className={`h-full rounded-full transition-all duration-1000 ${getScoreStyle(asset.smartScore).bg}`} 
- style={{ width:`${asset.smartScore}%`}}
+ style={{ width: `${asset.smartScore}%` }}
  />
  </div>
  </div>
@@ -313,8 +317,8 @@ const HeatMapCell = ({ value }) => {
  const opacity = 0.05 + (magnitude * 0.2);
  
  const bg = isPos 
- ?`rgba(16, 185, 129, ${opacity})`
- :`rgba(244, 63, 94, ${opacity})`;
+ ? `rgba(16, 185, 129, ${opacity})`
+ : `rgba(244, 63, 94, ${opacity})`;
  
  const text = isPos ? 'text-emerald-400' : 'text-rose-400';
  
@@ -367,8 +371,8 @@ const FactorBar = ({ factor }) => {
  <div 
  className={`absolute inset-y-0 h-full transition-all duration-1000 ease-out z-10 ${factor.value >= 50 ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'}`}
  style={{ 
- left: factor.value >= 50 ? '50%' :`${factor.value}%`,
- width:`${Math.abs(factor.value - 50)}%`
+ left: factor.value >= 50 ? '50%' : `${factor.value}%`,
+ width: `${Math.abs(factor.value - 50)}%`
  }}
  />
  </div>
@@ -382,208 +386,6 @@ const getScoreStyle = (score) => {
   if (score >= 40) return { text: 'text-amber-400', bg: 'bg-amber-500', bgLight: 'bg-amber-500/10' };
   if (score >= 20) return { text: 'text-rose-400', bg: 'bg-rose-500', bgLight: 'bg-rose-500/10' };
   return { text: 'text-rose-600', bg: 'bg-rose-700', bgLight: 'bg-rose-700/10' };
-};
-
-const AIInsightInline = ({ ticker, price }) => {
- const [insight, setInsight] = useState(null);
- const [loading, setLoading] = useState(false);
-
- const fetchInsight = async (e) => {
- e.stopPropagation();
- if (insight) return;
- setLoading(true);
- try {
- const res = await apiClient.getInsight(ticker, price);
- setInsight(res.insight);
- } catch (err) {
- console.error(err);
- } finally {
- setLoading(false);
- }
- };
-
- return (
- <div className="mt-2"onClick={(e) => e.stopPropagation()}>
- {!insight && !loading && (
- <button 
- onClick={fetchInsight}
- className="flex items-center gap-1.5 text-[9px] text-amber-500 hover:text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-md font-bold uppercase transition-all duration-300 pointer-events-auto"
- >
- <Sparkles className="w-3 h-3"/> Quick Insight AI
- </button>
- )}
- {loading && <div className="text-[9px] text-gray-500 flex items-center gap-1"><Loader2 className="w-3 h-3 animate-spin"/> Elaborazione...</div>}
- {insight && (
- <div className="text-[10px] text-amber-100 bg-amber-900/40 p-2 rounded-lg /20 mt-1 max-w-[200px] leading-snug animate-in fade-in slide-in-from-top-1 pointer-events-auto shadow-xl">
- <span className="font-bold text-amber-500 flex items-center gap-1 mb-0.5"><Sparkles className="w-3 h-3"/> AI Insight</span>
- {insight}
- </div>
- )}
- </div>
- );
-};
-
-const CryptoDivergenceInsights = () => {
- const [insight, setInsight] = useState(null);
- const [loading, setLoading] = useState(false);
-
- const fetchDivergence = async () => {
- setLoading(true);
- try {
- const res = await apiClient.getCryptoDivergence();
- setInsight(res.insight);
- } catch (err) {
- console.error('Failed to fetch crypto divergence', err);
- } finally {
- setLoading(false);
- }
- };
-
- return (
- <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] p-6 mb-6 shadow-2xl relative overflow-hidden group">
- {/* Background effects */}
- <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"/>
- 
- <PremiumGate>
- <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
- <div>
- <h3 className="text-sm font-black text-white flex items-center gap-2 tracking-tighter">
- <Sparkles className="w-4 h-4 text-emerald-400"/> AI Crypto Divergence
- </h3>
- <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-1">
- Analisi strutturale Bitcoin vs Altcoin Dominance
- </p>
- </div>
-
- {!insight && !loading && (
- <button 
- onClick={fetchDivergence}
- className="px-4 py-2 bg-white/5 hover:bg-emerald-500/10 text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg"
- >
- Analizza Divergenza Altcoin
- </button>
- )}
-
- {loading && (
- <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-400/70">
- <Loader2 className="w-3 h-3 animate-spin"/> Elaborazione modello quantitativo...
- </div>
- )}
- </div>
-
- {insight && (
- <div className="mt-4 pt-4 text-sm font-medium text-gray-300 leading-relaxed animate-in fade-in slide-in-from-top-2">
- {insight}
- </div>
- )}
- </PremiumGate>
- </div>
- );
-};
-
-const MacroAlertBanner = () => {
- const [alert, setAlert] = useState(null);
-
- useEffect(() => {
- const checkAlert = async () => {
- try {
- const res = await apiClient.getStagflationAlert();
- if (res && res.insight) {
- setAlert(res.insight);
- }
- } catch (err) {
- console.error(err);
- }
- };
- checkAlert();
- }, []);
-
- if (!alert) return null;
-
- return (
- <div className="bg-rose-500/10 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.1)] flex gap-4 items-start animate-in fade-in slide-in-from-top-4">
- <div className="absolute top-0 right-0 w-32 h-32 bg-rose-500/20 blur-[60px] rounded-full pointer-events-none"/>
- 
- <PremiumGate>
- <div className="flex gap-4 items-start">
- <div className="p-3 bg-rose-500/20 rounded-xl">
- <AlertTriangle className="w-6 h-6 text-rose-500"/>
- </div>
- 
- <div className="space-y-1 relative z-10">
- <h3 className="text-sm font-black text-rose-400 capitalize tracking-wide flex items-center gap-2">
- Alert Macroeconomico Rilevato
- <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"/>
- </h3>
- <p className="text-sm text-gray-300 leading-relaxed font-medium">
- {alert}
- </p>
- </div>
- </div>
- </PremiumGate>
- </div>
- );
-};
-
-const GlobalCapitalFlowBox = () => {
- const [insight, setInsight] = useState(null);
- const [loading, setLoading] = useState(false);
-
- const fetchFlow = async () => {
- setLoading(true);
- try {
- const res = await apiClient.getCapitalFlow();
- setInsight(res.insight);
- } catch (err) {
- console.error('Failed to fetch global capital flow', err);
- } finally {
- setLoading(false);
- }
- };
-
- return (
- <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">
- <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 opacity-50"/>
- 
- <PremiumGate>
- <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
- <div>
- <h3 className="text-xl font-black text-white flex items-center gap-3 tracking-tighter">
- <Globe className="w-6 h-6 text-blue-400"/>
- Global Capital Flow Engine
- </h3>
- <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">
- Tracking liquidità istituzionale tra Economie Sviluppate ed Emergenti
- </p>
- </div>
-
- {!insight && !loading && (
- <button 
- onClick={fetchFlow}
- className="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/20"
- >
- Analizza Macro Flussi
- </button>
- )}
-
- {loading && (
- <div className="flex items-center gap-3 text-xs font-black uppercase tracking-widest text-blue-400">
- <Loader2 className="w-4 h-4 animate-spin"/> Elaborazione Aggregati...
- </div>
- )}
- </div>
-
- {insight && (
- <div className="mt-6 pt-6 relative z-10">
- <div 
- className="text-sm font-medium text-gray-300 leading-relaxed space-y-2 animate-in fade-in slide-in-from-top-4"
- dangerouslySetInnerHTML={{ __html: insight }}
- />
- </div>
- )}
- </PremiumGate>
- </div>
- );
 };
 
 const SkeletonHeroCard = () => (
@@ -606,6 +408,5 @@ const SkeletonHeroCard = () => (
  </div>
  </div>
 );
-
 
 export default Markets;

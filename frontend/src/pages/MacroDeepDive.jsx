@@ -14,50 +14,40 @@ import {
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useMacroDeepDive } from '../hooks/useApiQuery';
+import DOMPurify from 'dompurify';
 
 const MacroDeepDive = () => {
  const navigate = useNavigate();
- const [loading, setLoading] = useState(true);
- const [data, setData] = useState(null);
- const [synthesis, setSynthesis] = useState('');
- const [synthesisLoading, setSynthesisLoading] = useState(false);
+ const { user } = useAuth();
+  const { data, isLoading: loading } = useMacroDeepDive();
+  const [synthesis, setSynthesis] = useState('');
+  const [synthesisLoading, setSynthesisLoading] = useState(false);
 
- useEffect(() => {
- fetchData();
- }, []);
+  useEffect(() => {
+    if (data && user?.role === 'admin' && !synthesis) {
+      fetchSynthesis(data);
+    }
+  }, [data, user?.role, synthesis]);
 
- const fetchData = async () => {
- try {
- setLoading(true);
- const res = await axios.get('/api/macro-deep-dive');
- setData(res.data);
- 
- // Trigger AI Synthesis
- fetchSynthesis(res.data);
- } catch (error) {
- console.error('Error fetching macro deep dive data:', error);
- } finally {
- setLoading(false);
- }
- };
-
- const fetchSynthesis = async (macroData) => {
- try {
- setSynthesisLoading(true);
- const res = await axios.post('/api/ai-synthesis', {
- chartData: macroData.chart,
- fundamentals: macroData.fundamentals,
- correlations: macroData.correlationMatrix.correlations,
- regime: 'Macro Divergence' // Placeholder for now or could be calculated
- });
- setSynthesis(res.data.synthesis);
- } catch (error) {
- console.error('Error fetching AI synthesis:', error);
- setSynthesis("Impossibile generare la sintesi AI al momento.");
- } finally {
- setSynthesisLoading(false);
- }
- };
+  const fetchSynthesis = async (macroData) => {
+    try {
+      setSynthesisLoading(true);
+      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/ai-synthesis`, {
+        chartData: macroData.chart,
+        fundamentals: macroData.fundamentals,
+        correlations: macroData.correlationMatrix.correlations,
+        regime: 'Macro Divergence' // Placeholder for now or could be calculated
+      });
+      setSynthesis(res.data.synthesis);
+    } catch (error) {
+      console.error('Error fetching AI synthesis:', error);
+      setSynthesis("Impossibile generare la sintesi AI al momento.");
+    } finally {
+      setSynthesisLoading(false);
+    }
+  };
 
  if (loading) {
  return (
@@ -244,6 +234,7 @@ const MacroDeepDive = () => {
  </div>
 
  {/* Synthesis Column */}
+ {user?.role === 'admin' && (
  <div className="space-y-8">
  <div className="bg-gradient-to-br from-slate-900/60 to-slate-900/20 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl h-full flex flex-col">
  <div className="flex items-center gap-3 mb-8">
@@ -265,7 +256,7 @@ const MacroDeepDive = () => {
  ) : (
  <div 
  className="text-sm text-gray-300 leading-relaxed font-medium transition-all duration-500 animate-in fade-in"
- dangerouslySetInnerHTML={{ __html: synthesis }}
+ dangerouslySetInnerHTML={{ __html: window.DOMPurify ? window.DOMPurify.sanitize(synthesis) : synthesis }}
  />
  )}
  </div>
@@ -288,6 +279,7 @@ const MacroDeepDive = () => {
  </div>
  </div>
  </div>
+ )}
 
  </div>
  </div>

@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Star, ArrowUpRight, ArrowDownRight, RefreshCw, Flame, X, BarChart2, Activity } from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext';
+import { useAuth } from '../context/AuthContext';
 import apiClient from '../services/apiClient';
 import TradingViewWidget from '../components/TradingViewWidget';
 
 const Watchlist = () => {
  const navigate = useNavigate();
  const { watchlist, toggleWatchlist, isWatched } = useWatchlist();
+ const { user } = useAuth();
  
  const [allAssets, setAllAssets] = useState([]);
  const [macroData, setMacroData] = useState(null);
@@ -242,6 +244,7 @@ const Watchlist = () => {
  </div>
 
  {/* AI Summary Block */}
+ {user?.role === 'admin' && (
  <div className="bg-primary/5 rounded-2xl p-5 mb-6 shadow-[inset_0_0_20px_rgba(59,130,246,0.02)]">
  <h3 className="text-primary text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
  <Activity className="w-3.5 h-3.5"/> AI Quick Insight
@@ -255,6 +258,7 @@ const Watchlist = () => {
  :`L'asset mostra dinamiche largamente indipendenti dall'attuale ciclo macroeconomico, dominato da metriche isolate.`}"
  </p>
  </div>
+ )}
 
  {/* Price Key Metrics */}
  <div className="grid grid-cols-2 gap-4 mb-6">
