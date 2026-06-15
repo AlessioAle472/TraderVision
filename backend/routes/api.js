@@ -22,6 +22,7 @@ const TickerMapping = require('../models/TickerMapping');
 const MarketConfig = require('../models/MarketConfig');
 const PreloadedMarketData = require('../models/PreloadedMarketData');
 const { protect, master, verifyAdmin } = require('../middleware/authMiddleware');
+const { aiLimiter } = require('../middleware/rateLimiter');
 const { getEconomicCalendar } = require('../controllers/calendarController');
 const { getMarkets, getDashboard, searchMarkets, getHistory, getAssetDetails } = require('../controllers/marketController');
 // POST /api/newsletter/subscribe — subscribes a user to the daily briefing email
@@ -40,8 +41,8 @@ router.post('/newsletter/subscribe', (req, res) => {
   }
 });
 
-// POST /api/briefing/force-send — manually trigger the briefing cycle (Fetch -> AI -> Email)
-router.post('/briefing/force-send', async (req, res) => {
+// POST /api/briefing/force-send — manually trigger the briefing cycle (master only)
+router.post('/briefing/force-send', protect, master, async (req, res) => {
   try {
     const result = await runBriefingCycle('MANUAL_TEST');
     res.json(result);
@@ -96,7 +97,7 @@ router.get('/macro-deep-dive', async (req, res) => {
 router.get('/markets', getMarkets);
 
 // POST /api/ai-synthesis
-router.post('/ai-synthesis', protect, verifyAdmin, async (req, res) => {
+router.post('/ai-synthesis', protect, verifyAdmin, aiLimiter, async (req, res) => {
     try {
         const { chartData, fundamentals, correlations, regime } = req.body;
         const synthesis = await generateSynthesis(chartData, fundamentals, correlations, regime);
@@ -108,7 +109,7 @@ router.post('/ai-synthesis', protect, verifyAdmin, async (req, res) => {
 });
 
 // POST /api/risk/report
-router.post('/risk/report', protect, verifyAdmin, async (req, res) => {
+router.post('/risk/report', protect, verifyAdmin, aiLimiter, async (req, res) => {
     try {
         const { chartData, fundamentals, correlations } = req.body;
         const report = await generateRiskReport(chartData, fundamentals, correlations);
@@ -137,12 +138,9 @@ router.get('/search', searchMarkets);
 // GET /api/dashboard — returns dashboard data, supports optional ?tickers=...
 router.get('/dashboard', getDashboard);
 
-// Endpoint to provide safe API configuration to frontend
-router.get('/config', (req, res) => {
-  res.json({
-    finnhubKey: process.env.FINNHUB_API_KEY || ''
-  });
-});
+// NOTE: The Finnhub API key is intentionally NOT exposed to the frontend.
+// All Finnhub calls are made server-side. If the frontend needs market config,
+// expose only non-sensitive, computed data.
 
 // Endpoint to get historical stock/forex data for charts
 router.get('/history', getHistory);
@@ -245,8 +243,8 @@ router.post('/admin/force-refresh', protect, master, async (req, res) => {
 // GET /api/asset-details/:ticker — completely standalone endpoint for Full Analysis page
 router.get('/asset-details/:ticker', getAssetDetails);
 
-// GET /api/quick-insight/:ticker — returns a quick AI insight using Gemini for assets crossing the >80 smart score
-router.get('/quick-insight/:ticker', protect, verifyAdmin, async (req, res) => {
+// GET /api/quick-insight/:ticker — returns a quick AI insight using Gemini
+router.get('/quick-insight/:ticker', protect, verifyAdmin, aiLimiter, async (req, res) => {
   try {
     const { ticker } = req.params;
     const { price } = req.query; // optional
@@ -260,7 +258,7 @@ router.get('/quick-insight/:ticker', protect, verifyAdmin, async (req, res) => {
 });
 
 // GET /api/crypto-divergence — returns an AI analysis of crypto divergence
-router.get('/crypto-divergence', protect, verifyAdmin, async (req, res) => {
+router.get('/crypto-divergence', protect, verifyAdmin, aiLimiter, async (req, res) => {
   try {
     const { generateCryptoDivergence } = require('../services/aiSynthesisService');
     const marketsData = await marketsService.getMarketsData();
@@ -273,8 +271,8 @@ router.get('/crypto-divergence', protect, verifyAdmin, async (req, res) => {
   }
 });
 
-// GET /api/stagflation-alert — checks if stagflation macro conditions are met and returns AI warning
-router.get('/stagflation-alert', protect, verifyAdmin, async (req, res) => {
+// GET /api/stagflation-alert — checks if stagflation macro conditions are met
+router.get('/stagflation-alert', protect, verifyAdmin, aiLimiter, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     const usa = marketsData.sections.usa?.assets || [];
@@ -301,7 +299,7 @@ router.get('/stagflation-alert', protect, verifyAdmin, async (req, res) => {
 });
 
 // GET /api/capital-flow
-router.get('/capital-flow', protect, verifyAdmin, async (req, res) => {
+router.get('/capital-flow', protect, verifyAdmin, aiLimiter, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     

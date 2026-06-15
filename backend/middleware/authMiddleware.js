@@ -12,14 +12,17 @@ const protect = async (req, res, next) => {
       token = req.headers.authorization.split(' ')[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       req.user = await User.findById(decoded.id).select('-password');
+      if (!req.user) {
+        return res.status(401).json({ message: 'Not authorized, user not found' });
+      }
       return next();
     } catch (error) {
-      console.error(error);
+      // Do not leak error details (expired, invalid signature, etc.)
+      return res.status(401).json({ message: 'Not authorized, token invalid' });
     }
   }
 
-  // In development, if no token is provided, allow requests to pass through
-  // for easier local testing but DO NOT inject a fake admin user.
+  // In development with no token, proceed without a user (do NOT inject a fake admin)
   if (process.env.NODE_ENV === 'development') {
     console.warn('[Auth] No token in DEV mode — proceeding without authenticated user.');
     req.user = null;

@@ -54,20 +54,20 @@ router.get('/posts', protect, async (req, res) => {
     const posts = await Post.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit)
-      .populate('author', 'name username avatar email')
+      .limit(Math.min(limit, 50)) // Cap at 50 to prevent large payload abuse
+      .populate('author', 'name username avatar')
       .populate('reposts', 'name username')
       .populate({
         path: 'originalPostId',
-        populate: { path: 'author', select: 'name username avatar email' }
+        populate: { path: 'author', select: 'name username avatar' }
       })
       .exec();
 
     // Map over posts to generate missing usernames retroactively if needed
     const formattedPosts = posts.map(post => {
-      const authorObj = post.author ? post.author.toObject() : { name: 'Unknown', email: 'unknown@user.com' };
+      const authorObj = post.author ? post.author.toObject() : { name: 'Unknown' };
       if (!authorObj.username) {
-        authorObj.username = '@' + (authorObj.email ? authorObj.email.split('@')[0] : 'user');
+        authorObj.username = '@user';
         authorObj.name = authorObj.name || 'User';
       }
       return { ...post.toObject(), author: authorObj };
@@ -115,7 +115,7 @@ router.post('/posts', protect, upload.single('media'), async (req, res) => {
     await post.save();
     
     const populatedPost = await Post.findById(post._id)
-        .populate('author', 'name username avatar email')
+        .populate('author', 'name username avatar')
         .exec();
 
     res.status(201).json(populatedPost);
@@ -185,10 +185,10 @@ router.post('/posts/:id/repost', protect, async (req, res) => {
     await repostPost.save();
     
     const populatedPost = await Post.findById(repostPost._id)
-      .populate('author', 'name username avatar email')
+      .populate('author', 'name username avatar')
       .populate({
         path: 'originalPostId',
-        populate: { path: 'author', select: 'name username avatar email' }
+        populate: { path: 'author', select: 'name username avatar' }
       })
       .exec();
 
@@ -225,7 +225,11 @@ router.delete('/posts/:id', protect, async (req, res) => {
     const post = await Post.findById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
-    // Rimosso controllo auth per permettere la cancellazione dei vecchi post in ambiente di dev/mock
+    // Security: only the post author can delete their own post
+    if (!req.user || post.author.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ error: 'Not authorized to delete this post' });
+    }
+
     await Post.findByIdAndDelete(req.params.id);
     res.json({ success: true });
   } catch (error) {
@@ -242,13 +246,13 @@ router.get('/posts/:id/comments', protect, async (req, res) => {
   try {
     const comments = await Comment.find({ post: req.params.id })
       .sort({ createdAt: 1 })
-      .populate('author', 'name username avatar email')
+      .populate('author', 'name username avatar')
       .exec();
     
     const formattedComments = comments.map(c => {
-      const authorObj = c.author ? c.author.toObject() : { name: 'Unknown', email: 'unknown@user.com' };
+      const authorObj = c.author ? c.author.toObject() : { name: 'Unknown' };
       if (!authorObj.username) {
-        authorObj.username = '@' + (authorObj.email ? authorObj.email.split('@')[0] : 'user');
+        authorObj.username = '@user';
         authorObj.name = authorObj.name || 'User';
       }
       return { ...c.toObject(), author: authorObj };
@@ -279,7 +283,7 @@ router.post('/posts/:id/comments', protect, async (req, res) => {
     await comment.save();
     
     const populatedComment = await Comment.findById(comment._id)
-      .populate('author', 'name username avatar email')
+      .populate('author', 'name username avatar')
       .exec();
 
     res.status(201).json(populatedComment);

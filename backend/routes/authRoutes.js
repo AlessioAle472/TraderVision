@@ -3,11 +3,7 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
-
-// Fail-fast: JWT_SECRET must be set in environment variables. No insecure fallback.
-if (!process.env.JWT_SECRET) {
-  throw new Error('FATAL: JWT_SECRET environment variable is not set. Server cannot start securely.');
-}
+const { authLimiter } = require('../middleware/rateLimiter');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -15,24 +11,33 @@ const generateToken = (id) => {
   });
 };
 
-// Register
-router.post('/register', async (req, res) => {
+// ── Register ───────────────────────────────────────────────────────────────
+// Rate limited: max 10 attempts per 15 minutes per IP
+router.post('/register', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    
-    const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
     }
 
-    const isMaster = email === process.env.MASTER_EMAIL;
+    const userExists = await User.findOne({ email: email.toLowerCase().trim() });
+    if (userExists) {
+      // Return same generic message to prevent email enumeration
+      return res.status(400).json({ message: 'Registration failed. Please check your details.' });
+    }
+
+    const isMaster = process.env.MASTER_EMAIL && email.toLowerCase() === process.env.MASTER_EMAIL.toLowerCase();
     const plan = isMaster ? 'pro' : 'free';
 
     const user = await User.create({
-      email,
+      email: email.toLowerCase().trim(),
       password,
       isMaster,
-      plan
+      plan,
     });
 
     if (user) {
@@ -42,21 +47,28 @@ router.post('/register', async (req, res) => {
         isMaster: user.isMaster,
         plan: user.plan,
         theme: user.theme,
-        token: generateToken(user._id)
+        token: generateToken(user._id),
       });
     } else {
       res.status(400).json({ message: 'Invalid user data' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Auth] Register error:', error.message);
+    res.status(500).json({ message: 'Server error during registration' });
   }
 });
 
-// Login
-router.post('/login', async (req, res) => {
+// ── Login ──────────────────────────────────────────────────────────────────
+// Rate limited: max 10 attempts per 15 minutes per IP
+router.post('/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
       res.json({
@@ -65,38 +77,47 @@ router.post('/login', async (req, res) => {
         isMaster: user.isMaster,
         plan: user.plan,
         theme: user.theme,
-        token: generateToken(user._id)
+        token: generateToken(user._id),
       });
     } else {
+      // Generic message to prevent user enumeration
       res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Auth] Login error:', error.message);
+    res.status(500).json({ message: 'Server error during login' });
   }
 });
 
-// Get current user
+// ── Get current user ───────────────────────────────────────────────────────
 router.get('/me', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[Auth] /me error:', error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
-// Update user settings
+// ── Update user settings ───────────────────────────────────────────────────
 router.put('/settings', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!req.user) return res.status(401).json({ message: 'Not authenticated' });
 
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Only allow whitelisted fields to be updated
     if (req.body.email) {
-      user.email = req.body.email;
+      user.email = req.body.email.toLowerCase().trim();
     }
     if (req.body.password) {
+      if (req.body.password.length < 8) {
+        return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+      }
       user.password = req.body.password;
     }
     if (req.body.theme) {
@@ -111,13 +132,14 @@ router.put('/settings', protect, async (req, res) => {
       isMaster: updatedUser.isMaster,
       plan: updatedUser.plan,
       theme: updatedUser.theme,
-      token: generateToken(updatedUser._id) // Optionally return new token, but old one still works
+      token: generateToken(updatedUser._id),
     });
   } catch (error) {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'Email is already in use' });
     }
-    res.status(500).json({ message: error.message });
+    console.error('[Auth] Settings update error:', error.message);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

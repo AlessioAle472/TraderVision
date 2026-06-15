@@ -14,7 +14,9 @@ router.post('/', protect, async (req, res) => {
 
     // Se è pubblico, controlliamo omonimi o nomi molto simili
     if (!isPrivate) {
-      const existingExact = await Group.findOne({ name: new RegExp(`^${name}$`, 'i'), isPrivate: false });
+      // Escape special regex characters from user input to prevent ReDoS
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const existingExact = await Group.findOne({ name: new RegExp(`^${escapedName}$`, 'i'), isPrivate: false });
       if (existingExact) {
         // Cerca suggerimenti
         const similarGroups = await Group.find({ 
