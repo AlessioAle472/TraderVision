@@ -88,17 +88,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  </NavLink>
 
  <NavLink 
- to="/osint"
- className={({ isActive }) => 
-`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
- }
- onClick={closeMobile}
- >
- <Radar className="w-5 h-5"/>
- <span>Geopolitica OSINT</span>
- </NavLink>
-
- <NavLink 
  to="/cot"
  className={({ isActive }) => 
 `flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${isActive ? 'bg-primary/10 text-primary font-medium' : 'text-text-secondary hover:bg-surface-hover hover:text-text font-medium'}`
@@ -165,6 +154,24 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
  <span className="font-medium">{user ? t('sidebar.logout') : 'Accedi'}</span>
  </button>
  </div>
+
+  {/* OSINT — link piccolo e discreto in fondo alla sidebar */}
+  <div className="px-5 pb-3">
+   <NavLink
+    to="/osint"
+    onClick={closeMobile}
+    className={({ isActive }) =>
+     `flex items-center gap-1.5 text-xs transition-colors ${
+      isActive
+       ? 'text-primary/70'
+       : 'text-text-secondary/40 hover:text-text-secondary/70'
+     }`
+    }
+   >
+    <Radar className="w-3 h-3 shrink-0" />
+    <span>Geopolitica OSINT</span>
+   </NavLink>
+  </div>
  </aside>
  </>
  );
