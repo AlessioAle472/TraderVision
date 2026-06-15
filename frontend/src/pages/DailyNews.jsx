@@ -5,6 +5,7 @@ import WorldCalendar from '../components/WorldCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import PremiumGate from '../components/PremiumGate';
 import { useAiBriefing } from '../hooks/useApiQuery';
+import { useQueryClient } from '@tanstack/react-query';
 
 // ── Components ────────────────────────────────────────────────────────────
 
@@ -77,6 +78,7 @@ const Toast = ({ message, visible }) => {
 const DailyNews = () => {
  const { t, i18n } = useTranslation();
   const { data: briefing, isLoading: briefingLoading } = useAiBriefing();
+  const queryClient = useQueryClient();
   
   // Newsletter States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -109,7 +111,7 @@ const DailyNews = () => {
  });
  const data = await res.json();
  if (data.success) {
- setBriefing(data.briefing);
+ queryClient.setQueryData(['aiBriefingLatest'], data.briefing);
  }
  } catch (err) {
  console.error("Force-send failure:", err);

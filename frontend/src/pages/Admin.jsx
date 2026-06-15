@@ -10,32 +10,36 @@ function Admin() {
  const [msg, setMsg] = useState('');
 
  useEffect(() => {
- if (user && user.isMaster) {
- fetchConfig();
- }
- }, [user]);
+  const fetchConfig = async () => {
+  try {
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  const baseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+  const res = await axios.get(`${baseUrl}/admin/config`, {
+  headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
+  });
+  setConfig(res.data.assetGroups);
+  setLoading(false);
+  } catch (err) {
+  console.error(err);
+  setMsg('Failed to load config');
+  setLoading(false);
+  }
+  };
 
- const fetchConfig = async () => {
- try {
- const res = await axios.get('http://localhost:49152/api/admin/config', {
- headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
- });
- setConfig(res.data.assetGroups);
- setLoading(false);
- } catch (err) {
- console.error(err);
- setMsg('Failed to load config');
- setLoading(false);
- }
- };
+  if (user && user.isMaster) {
+  fetchConfig();
+  }
+  }, [user]);
 
  const handleSave = async () => {
  setSaving(true);
  setMsg('');
- try {
- await axios.post('http://localhost:49152/api/admin/config', { assetGroups: config }, {
- headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
- });
+  try {
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  const baseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+  await axios.post(`${baseUrl}/admin/config`, { assetGroups: config }, {
+  headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
+  });
  setMsg('Configuration saved successfully!');
  } catch (err) {
  console.error(err);
@@ -45,11 +49,13 @@ function Admin() {
  };
 
  const handleForceRefresh = async () => {
- try {
- setMsg('Triggering zero-lag refresh...');
- const res = await axios.post('http://localhost:49152/api/admin/force-refresh', {}, {
- headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
- });
+  try {
+  setMsg('Triggering zero-lag refresh...');
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+  const baseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+  const res = await axios.post(`${baseUrl}/admin/force-refresh`, {}, {
+  headers: { Authorization:`Bearer ${localStorage.getItem('token')}`}
+  });
  setMsg(res.data.message);
  } catch (err) {
  console.error(err);

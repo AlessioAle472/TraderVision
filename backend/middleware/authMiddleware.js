@@ -22,13 +22,6 @@ const protect = async (req, res, next) => {
     }
   }
 
-  // In development with no token, proceed without a user (do NOT inject a fake admin)
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('[Auth] No token in DEV mode — proceeding without authenticated user.');
-    req.user = null;
-    return next();
-  }
-
   res.status(401).json({ message: 'Not authorized, no token' });
 };
 

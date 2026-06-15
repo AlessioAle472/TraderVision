@@ -8,7 +8,8 @@ const Sparkline = ({ data, isPositive }) => {
 
  const chartData = data.map((val, idx) => ({ value: val, id: idx }));
  const color = isPositive ? '#22c55e' : '#ef4444';
- const gradientId =`sparklineGradient-${Math.random().toString(36).substr(2, 9)}`;
+ const idRef = React.useRef(`sparklineGradient-${Math.random().toString(36).substr(2, 9)}`);
+ const gradientId = idRef.current;
 
  return (
  <div className="h-10 w-28">
