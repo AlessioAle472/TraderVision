@@ -71,53 +71,7 @@ const fetchFromForexFactory = async () => {
     });
 };
 
-// ─── Source 2: Investing.com undocumented API ──────────────────────────────────
-const fetchFromInvesting = async () => {
-    const now = new Date();
-    const weekStart = new Date(now);
-    const day = weekStart.getDay();
-    const diffToMonday = weekStart.getDate() - day + (day === 0 ? -6 : 1);
-    weekStart.setDate(diffToMonday);
-    weekStart.setHours(0, 0, 0, 0);
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-
-    const fmt = (d) => `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
-
-    const url = `https://sbcharts.investing.com/events_charts/us/calendar_${fmt(weekStart)}_${fmt(weekEnd)}.json`;
-
-    const response = await axios.get(url, {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
-            'Referer': 'https://www.investing.com/',
-        },
-        timeout: 10000,
-    });
-
-    if (!Array.isArray(response.data)) throw new Error('Risposta Investing.com non è un array');
-
-    const impactMap = { '0': 'LOW', '1': 'LOW', '2': 'MEDIUM', '3': 'HIGH' };
-
-    return response.data.map((ev, index) => {
-        const eventTime = ev.date ? new Date(ev.date * 1000) : new Date();
-        const country = COUNTRY_MAP[ev.currency] || ev.currency || 'All';
-
-        return {
-            id: index,
-            time: eventTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            country,
-            event: ev.event_name || ev.name || '',
-            impact: impactMap[String(ev.importance)] || 'LOW',
-            actual: ev.actual || '',
-            consensus: ev.forecast || '',
-            previous: ev.previous || '',
-            timestamp: eventTime.getTime(),
-            localDateStr: eventTime.toLocaleDateString(),
-            dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
-        };
-    });
-};
 
 // ─── Source 3: FRED (Federal Reserve Economic Data) — solo eventi USA ─────────
 const fetchFromFRED = async () => {
@@ -134,7 +88,7 @@ const fetchFromFRED = async () => {
     if (!FRED_API_KEY) throw new Error('FRED_API_KEY non configurata');
 
     const url = `https://api.stlouisfed.org/fred/releases/dates?realtime_start=${fmt(weekStart)}&realtime_end=${fmt(weekEnd)}&api_key=${FRED_API_KEY}&file_type=json`;
-    const response = await axios.get(url, { timeout: 10000 });
+    const response = await axios.get(url, { timeout: 20000 });
 
     if (!response.data?.release_dates) throw new Error('Risposta FRED non valida');
 
@@ -194,7 +148,6 @@ const fetchRawWeekEvents = async () => {
     // 3. Prova le sorgenti in ordine
     const sources = [
         { name: 'ForexFactory', fn: fetchFromForexFactory },
-        { name: 'Investing.com', fn: fetchFromInvesting },
         { name: 'FRED', fn: fetchFromFRED },
     ];
 
