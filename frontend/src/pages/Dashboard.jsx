@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import MarketTable from '../components/MarketTable';
 import MacroCards from '../components/MacroCards';
-import WorldCalendar from '../components/WorldCalendar';
+import CustomCalendar from '../components/ExperimentalCalendar/CustomCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import GoogleAd from '../components/GoogleAd';
 import { useWatchlist } from '../context/WatchlistContext';
@@ -187,8 +187,8 @@ const Dashboard = () => {
   <GoogleAd />
   </section>
 
-  <ErrorBoundary fallback={<WidgetErrorFallback title="World Calendar Error" />}>
-  <WorldCalendar id="world-calendar" lang="it"/>
+  <ErrorBoundary fallback={<WidgetErrorFallback title="Custom Calendar Error" />}>
+  <CustomCalendar />
   </ErrorBoundary>
  </div>
  );

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Calendar as CalendarIcon, Sparkles, Clock, Mail, ChevronRight, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import WorldCalendar from '../components/WorldCalendar';
+import CustomCalendar from '../components/ExperimentalCalendar/CustomCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import PremiumGate from '../components/PremiumGate';
 import { useAiBriefing } from '../hooks/useApiQuery';
@@ -170,7 +170,7 @@ const DailyNews = () => {
  </div>
  
  <div className="bg-surface rounded-3xl /50 p-6 shadow-2xl relative">
- <WorldCalendar lang={i18n.language} />
+ <CustomCalendar />
  </div>
  </section>
 

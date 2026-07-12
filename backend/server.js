@@ -65,6 +65,10 @@ app.use(cors({
   credentials: true,
 }));
 
+// ── Stripe Webhook (needs raw body) ───────────────────────────────────────
+const { webhookRouter } = require('./routes/stripe');
+app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }), webhookRouter);
+
 // ── Body Parsing (with size limits) ───────────────────────────────────────
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
@@ -89,6 +93,7 @@ const socialRoutes = require('./routes/social');
 const groupsRoutes = require('./routes/groups');
 const adsRoutes    = require('./routes/ads');
 const cotRoutes    = require('./routes/cot');
+const { router: stripeRouter } = require('./routes/stripe');
 const { initAIJobs }      = require('./services/aiBriefingJob');
 const marketCronJob       = require('./services/marketCronJob');
 const cotCronJob          = require('./services/cotCronJob');
@@ -99,6 +104,7 @@ app.use('/api/social', socialRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/ads',    adsRoutes);
 app.use('/api',        cotRoutes);
+app.use('/api/stripe', stripeRouter);
 
 // ── Background Jobs ────────────────────────────────────────────────────────
 initAIJobs();

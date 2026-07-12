@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Calendar, FileText, Sparkles, Search, ChevronUp, ChevronDown } from 'lucide-react';
 import { useCotData } from '../hooks/useApiQuery';
+import ProPaywall from '../components/ProPaywall';
+import AdBanner from '../components/AdBanner';
 
 // --- MOCK DATA ---
 const MOCK_COT_DATA = [
@@ -198,6 +200,10 @@ const CotDashboard = () => {
         </div>
       </div>
 
+      <div className="mb-6">
+        <AdBanner />
+      </div>
+
       {/* 2. Navigazione a Schede e Ricerca */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
@@ -238,87 +244,89 @@ const CotDashboard = () => {
       </div>
 
       {/* 3. Struttura della Tabella Complessa */}
-      <div className="relative overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] min-h-[400px]">
-        {loading && (
-          <div className="absolute inset-0 z-10 bg-[#0B0E14]/80 backdrop-blur-sm flex flex-col items-center justify-center">
-            <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-            <div className="text-blue-400 font-medium">Scaricamento Dati CFTC in corso...</div>
-          </div>
-        )}
-        <table className="w-full text-left border-collapse">
-          <thead>
-            {/* Livello Superiore Header */}
-            <tr>
-              <th className="p-4 border-b border-r border-white/10 bg-white/5"></th>
-              <th colSpan="5" className="p-4 text-center font-black tracking-widest text-xs uppercase border-b border-r border-white/10 bg-blue-900/30 text-blue-300">
-                Non Commerciale
-              </th>
-              <th colSpan="5" className="p-4 text-center font-black tracking-widest text-xs uppercase border-b border-white/10 bg-red-900/20 text-red-300">
-                Commerciale
-              </th>
-            </tr>
-            {/* Livello Inferiore Header */}
-            <tr>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-r border-white/10 bg-white/5">Strumento</th>
-              
-              {/* Non Commercial Cols */}
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03] group cursor-pointer hover:text-white">
-                <div className="flex items-center gap-1">Totale <ChevronUp className="w-3 h-3 opacity-50" /></div>
-              </th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03] group cursor-pointer hover:text-white">
-                <div className="flex items-center gap-1">Δ Sett. <ChevronDown className="w-3 h-3 opacity-50" /></div>
-              </th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03]">Media 3M</th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03]">Media 6M</th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-r border-white/10 bg-white/[0.03]">Z-Score</th>
-
-              {/* Commercial Cols */}
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01] group cursor-pointer hover:text-white">
-                <div className="flex items-center gap-1">Totale <ChevronUp className="w-3 h-3 opacity-50" /></div>
-              </th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01] group cursor-pointer hover:text-white">
-                <div className="flex items-center gap-1">Δ Sett. <ChevronDown className="w-3 h-3 opacity-50" /></div>
-              </th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Media 3M</th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Media 6M</th>
-              <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Z-Score</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {filteredData.length > 0 ? (
-              filteredData.map((row) => (
-                <tr key={row.id} className="hover:bg-white/5 transition-colors">
-                  {/* 4. Stile delle Righe */}
-                  <td className="p-4 border-r border-white/10 bg-white/[0.01]">
-                    <div className="font-black text-white text-base">{row.name}</div>
-                    <div className="text-xs font-mono text-gray-500 mt-0.5">{row.code}</div>
-                  </td>
-
-                  {/* Non Commercial Data */}
-                  <td className="p-4 whitespace-nowrap"><ValueBadge value={row.nonCommercial.total} showSign={false} /></td>
-                  <td className="p-4 whitespace-nowrap"><ValueBadge value={row.nonCommercial.weeklyDelta} /></td>
-                  <td className="p-4 whitespace-nowrap"><AvgCell avg={row.nonCommercial.avg3m} pct={row.nonCommercial.avg3mPct} /></td>
-                  <td className="p-4 whitespace-nowrap"><AvgCell avg={row.nonCommercial.avg6m} pct={row.nonCommercial.avg6mPct} /></td>
-                  <td className="p-4 whitespace-nowrap border-r border-white/10"><ZScoreBadge value={row.nonCommercial.zScore} /></td>
-
-                  {/* Commercial Data */}
-                  <td className="p-4 whitespace-nowrap"><ValueBadge value={row.commercial.total} showSign={false} /></td>
-                  <td className="p-4 whitespace-nowrap"><ValueBadge value={row.commercial.weeklyDelta} /></td>
-                  <td className="p-4 whitespace-nowrap"><AvgCell avg={row.commercial.avg3m} pct={row.commercial.avg3mPct} /></td>
-                  <td className="p-4 whitespace-nowrap"><AvgCell avg={row.commercial.avg6m} pct={row.commercial.avg6mPct} /></td>
-                  <td className="p-4 whitespace-nowrap"><ZScoreBadge value={row.commercial.zScore} /></td>
-                </tr>
-              ))
-            ) : (
+      <ProPaywall isPaywalled={cotResponse?.paywalled}>
+        <div className="relative overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02] min-h-[400px]">
+          {loading && (
+            <div className="absolute inset-0 z-10 bg-[#0B0E14]/80 backdrop-blur-sm flex flex-col items-center justify-center">
+              <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+              <div className="text-blue-400 font-medium">Scaricamento Dati CFTC in corso...</div>
+            </div>
+          )}
+          <table className="w-full text-left border-collapse">
+            <thead>
+              {/* Livello Superiore Header */}
               <tr>
-                <td colSpan="11" className="p-12 text-center text-gray-500">
-                  Nessuno strumento trovato per questa ricerca.
-                </td>
+                <th className="p-4 border-b border-r border-white/10 bg-white/5"></th>
+                <th colSpan="5" className="p-4 text-center font-black tracking-widest text-xs uppercase border-b border-r border-white/10 bg-blue-900/30 text-blue-300">
+                  Non Commerciale
+                </th>
+                <th colSpan="5" className="p-4 text-center font-black tracking-widest text-xs uppercase border-b border-white/10 bg-red-900/20 text-red-300">
+                  Commerciale
+                </th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              {/* Livello Inferiore Header */}
+              <tr>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-r border-white/10 bg-white/5">Strumento</th>
+                
+                {/* Non Commercial Cols */}
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03] group cursor-pointer hover:text-white">
+                  <div className="flex items-center gap-1">Totale <ChevronUp className="w-3 h-3 opacity-50" /></div>
+                </th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03] group cursor-pointer hover:text-white">
+                  <div className="flex items-center gap-1">Δ Sett. <ChevronDown className="w-3 h-3 opacity-50" /></div>
+                </th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03]">Media 3M</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.03]">Media 6M</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-r border-white/10 bg-white/[0.03]">Z-Score</th>
+
+                {/* Commercial Cols */}
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01] group cursor-pointer hover:text-white">
+                  <div className="flex items-center gap-1">Totale <ChevronUp className="w-3 h-3 opacity-50" /></div>
+                </th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01] group cursor-pointer hover:text-white">
+                  <div className="flex items-center gap-1">Δ Sett. <ChevronDown className="w-3 h-3 opacity-50" /></div>
+                </th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Media 3M</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Media 6M</th>
+                <th className="p-4 text-xs font-semibold text-gray-400 uppercase tracking-wider border-b border-white/10 bg-white/[0.01]">Z-Score</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredData.length > 0 ? (
+                filteredData.map((row) => (
+                  <tr key={row.id} className="hover:bg-white/5 transition-colors">
+                    {/* 4. Stile delle Righe */}
+                    <td className="p-4 border-r border-white/10 bg-white/[0.01]">
+                      <div className="font-black text-white text-base">{row.name}</div>
+                      <div className="text-xs font-mono text-gray-500 mt-0.5">{row.code}</div>
+                    </td>
+
+                    {/* Non Commercial Data */}
+                    <td className="p-4 whitespace-nowrap"><ValueBadge value={row.nonCommercial.total} showSign={false} /></td>
+                    <td className="p-4 whitespace-nowrap"><ValueBadge value={row.nonCommercial.weeklyDelta} /></td>
+                    <td className="p-4 whitespace-nowrap"><AvgCell avg={row.nonCommercial.avg3m} pct={row.nonCommercial.avg3mPct} /></td>
+                    <td className="p-4 whitespace-nowrap"><AvgCell avg={row.nonCommercial.avg6m} pct={row.nonCommercial.avg6mPct} /></td>
+                    <td className="p-4 whitespace-nowrap border-r border-white/10"><ZScoreBadge value={row.nonCommercial.zScore} /></td>
+
+                    {/* Commercial Data */}
+                    <td className="p-4 whitespace-nowrap"><ValueBadge value={row.commercial.total} showSign={false} /></td>
+                    <td className="p-4 whitespace-nowrap"><ValueBadge value={row.commercial.weeklyDelta} /></td>
+                    <td className="p-4 whitespace-nowrap"><AvgCell avg={row.commercial.avg3m} pct={row.commercial.avg3mPct} /></td>
+                    <td className="p-4 whitespace-nowrap"><AvgCell avg={row.commercial.avg6m} pct={row.commercial.avg6mPct} /></td>
+                    <td className="p-4 whitespace-nowrap"><ZScoreBadge value={row.commercial.zScore} /></td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="11" className="p-12 text-center text-gray-500">
+                    Nessuno strumento trovato per questa ricerca.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </ProPaywall>
 
     </div>
   );

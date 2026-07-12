@@ -23,6 +23,7 @@ const MarketConfig = require('../models/MarketConfig');
 const PreloadedMarketData = require('../models/PreloadedMarketData');
 const { protect, master, verifyAdmin } = require('../middleware/authMiddleware');
 const { aiLimiter } = require('../middleware/rateLimiter');
+const { softRequirePro, FREE_LIMIT } = require('../middleware/requirePro');
 const { getEconomicCalendar } = require('../controllers/calendarController');
 const { getMarkets, getDashboard, searchMarkets, getHistory, getAssetDetails } = require('../controllers/marketController');
 // POST /api/newsletter/subscribe — subscribes a user to the daily briefing email
@@ -94,7 +95,41 @@ router.get('/macro-deep-dive', async (req, res) => {
 });
 
 // GET /api/markets — full multi-section markets data
-router.get('/markets', getMarkets);
+// Free users: each section limited to FREE_LIMIT assets + paywalled flag
+router.get('/markets', protect, softRequirePro, async (req, res, next) => {
+  try {
+    const original_json = res.json.bind(res);
+    res.json = (data) => {
+      if (!req.isPro && data && data.sections) {
+        const truncatedSections = {};
+        let anyTruncated = false;
+        for (const [key, section] of Object.entries(data.sections)) {
+          if (section.assets && section.assets.length > FREE_LIMIT) {
+            truncatedSections[key] = {
+              ...section,
+              assets: section.assets.slice(0, FREE_LIMIT),
+              totalCount: section.assets.length,
+              paywalled: true,
+            };
+            anyTruncated = true;
+          } else {
+            truncatedSections[key] = section;
+          }
+        }
+        return original_json({
+          ...data,
+          sections: truncatedSections,
+          paywalled: anyTruncated,
+          freeLimit: FREE_LIMIT,
+        });
+      }
+      return original_json(data);
+    };
+    return getMarkets(req, res, next);
+  } catch (err) {
+    next(err);
+  }
+});
 
 // POST /api/ai-synthesis
 router.post('/ai-synthesis', protect, verifyAdmin, aiLimiter, async (req, res) => {
@@ -146,7 +181,7 @@ router.get('/dashboard', getDashboard);
 router.get('/history', getHistory);
 
 // GET /api/economic-calendar — fetch live economic calendar via Finnhub
-router.get('/economic-calendar', getEconomicCalendar);
+router.get('/economic-calendar', protect, softRequirePro, getEconomicCalendar);
 
 // GET /api/community — returns mock community data
 router.get('/community', (req, res) => {

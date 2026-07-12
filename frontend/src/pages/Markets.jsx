@@ -26,6 +26,8 @@ import AIInsightInline from '../components/ai/AIInsightInline';
 import CryptoDivergenceInsights from '../components/ai/CryptoDivergenceInsights';
 import MacroAlertBanner from '../components/ai/MacroAlertBanner';
 import GlobalCapitalFlowBox from '../components/ai/GlobalCapitalFlowBox';
+import ProPaywall from '../components/ProPaywall';
+import AdBanner from '../components/AdBanner';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -409,6 +411,10 @@ const Markets = () => {
         <MacroAlertBanner />
       </ErrorBoundary>
 
+      <div className="mb-4">
+        <AdBanner />
+      </div>
+
       {/* ── Hero Cards Grid ──────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {isInitialLoad ? (
@@ -496,41 +502,43 @@ const Markets = () => {
         )}
 
         {/* Table */}
-        <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-2xl border border-white/[0.03]">
-          <div className="table-scroll">
-            <table className="w-full text-left min-w-[700px]">
-              <thead>
-                <tr className="bg-white/[0.02] border-b border-white/[0.04]">
-                  <th className="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                    Asset
-                  </th>
-                  <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
-                    1G %
-                  </th>
-                  <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
-                    Momentum
-                  </th>
-                  <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
-                    Smart Quant
-                  </th>
-                  <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
-                    Setup
-                  </th>
-                  <th className="px-4 py-4 w-10" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.025]">
-                {isInitialLoad ? (
-                  [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
-                ) : currentAssets
-                    .filter((a) => (a.ticker || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map((asset) => (
-                      <AssetRow key={asset.ticker} asset={asset} />
-                    ))}
-              </tbody>
-            </table>
+        <ProPaywall isPaywalled={sections[activeTab]?.paywalled}>
+          <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-2xl border border-white/[0.03]">
+            <div className="table-scroll">
+              <table className="w-full text-left min-w-[700px]">
+                <thead>
+                  <tr className="bg-white/[0.02] border-b border-white/[0.04]">
+                    <th className="px-6 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                      Asset
+                    </th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
+                      1G %
+                    </th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
+                      Momentum
+                    </th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
+                      Smart Quant
+                    </th>
+                    <th className="px-4 py-4 text-[9px] font-black text-slate-500 uppercase tracking-widest text-center">
+                      Setup
+                    </th>
+                    <th className="px-4 py-4 w-10" />
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.025]">
+                  {isInitialLoad ? (
+                    [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
+                  ) : currentAssets
+                      .filter((a) => (a.ticker || '').toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map((asset) => (
+                        <AssetRow key={asset.ticker} asset={asset} />
+                      ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        </ProPaywall>
       </section>
     </div>
   );

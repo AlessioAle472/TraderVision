@@ -46,6 +46,8 @@ router.post('/register', authLimiter, async (req, res) => {
         email: user.email,
         isMaster: user.isMaster,
         plan: user.plan,
+        subscriptionPlan: user.subscriptionPlan || user.plan,
+        stripeCustomerId: user.stripeCustomerId,
         theme: user.theme,
         token: generateToken(user._id),
       });
@@ -76,6 +78,8 @@ router.post('/login', authLimiter, async (req, res) => {
         email: user.email,
         isMaster: user.isMaster,
         plan: user.plan,
+        subscriptionPlan: user.subscriptionPlan || user.plan,
+        stripeCustomerId: user.stripeCustomerId,
         theme: user.theme,
         token: generateToken(user._id),
       });
@@ -131,6 +135,8 @@ router.put('/settings', protect, async (req, res) => {
       email: updatedUser.email,
       isMaster: updatedUser.isMaster,
       plan: updatedUser.plan,
+      subscriptionPlan: updatedUser.subscriptionPlan || updatedUser.plan,
+      stripeCustomerId: updatedUser.stripeCustomerId,
       theme: updatedUser.theme,
       token: generateToken(updatedUser._id),
     });

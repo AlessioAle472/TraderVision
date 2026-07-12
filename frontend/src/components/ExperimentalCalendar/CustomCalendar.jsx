@@ -12,6 +12,8 @@ const ImpactBadge = ({ impact }) => {
   return <span className="text-slate-400 font-bold text-xs bg-slate-500/10 px-2 py-0.5 rounded">LOW</span>;
 };
 
+import ProPaywall from '../ProPaywall';
+
 const CustomCalendar = () => {
   // 2. Inizializzazione Sicura dello Stato
   const [events, setEvents] = useState([]);
@@ -22,6 +24,7 @@ const CustomCalendar = () => {
   const TOP_COUNTRIES = ['US', 'EU', 'GB', 'DE', 'JP', 'CN', 'CH', 'CA', 'AU', 'NZ', 'All'];
   const [selectedImpacts, setSelectedImpacts] = useState(['HIGH', 'MEDIUM', 'LOW']);
   const [selectedCountries, setSelectedCountries] = useState(TOP_COUNTRIES);
+  const [isPaywalled, setIsPaywalled] = useState(false);
 
   const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -36,11 +39,15 @@ const CustomCalendar = () => {
     try {
       const result = await apiClient.getEconomicCalendar(selectedTimeframe);
       // 4. Try/Catch Inattaccabile sul Fetch
-      if (result && Array.isArray(result)) {
+      if (result && result.events && Array.isArray(result.events)) {
+         setEvents(result.events);
+         setIsPaywalled(result.paywalled);
+      } else if (result && Array.isArray(result)) {
+         // Fallback in case backend hasn't reloaded yet
          setEvents(result);
       } else {
          setEvents([]);
-         console.warn("Dati calendario non sono un array:", result);
+         console.warn("Dati calendario invalidi:", result);
       }
     } catch (err) {
       console.error('Error fetching calendar data', err);
@@ -146,60 +153,62 @@ const CustomCalendar = () => {
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left whitespace-nowrap">
-          <thead>
-            <tr className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500 border-b border-white/5">
-              <th className="px-4 py-3 font-medium">Time</th>
-              <th className="px-4 py-3 font-medium">Country</th>
-              <th className="px-4 py-3 font-medium">Event</th>
-              <th className="px-4 py-3 font-medium text-right">Actual</th>
-              <th className="px-4 py-3 font-medium text-right">Consensus</th>
-              <th className="px-4 py-3 font-medium text-right">Previous</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/5">
-            {filteredData.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="py-12 text-center text-neutral-500">
-                  Nessun evento macroeconomico in programma con i filtri attuali.
-                </td>
+      <ProPaywall isPaywalled={isPaywalled}>
+        <div className="overflow-x-auto relative">
+          <table className="w-full text-sm text-left whitespace-nowrap">
+            <thead>
+              <tr className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500 border-b border-white/5">
+                <th className="px-4 py-3 font-medium">Time</th>
+                <th className="px-4 py-3 font-medium">Country</th>
+                <th className="px-4 py-3 font-medium">Event</th>
+                <th className="px-4 py-3 font-medium text-right">Actual</th>
+                <th className="px-4 py-3 font-medium text-right">Consensus</th>
+                <th className="px-4 py-3 font-medium text-right">Previous</th>
               </tr>
-            ) : (
-              filteredData.map((row, idx) => (
-                <tr key={row.id || idx} className="hover:bg-white/[0.02] transition-colors group">
-                  <td className="px-4 py-5 text-neutral-400">
-                    <div className="flex flex-col">
-                      <span>{row.time || '--:--'}</span>
-                      {(timeframe === 'this_week' || timeframe === 'yesterday' || timeframe === 'tomorrow') && (
-                          <span className="text-[10px] text-neutral-600 uppercase mt-0.5">{row.dateString || ''}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-5">
-                    <span className="font-medium text-neutral-300">{row.country || 'ALL'}</span>
-                  </td>
-                  <td className="px-4 py-5">
-                    <div className="flex items-center gap-3">
-                      <span className="text-gray-200 group-hover:text-white transition-colors">{row.event || 'Unknown Event'}</span>
-                      <ImpactBadge impact={row.impact || 'LOW'} />
-                    </div>
-                  </td>
-                  <td className="px-4 py-5 text-right font-semibold text-white">
-                    {row.actual || '--'}
-                  </td>
-                  <td className="px-4 py-5 text-right text-neutral-400">
-                    {row.consensus || '--'}
-                  </td>
-                  <td className="px-4 py-5 text-right text-neutral-500">
-                    {row.previous || '--'}
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {filteredData.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="py-12 text-center text-neutral-500">
+                    Nessun evento macroeconomico in programma con i filtri attuali.
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+              ) : (
+                filteredData.map((row, idx) => (
+                  <tr key={row.id || idx} className="hover:bg-white/[0.02] transition-colors group">
+                    <td className="px-4 py-5 text-neutral-400">
+                      <div className="flex flex-col">
+                        <span>{row.time || '--:--'}</span>
+                        {(timeframe === 'this_week' || timeframe === 'yesterday' || timeframe === 'tomorrow') && (
+                            <span className="text-[10px] text-neutral-600 uppercase mt-0.5">{row.dateString || ''}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-5">
+                      <span className="font-medium text-neutral-300">{row.country || 'ALL'}</span>
+                    </td>
+                    <td className="px-4 py-5">
+                      <div className="flex items-center gap-3">
+                        <span className="text-gray-200 group-hover:text-white transition-colors">{row.event || 'Unknown Event'}</span>
+                        <ImpactBadge impact={row.impact || 'LOW'} />
+                      </div>
+                    </td>
+                    <td className="px-4 py-5 text-right font-semibold text-white">
+                      {row.actual || '--'}
+                    </td>
+                    <td className="px-4 py-5 text-right text-neutral-400">
+                      {row.consensus || '--'}
+                    </td>
+                    <td className="px-4 py-5 text-right text-neutral-500">
+                      {row.previous || '--'}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </ProPaywall>
     </div>
   );
 };
