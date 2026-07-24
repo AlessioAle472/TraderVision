@@ -23,12 +23,16 @@ const Login = () => {
  setError('');
 
  try {
- const { data } = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+ console.log('Invio richiesta di login...');
+ const { data } = await axios.post(`${API_BASE_URL}/auth/login`, { email, password }, { timeout: 10000 });
+ console.log('Login request successful');
  login(data, data.token);
  navigate('/');
  } catch (error) {
+ console.error('Login error caught:', error);
  setError(error.response?.data?.error || error.response?.data?.message || 'Errore di connessione al server');
  } finally {
+ console.log('Finally block executed, setting isLoading to false');
  setIsLoading(false);
  }
  };
