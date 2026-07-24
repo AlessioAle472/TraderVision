@@ -73,7 +73,7 @@ router.post('/login', authLimiter, async (req, res) => {
     const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (user && (await user.matchPassword(password))) {
-      res.json({
+      return res.json({
         _id: user._id,
         email: user.email,
         isMaster: user.isMaster,
@@ -85,11 +85,11 @@ router.post('/login', authLimiter, async (req, res) => {
       });
     } else {
       // Generic message to prevent user enumeration
-      res.status(401).json({ message: 'Invalid email or password' });
+      return res.status(401).json({ message: 'Invalid email or password' });
     }
   } catch (error) {
     console.error('[Auth] Login error:', error.message);
-    res.status(500).json({ message: 'Server error during login' });
+    return res.status(500).json({ error: error.message });
   }
 });
 

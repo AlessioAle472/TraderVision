@@ -27,7 +27,7 @@ const Login = () => {
  login(data, data.token);
  navigate('/');
  } catch (error) {
- setError(error.response?.data?.message || 'Errore di connessione');
+ setError(error.response?.data?.error || error.response?.data?.message || 'Errore di connessione al server');
  } finally {
  setIsLoading(false);
  }
