@@ -22,16 +22,28 @@ const Login = () => {
  setIsLoading(true);
  setError('');
 
+ // Safety timeout with AbortController to guarantee aborting hanging CORS preflight / proxy requests
+ const controller = new AbortController();
+ const timeoutId = setTimeout(() => {
+   controller.abort();
+   setIsLoading(false);
+   setError('Errore di connessione al server (timeout di risposta)');
+ }, 10000);
+
  try {
  console.log('Invio richiesta di login...');
- const { data } = await axios.post(`${API_BASE_URL}/auth/login`, { email, password }, { timeout: 10000 });
+ const { data } = await axios.post(`${API_BASE_URL}/auth/login`, { email, password }, { timeout: 10000, signal: controller.signal });
+ clearTimeout(timeoutId);
  console.log('Login request successful');
  login(data, data.token);
  navigate('/');
  } catch (error) {
+ clearTimeout(timeoutId);
  console.error('Login error caught:', error);
- setError(error.response?.data?.error || error.response?.data?.message || 'Errore di connessione al server');
+ const isAbort = error.name === 'CanceledError' || error.name === 'AbortError' || error.code === 'ERR_CANCELED';
+ setError(error.response?.data?.error || error.response?.data?.message || (isAbort ? 'Errore di connessione al server (timeout di risposta)' : 'Errore di connessione al server'));
  } finally {
+ clearTimeout(timeoutId);
  console.log('Finally block executed, setting isLoading to false');
  setIsLoading(false);
  }
