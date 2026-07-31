@@ -18,7 +18,7 @@ if (missingVars.length > 0) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 49152;
 
 // Trust proxy is required if running behind a reverse proxy (Vercel, Railway, Render, Nginx)
 // for correct rate limiting by client IP and HTTPS detection.
