@@ -47,6 +47,10 @@ const allowedOrigins = [
   'http://localhost:5173', // Vite default local dev
   'http://localhost:5174', // Vite fallback
   'http://localhost:5175', // Vite fallback
+  'http://localhost:49152',
+  'http://127.0.0.1:49152',
+  'https://tradervision-quantitativemarkets.com',
+  'https://www.tradervision-quantitativemarkets.com',
   process.env.CORS_ORIGIN_1,  // Primary production origin
   process.env.CORS_ORIGIN_2,  // www variant or secondary origin
   process.env.CORS_ORIGIN,    // Legacy fallback
@@ -56,11 +60,15 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, curl, Postman in dev)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
+    if (
+      allowedOrigins.indexOf(origin) !== -1 ||
+      origin.endsWith('.vercel.app') ||
+      origin.includes('tradervision-quantitativemarkets.com')
+    ) {
+      return callback(null, true);
     }
-    return callback(null, true);
+    const msg = `The CORS policy for this site does not allow access from the specified Origin: ${origin}`;
+    return callback(new Error(msg), false);
   },
   credentials: true,
 }));
