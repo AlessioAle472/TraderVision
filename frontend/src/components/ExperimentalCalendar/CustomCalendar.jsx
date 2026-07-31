@@ -216,7 +216,7 @@ const CustomCalendar = () => {
                         <ImpactBadge impact={row.impact || 'LOW'} />
                       </div>
                     </td>
-                    <td className="px-4 py-5 text-right font-semibold text-white">
+                    <td className={`px-4 py-5 text-right font-semibold ${row.actual ? 'text-emerald-400' : 'text-neutral-500'}`}>
                       {row.actual || '--'}
                     </td>
                     <td className="px-4 py-5 text-right text-neutral-400">
