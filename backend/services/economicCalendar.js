@@ -3,9 +3,8 @@ const xml2js = require('xml2js');
 const { getCache, setCache } = require('../utils/cache');
 
 const CACHE_FILENAME = 'economic_calendar_raw.json';
-// Cache valida per 6 ore — FF aggiorna il feed una volta a settimana, quindi bastano anche 24h
-// ma 6h ci dà un buon equilibrio tra freschezza e protezione dal rate limit
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+// Cache valida per 2 minuti per aggiornare in tempo reale i dati in uscita (Actual)
+const CACHE_TTL_MS = 2 * 60 * 1000;
 
 // Paesi supportati dal calendario (mappa country code → nome)
 const COUNTRY_MAP = {

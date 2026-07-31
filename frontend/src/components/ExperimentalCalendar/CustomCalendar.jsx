@@ -33,9 +33,11 @@ const CustomCalendar = () => {
     return () => clearInterval(timer);
   }, []);
 
-  const fetchCalendarData = async (selectedTimeframe = timeframe) => {
-    setIsLoading(true);
-    setError(null);
+  const fetchCalendarData = async (selectedTimeframe = timeframe, silent = false) => {
+    if (!silent) {
+      setIsLoading(true);
+      setError(null);
+    }
     try {
       const result = await apiClient.getEconomicCalendar(selectedTimeframe);
       // 4. Try/Catch Inattaccabile sul Fetch
@@ -45,21 +47,29 @@ const CustomCalendar = () => {
       } else if (result && Array.isArray(result)) {
          // Fallback in case backend hasn't reloaded yet
          setEvents(result);
-      } else {
+      } else if (!silent) {
          setEvents([]);
          console.warn("Dati calendario invalidi:", result);
       }
     } catch (err) {
       console.error('Error fetching calendar data', err);
-      setError('Impossibile caricare il calendario: ' + (err?.message || 'Errore di rete'));
-      setEvents([]);
+      if (!silent) {
+        setError('Impossibile caricare il calendario: ' + (err?.message || 'Errore di rete'));
+        setEvents([]);
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchCalendarData(timeframe);
+    fetchCalendarData(timeframe, false);
+    const interval = setInterval(() => {
+      fetchCalendarData(timeframe, true);
+    }, 30000);
+    return () => clearInterval(interval);
   }, [timeframe]);
 
   const toggleImpact = (impact) => {
@@ -98,9 +108,9 @@ const CustomCalendar = () => {
           <p className="text-xs text-neutral-500 mt-1 uppercase tracking-wider flex items-center gap-2">
             <span>Market Movers</span>
             <span className="w-1 h-1 rounded-full bg-neutral-600"></span>
-            <span className="flex items-center gap-1 text-emerald-400/80">
-              <Clock className="w-3 h-3" />
-              {currentTime.toLocaleTimeString()}
+            <span className="flex items-center gap-1 text-emerald-400/90 font-medium" title="I dati reali (Actual) si aggiornano in tempo reale ogni 30 secondi">
+              <Clock className="w-3 h-3 animate-pulse" />
+              {currentTime.toLocaleTimeString()} • LIVE ACTUAL
             </span>
           </p>
         </div>
@@ -116,6 +126,13 @@ const CustomCalendar = () => {
               {tf.replace('_', ' ').toUpperCase()}
             </button>
           ))}
+          <button
+            onClick={() => fetchCalendarData(timeframe, false)}
+            title="Aggiorna ora i dati pubblicati"
+            className="p-1.5 text-neutral-400 hover:text-white hover:bg-white/10 rounded-md transition-colors ml-1 border-l border-white/10 pl-2"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
 
