@@ -195,15 +195,16 @@ const fetchFinnhubCalendar = async (timeframe = 'today') => {
     }
 
     const now = new Date();
+    const formatKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    // Calcola le date locali per il filtro
-    let localDates = [];
+    // Calcola le date YYYY-MM-DD per il filtro
+    const targetKeys = [];
     if (timeframe === 'yesterday') {
         const d = new Date(); d.setDate(now.getDate() - 1);
-        localDates.push(d.toLocaleDateString());
+        targetKeys.push(formatKey(d));
     } else if (timeframe === 'tomorrow') {
         const d = new Date(); d.setDate(now.getDate() + 1);
-        localDates.push(d.toLocaleDateString());
+        targetKeys.push(formatKey(d));
     } else if (timeframe === 'this_week') {
         const day = now.getDay();
         const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
@@ -212,24 +213,28 @@ const fetchFinnhubCalendar = async (timeframe = 'today') => {
         for (let i = 0; i < 7; i++) {
             const temp = new Date(d);
             temp.setDate(temp.getDate() + i);
-            localDates.push(temp.toLocaleDateString());
+            targetKeys.push(formatKey(temp));
         }
     } else {
         // today (default)
-        localDates.push(now.toLocaleDateString());
+        targetKeys.push(formatKey(now));
     }
 
-    const enriched = allEvents.map(ev => ({
-        ...ev,
-        isPast: new Date(ev.timestamp) < now,
-    }));
-
-    if (timeframe === 'this_week') {
-        return enriched.sort((a, b) => a.timestamp - b.timestamp);
-    }
+    const enriched = allEvents.map(ev => {
+        const rawCountry = (ev.country || 'All').trim().toUpperCase();
+        const mappedCountry = COUNTRY_MAP[rawCountry] || rawCountry;
+        const dObj = new Date(ev.timestamp || Date.now());
+        const dateKey = formatKey(dObj);
+        return {
+            ...ev,
+            country: mappedCountry,
+            dateKey,
+            isPast: dObj < now,
+        };
+    });
 
     return enriched
-        .filter(ev => localDates.includes(ev.localDateStr))
+        .filter(ev => targetKeys.includes(ev.dateKey))
         .sort((a, b) => a.timestamp - b.timestamp);
 };
 

@@ -75,10 +75,16 @@ const CustomCalendar = () => {
   if (isLoading) return <div className="p-8 text-white bg-[#0B0E14] h-full min-h-screen animate-pulse">Caricamento motore macro in corso...</div>;
   if (!events || !Array.isArray(events)) return <div className="p-8 text-white bg-[#0B0E14] h-full min-h-screen">Nessun dato formattato ricevuto.</div>;
 
+  const COUNTRY_MAP = {
+    USD: 'US', EUR: 'EU', GBP: 'GB', JPY: 'JP', CAD: 'CA',
+    AUD: 'AU', NZD: 'NZ', CHF: 'CH', CNY: 'CN', CNH: 'CN',
+  };
+
   const filteredData = events.filter(row => {
     if (!row) return false;
     const rowImpact = row.impact || 'LOW';
-    const rowCountry = row.country || 'All';
+    let rowCountry = (row.country || 'All').trim().toUpperCase();
+    if (COUNTRY_MAP[rowCountry]) rowCountry = COUNTRY_MAP[rowCountry];
     return selectedImpacts.includes(rowImpact) && (selectedCountries.includes(rowCountry) || rowCountry === 'All');
   });
 
