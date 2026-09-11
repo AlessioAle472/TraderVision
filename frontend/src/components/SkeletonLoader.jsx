@@ -65,6 +65,6 @@ export const SkeletonChart = () => (
 );
 
 /** Inline skeleton block */
-export const SkeletonBlock = ({ width = 'w-full', height = 'h-4', className = '' }) => (
+export const SkeletonBlock = ({ width ='w-full', height ='h-4', className ='' }) => (
  <div className={`skeleton ${width} ${height} ${className}`} />
 );

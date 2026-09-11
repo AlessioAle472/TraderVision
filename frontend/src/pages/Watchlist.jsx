@@ -38,13 +38,13 @@ const Watchlist = () => {
  const watchedAssets = allAssets.filter((a) => watchlist.includes(a.ticker));
 
  const getSmartScoreColor = (score) => {
- if (score > 70) return 'text-success bg-success/10 ';
- if (score >= 40) return 'text-yellow-400 bg-yellow-400/10 /20';
- return 'text-danger bg-danger/10 ';
+ if (score > 70) return'text-success bg-success/10';
+ if (score >= 40) return'text-yellow-400 bg-yellow-400/10';
+ return'text-danger bg-danger/10';
  };
 
  const getMacroCorrelation = (asset) => {
- if (!macroData?.recommendations) return { status: 'neutral', message: 'Nessun dato macro disponibile' };
+ if (!macroData?.recommendations) return { status:'neutral', message:'Nessun dato macro disponibile' };
  
  // Check Prefer arrays
  const prefers = macroData.recommendations.prefer || [];
@@ -54,12 +54,12 @@ const Watchlist = () => {
  const matchStr =`${asset.ticker} ${asset.settore}`.toLowerCase();
  
  const isPreferred = prefers.some(p => matchStr.includes(p.toLowerCase()));
- if (isPreferred) return { status: 'prefer', message:`Asset favorito nel regime globale: ${macroData.regime}`};
+ if (isPreferred) return { status:'prefer', message:`Asset favorito nel regime globale: ${macroData.regime}`};
  
  const isAvoided = avoids.some(a => matchStr.includes(a.toLowerCase()));
- if (isAvoided) return { status: 'avoid', message:`Alta rischiosità in un regime di ${macroData.regime}`};
+ if (isAvoided) return { status:'avoid', message:`Alta rischiosità in un regime di ${macroData.regime}`};
  
- return { status: 'neutral', message:`Nessuna forte correlazione con il regime di ${macroData.regime}`};
+ return { status:'neutral', message:`Nessuna forte correlazione con il regime di ${macroData.regime}`};
  };
 
  const getSocialTrending = (ticker) => {
@@ -76,12 +76,12 @@ const Watchlist = () => {
  </header>
 
  {loading ? (
- <div className="flex flex-col items-center justify-center py-32 bg-surface rounded-2xl /50 gap-4">
- <RefreshCw className="w-8 h-8 text-primary animate-spin"/>
+ <div className="flex flex-col items-center justify-center py-32 bg-surface rounded-2xl gap-4">
+ <RefreshCw className="w-8 h-8 text-primary animate-spin border-4 border-primary border-t-transparent"/>
  <p className="text-gray-400 font-medium">Sincronizzazione portafoglio...</p>
  </div>
  ) : watchedAssets.length === 0 ? (
- <div className="flex flex-col items-center justify-center py-32 bg-surface rounded-2xl /50 text-center gap-4">
+ <div className="flex flex-col items-center justify-center py-32 bg-surface rounded-2xl text-center gap-4">
  <Star className="w-12 h-12 text-yellow-500/30"/>
  <p className="text-gray-400 font-medium">La tua watchlist è vuota</p>
  <p className="text-sm text-gray-600 max-w-sm">
@@ -95,8 +95,8 @@ const Watchlist = () => {
  </button>
  </div>
  ) : (
- <div className="bg-surface rounded-2xl /50 overflow-hidden shadow-xl">
- <div className="p-6 /50 flex items-center justify-between bg-slate-800/20">
+ <div className="bg-surface rounded-2xl overflow-hidden shadow-xl">
+ <div className="p-6 flex items-center justify-between bg-slate-800/20">
  <div className="flex items-center gap-3">
  <Star className="w-5 h-5 fill-yellow-400 text-yellow-400"/>
  <h2 className="text-xl font-bold text-white tracking-tight">
@@ -108,7 +108,7 @@ const Watchlist = () => {
  
  <div className="overflow-x-auto">
  <table className="w-full text-left">
- <thead className="bg-slate-800/50 /50">
+ <thead className="bg-slate-800/50">
  <tr>
  <th className="p-4 w-10"></th>
  <th className="p-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Ticker</th>
@@ -152,7 +152,7 @@ const Watchlist = () => {
  </td>
  <td className="p-4 text-right font-medium text-white">${asset.prezzo?.toFixed(2) || '---'}</td>
  <td className="p-4 text-right">
- <div className={`inline-flex items-center gap-1 font-bold text-sm ${asset.var1D >= 0 ? 'text-success' : 'text-danger'}`}>
+ <div className={`inline-flex items-center gap-1 font-bold text-sm ${asset.var1D >= 0 ?'text-success' :'text-danger'}`}>
  {asset.var1D >= 0 ? <ArrowUpRight className="w-3.5 h-3.5"/> : <ArrowDownRight className="w-3.5 h-3.5"/>}
  {Math.abs(asset.var1D)?.toFixed(2) || '0.00'}%
  </div>
@@ -164,11 +164,11 @@ const Watchlist = () => {
  {(() => {
  const { status, message } = getMacroCorrelation(asset);
  const colors = {
- prefer: 'bg-emerald-500/10 text-emerald-400 /20',
- avoid: 'bg-rose-500/10 text-rose-400 /20',
- neutral: 'bg-yellow-500/10 text-yellow-500 /20'
+ prefer:'bg-emerald-500/10 text-emerald-400/20',
+ avoid:'bg-rose-500/10 text-rose-400/20',
+ neutral:'bg-yellow-500/10 text-yellow-500/20'
  };
- const labels = { prefer: 'Favorevole', avoid: 'Rischioso', neutral: 'Neutro' };
+ const labels = { prefer:'Favorevole', avoid:'Rischioso', neutral:'Neutro' };
  return (
  <span 
  title={message}
@@ -182,7 +182,7 @@ const Watchlist = () => {
 
  {/* Community Social Trending */}
  <td className="p-4 text-center">
- <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 /50 min-w-[70px]">
+ <div className="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full bg-slate-900/80 min-w-[70px]">
  <Flame className="w-3 h-3 text-orange-500"/>
  <span className="text-[10px] font-bold text-gray-300">{getSocialTrending(asset.ticker)}</span>
  </div>
@@ -222,7 +222,7 @@ const Watchlist = () => {
  />
  
  {/* Drawer Panel */}
- <div className="w-full sm:w-[500px] bg-slate-900 h-full z-10 p-6 flex flex-col /50 relative shadow-2xl animate-in slide-in-from-right duration-300">
+ <div className="w-full sm:w-[500px] bg-slate-900 h-full z-10 p-6 flex flex-col relative shadow-2xl animate-in slide-in-from-right duration-300">
  {/* Header */}
  <div className="flex justify-between items-center mb-6 pb-4">
  <div className="flex items-center gap-3">
@@ -244,16 +244,15 @@ const Watchlist = () => {
  </div>
 
  {/* AI Summary Block */}
- {user?.role === 'admin' && (
+ {user?.role ==='admin' && (
  <div className="bg-primary/5 rounded-2xl p-5 mb-6 shadow-[inset_0_0_20px_rgba(59,130,246,0.02)]">
  <h3 className="text-primary text-[10px] font-black uppercase tracking-widest mb-3 flex items-center gap-2">
  <Activity className="w-3.5 h-3.5"/> AI Quick Insight
  </h3>
- <p className="text-sm text-gray-300 italic leading-relaxed">
-"{selectedAsset.ticker} registra uno Smart Score di <b className="text-white">{selectedAsset.smartScore}</b>. 
- {getMacroCorrelation(selectedAsset).status === 'prefer' 
+ <p className="text-sm text-gray-300 italic leading-relaxed">"{selectedAsset.ticker} registra uno Smart Score di <b className="text-white">{selectedAsset.smartScore}</b>. 
+ {getMacroCorrelation(selectedAsset).status ==='prefer' 
  ?`L'allineamento eccezionale con il regime macro attuale (${macroData?.regime}) ne rafforza fortemente la stabilità tecnica.`
- : getMacroCorrelation(selectedAsset).status === 'avoid' 
+ : getMacroCorrelation(selectedAsset).status ==='avoid' 
  ?`Il contesto macroeconomico sfavorevole (${macroData?.regime}) suggerisce estrema prudenza nel posizionamento e pesature ridotte.`
  :`L'asset mostra dinamiche largamente indipendenti dall'attuale ciclo macroeconomico, dominato da metriche isolate.`}"
  </p>
@@ -268,14 +267,14 @@ const Watchlist = () => {
  </div>
  <div className="bg-slate-800/50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Momentum (1D)</span>
- <span className={`text-xl font-black ${selectedAsset.var1D >= 0 ? 'text-success' : 'text-danger'}`}>
- {selectedAsset.var1D > 0 && '+'}{selectedAsset.var1D}%
+ <span className={`text-xl font-black ${selectedAsset.var1D >= 0 ?'text-success' :'text-danger'}`}>
+ {selectedAsset.var1D > 0 &&'+'}{selectedAsset.var1D}%
  </span>
  </div>
  </div>
 
  {/* Mini Chart Area */}
- <div className="flex-grow rounded-2xl overflow-hidden /50 bg-slate-900 relative shadow-inner">
+ <div className="flex-grow rounded-2xl overflow-hidden bg-slate-900 relative shadow-inner">
  <div className="absolute inset-0">
  <TradingViewWidget symbol={selectedAsset.ticker} />
  </div>

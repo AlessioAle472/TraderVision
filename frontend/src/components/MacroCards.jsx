@@ -84,9 +84,10 @@ const MacroCards = ({ data, overview }) => {
             }
           }
           
+          const bankShort = cb.name.includes('(') ? cb.name.split('(')[1].replace(')','') : cb.name;
           return {
             cur,
-            event: `${cb.name.split('(')[1].replace(')','')} Rate Decision`,
+            event: `${bankShort} Rate Decision`,
             time: formattedTime,
             tone: cb.tone
           };

@@ -9,52 +9,52 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import WidgetErrorFallback from '../components/WidgetErrorFallback';
 
 const regionalTabs = {
- usa: { label: 'USA', ticker: 'SPY' },
- europe: { label: 'Europa', ticker: 'VGK' },
- japan: { label: 'Giappone', ticker: 'EWJ' },
- asia: { label: 'Asia (Cina/HK)', ticker: 'MCHI' },
- australia: { label: 'Australia', ticker: 'EWA' },
- canada: { label: 'Canada', ticker: 'EWC' }
+ usa: { label:'USA', ticker:'SPY' },
+ europe: { label:'Europa', ticker:'VGK' },
+ japan: { label:'Giappone', ticker:'EWJ' },
+ asia: { label:'Asia (Cina/HK)', ticker:'MCHI' },
+ australia: { label:'Australia', ticker:'EWA' },
+ canada: { label:'Canada', ticker:'EWC' }
 };
 
 // Fallback sectors just to keep the UI populated nicely until we build a real sector scraper per region
 const fallbackSectors = [
- { name: 'Tecnologia / Export', score: 85, trend: 'Bull' },
- { name: 'Finanza / Banche', score: 72, trend: 'Neutral' },
- { name: 'Materie Prime / Energia', score: 45, trend: 'Bear' }
+ { name:'Tecnologia / Export', score: 85, trend:'Bull' },
+ { name:'Finanza / Banche', score: 72, trend:'Neutral' },
+ { name:'Materie Prime / Energia', score: 45, trend:'Bear' }
 ];
 
 const getToneColor = (tone) => {
  switch (tone) {
- case 'Hawkish': return 'text-rose-400 bg-rose-400/10 /20';
- case 'Dovish': return 'text-emerald-400 bg-emerald-400/10 /20';
- default: return 'text-blue-400 bg-blue-400/10 /20';
+ case'Hawkish': return'text-rose-400 bg-rose-400/10';
+ case'Dovish': return'text-emerald-400 bg-emerald-400/10';
+ default: return'text-blue-400 bg-blue-400/10';
  }
 };
 
 const getRegimeColor = (regime) => {
  switch (regime) {
- case 'Boom': return 'text-emerald-400';
- case 'Reflazione': return 'text-blue-400';
- case 'Stagflazione': return 'text-amber-400';
- case 'Deflazione': return 'text-rose-400';
- default: return 'text-gray-400';
+ case'Boom': return'text-emerald-400';
+ case'Reflazione': return'text-blue-400';
+ case'Stagflazione': return'text-amber-400';
+ case'Deflazione': return'text-rose-400';
+ default: return'text-gray-400';
  }
 };
 
 const GlobalMacro = () => {
  const [activeTab, setActiveTab] = useState('usa');
-  const { data: centralBanksDict = {}, isLoading: cbLoading } = useCentralBanks();
-  const { data: regimeData = {}, isLoading: regimeLoading } = useMacroRegime(activeTab);
-  
-  const loading = cbLoading || regimeLoading;
-  
-  const cbData = centralBanksDict[activeTab] || { name: 'Unknown', rate: '0.0%', tone: 'Neutral' };
-  const macroData = {
-    centralBank: cbData,
-    regime: regimeData.regime || 'NEUTRO',
-    sectors: fallbackSectors
-  };
+ const { data: centralBanksDict = {}, isLoading: cbLoading } = useCentralBanks();
+ const { data: regimeData = {}, isLoading: regimeLoading } = useMacroRegime(activeTab);
+ 
+ const loading = cbLoading || regimeLoading;
+ 
+ const cbData = centralBanksDict[activeTab] || { name:'Unknown', rate:'0.0%', tone:'Neutral' };
+ const macroData = {
+ centralBank: cbData,
+ regime: regimeData.regime || 'NEUTRO',
+ sectors: fallbackSectors
+ };
 
  const handleTabChange = (key) => {
  if (key === activeTab) return;
@@ -86,8 +86,8 @@ const GlobalMacro = () => {
  onClick={() => handleTabChange(key)}
  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${
  activeTab === key 
- ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20' 
- : 'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'
+ ?'bg-blue-500 text-white shadow-lg shadow-blue-500/20' 
+ :'bg-white/5 text-gray-500 hover:text-white hover:bg-white/10'
  }`}
  >
  {tabInfo.label}
@@ -112,7 +112,7 @@ const GlobalMacro = () => {
  <div className="flex-1 w-full relative">
  {loading ? (
  <div className="absolute inset-0 flex items-center justify-center">
- <div className="w-10 h-10 /20 -blue-500 rounded-full animate-spin"/>
+ <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"/>
  </div>
  ) : (
  <ErrorBoundary fallback={<WidgetErrorFallback title="TradingView Error" />}>
@@ -186,12 +186,12 @@ const GlobalMacro = () => {
  [...Array(3)].map((_, i) => <SkeletonRow key={i} />)
  ) : (
  macroData.sectors.map((sector, i) => (
- <tr key={i} className="group hover:bg-white/5 transition-colors last:">
+ <tr key={i} className="group hover:bg-white/5 transition-colors">
  <td className="px-4 py-3 text-xs font-bold text-gray-300">{sector.name}</td>
  <td className="px-4 py-3 text-right">
  <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-xs font-black ${
- sector.score >= 70 ? 'bg-emerald-500/10 text-emerald-400' :
- sector.score <= 40 ? 'bg-rose-500/10 text-rose-400' : 'bg-amber-500/10 text-amber-400'
+ sector.score >= 70 ?'bg-emerald-500/10 text-emerald-400' :
+ sector.score <= 40 ?'bg-rose-500/10 text-rose-400' :'bg-amber-500/10 text-amber-400'
  }`}>
  {sector.score}
  </span>

@@ -73,9 +73,10 @@ router.get('/search', protect, async (req, res) => {
       return res.json(groups);
     }
 
+    const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const groups = await Group.find({ 
       isPrivate: false,
-      name: { $regex: q, $options: 'i' }
+      name: { $regex: escapedQ, $options: 'i' }
     }).limit(20);
     res.json(groups);
   } catch (error) {
@@ -91,7 +92,7 @@ router.post('/:id/join', protect, async (req, res) => {
     if (!group) return res.status(404).json({ error: 'Group not found' });
     if (group.isPrivate) return res.status(403).json({ error: 'Cannot join private group directly' });
 
-    if (!group.members.includes(req.user._id)) {
+    if (!group.members.some(id => id.toString() === req.user._id.toString())) {
       group.members.push(req.user._id);
       await group.save();
     }

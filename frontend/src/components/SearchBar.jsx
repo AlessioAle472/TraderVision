@@ -13,14 +13,14 @@ const SearchBar = ({ onAddTicker, onSearch }) => {
 
  const onSearchRef = useRef(onSearch);
  useEffect(() => {
-   onSearchRef.current = onSearch;
+ onSearchRef.current = onSearch;
  }, [onSearch]);
 
  // Real-time filtering for Dashboard
  useEffect(() => {
-   if (onSearchRef.current) {
-     onSearchRef.current(query);
-   }
+ if (onSearchRef.current) {
+ onSearchRef.current(query);
+ }
  }, [query]);
 
  // Debounce logic for server-side search
@@ -80,10 +80,10 @@ const SearchBar = ({ onAddTicker, onSearch }) => {
  onChange={(e) => setQuery(e.target.value)}
  onFocus={() => query.length >= 2 && setIsOpen(true)}
  placeholder="Cerca ticker (es. AAPL, BTC, Oro)..."
- className="w-full bg-surface rounded-xl py-2 pl-10 pr-10 text-sm text-text placeholder-text-secondary/50 focus:outline-none focus: focus: focus: transition-all backdrop-blur-sm"
+ className="w-full bg-surface rounded-xl py-2 pl-10 pr-10 text-sm text-text placeholder-text-secondary/50 focus:outline-none transition-all backdrop-blur-sm"
  />
  {loading ? (
- <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin"/>
+ <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-primary animate-spin border-4 border-primary border-t-transparent"/>
  ) : query && (
  <button
  onClick={() => setQuery('')}

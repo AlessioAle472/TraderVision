@@ -43,7 +43,7 @@ const Register = () => {
  <div className="min-h-screen flex items-center justify-center bg-background text-text font-inter">
  <div className="absolute inset-0 z-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-background"></div>
  
- <div className="relative z-10 w-full max-w-md p-8 bg-surface/80 backdrop-blur-xl /20 dark: rounded-2xl shadow-2xl">
+ <div className="relative z-10 w-full max-w-md p-8 bg-surface/80 backdrop-blur-xl dark:rounded-2xl shadow-2xl">
  <div className="text-center mb-8">
  <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent mb-2">Trader Vision</h1>
  <p className="text-gray-500 dark:text-slate-400">Crea un nuovo account</p>
@@ -55,7 +55,7 @@ const Register = () => {
  </div>
  )}
 
- <div className="mb-6 p-4 bg-amber-500/10 /30 rounded-xl text-amber-600 dark:text-amber-400 text-sm">
+ <div className="mb-6 p-4 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400 text-sm">
  <div className="flex items-start gap-3">
  <AlertCircle className="w-5 h-5 shrink-0 mt-0.5"/>
  <div>
@@ -75,7 +75,7 @@ const Register = () => {
  <input
  type="email"
  required
- className="w-full pl-10 pr-4 py-2 bg-background /20 dark: rounded-lg focus:outline-none focus: focus: text-text transition"
+ className="w-full pl-10 pr-4 py-2 bg-background/20 dark:rounded-lg focus:outline-none focus:text-text transition"
  placeholder="mario@email.com"
  value={email}
  onChange={(e) => setEmail(e.target.value)}
@@ -92,7 +92,7 @@ const Register = () => {
  <input
  type="password"
  required
- className="w-full pl-10 pr-4 py-2 bg-background /20 dark: rounded-lg focus:outline-none focus: focus: text-text transition"
+ className="w-full pl-10 pr-4 py-2 bg-background/20 dark:rounded-lg focus:outline-none focus:text-text transition"
  placeholder="••••••••"
  value={password}
  onChange={(e) => setPassword(e.target.value)}
@@ -109,7 +109,7 @@ const Register = () => {
  <input
  type="password"
  required
- className="w-full pl-10 pr-4 py-2 bg-background /20 dark: rounded-lg focus:outline-none focus: focus: text-text transition"
+ className="w-full pl-10 pr-4 py-2 bg-background/20 dark:rounded-lg focus:outline-none focus:text-text transition"
  placeholder="••••••••"
  value={confirmPassword}
  onChange={(e) => setConfirmPassword(e.target.value)}
@@ -122,12 +122,12 @@ const Register = () => {
  disabled={isLoading}
  className="w-full py-3 px-4 mt-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/30"
  >
- {isLoading ? 'Registrazione...' : 'Registrati'}
+ {isLoading ?'Registrazione...' :'Registrati'}
  </button>
  </form>
 
  <div className="mt-6 text-center text-sm text-slate-400">
- Hai già un account?{' '}
+ Hai già un account?{''}
  <Link to="/login"className="text-indigo-400 hover:text-indigo-300 font-medium">
  Accedi
  </Link>

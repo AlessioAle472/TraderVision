@@ -1,10 +1,6 @@
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
-const { exec } = require('child_process');
-const util = require('util');
-const path = require('path');
-const execPromise = util.promisify(exec);
 const marketDataService = require('../services/marketDataService');
 const aiBriefingService = require('../services/aiBriefingService');
 const newsletterService = require('../services/newsletterService');
@@ -21,7 +17,7 @@ const marketsService = require('../services/marketsService');
 const TickerMapping = require('../models/TickerMapping');
 const MarketConfig = require('../models/MarketConfig');
 const PreloadedMarketData = require('../models/PreloadedMarketData');
-const { protect, master, verifyAdmin } = require('../middleware/authMiddleware');
+const { protect, optionalAuth, master, verifyAdmin } = require('../middleware/authMiddleware');
 const { aiLimiter } = require('../middleware/rateLimiter');
 const { softRequirePro, FREE_LIMIT } = require('../middleware/requirePro');
 const { getEconomicCalendar } = require('../controllers/calendarController');
@@ -56,11 +52,11 @@ router.post('/briefing/force-send', protect, master, async (req, res) => {
 // GET /api/ticker-mapping/:yfSymbol
 router.get('/ticker-mapping/:yfSymbol', async (req, res) => {
   try {
-    const mapping = await TickerMapping.findOne({ yfSymbol: req.params.yfSymbol.toUpperCase() });
+    const mapping = await TickerMapping.findOne({ yfSymbol: req.params.yfSymbol.toUpperCase() }).catch(() => null);
     res.json({ tvSymbol: mapping ? mapping.tvSymbol : null });
   } catch (error) {
     console.error('API Error in GET /ticker-mapping:', error);
-    res.status(500).json({ error: 'Failed to fetch mapping' });
+    res.json({ tvSymbol: null });
   }
 });
 
@@ -96,7 +92,7 @@ router.get('/macro-deep-dive', async (req, res) => {
 
 // GET /api/markets — full multi-section markets data
 // Free users: each section limited to FREE_LIMIT assets + paywalled flag
-router.get('/markets', protect, softRequirePro, async (req, res, next) => {
+router.get('/markets', optionalAuth, softRequirePro, async (req, res, next) => {
   try {
     const original_json = res.json.bind(res);
     res.json = (data) => {
@@ -181,7 +177,7 @@ router.get('/dashboard', getDashboard);
 router.get('/history', getHistory);
 
 // GET /api/economic-calendar — fetch live economic calendar via Finnhub
-router.get('/economic-calendar', protect, softRequirePro, getEconomicCalendar);
+router.get('/economic-calendar', optionalAuth, softRequirePro, getEconomicCalendar);
 
 // GET /api/community — returns mock community data
 router.get('/community', (req, res) => {
@@ -214,7 +210,7 @@ router.get('/community/topic/:id', (req, res) => {
 // GET /api/macro-outlook — returns aggregated macro data and economic events
 router.get('/macro-outlook', async (req, res) => {
   try {
-    const latest = await PreloadedMarketData.findOne({ dataId: 'latest' });
+    const latest = await PreloadedMarketData.findOne({ dataId: 'latest' }).catch(() => null);
     if (!latest || !latest.macroOutlook) {
         return res.status(202).json({
             regime: "CALCULATING",
@@ -227,7 +223,13 @@ router.get('/macro-outlook', async (req, res) => {
     res.json(latest.macroOutlook);
   } catch (error) {
     console.error('Error fetching macro outlook:', error);
-    res.status(500).json({ error: 'Failed to fetch macro outlook data' });
+    res.status(202).json({
+        regime: "CALCULATING",
+        score: 50,
+        recommendations: { prefer: [], avoid: [] },
+        trend6m: [0, 0, 0, 0, 0, 0],
+        events: []
+    });
   }
 });
 

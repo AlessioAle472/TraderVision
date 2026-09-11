@@ -168,7 +168,7 @@ router.post('/posts/:id/repost', protect, async (req, res) => {
     const userId = req.user._id;
 
     // Aggiungiamo l'utente alla lista repost dell'originale
-    if (!originalPost.reposts.includes(userId)) {
+    if (!originalPost.reposts.some(id => id.toString() === userId.toString())) {
       originalPost.reposts.push(userId);
       await originalPost.save();
     }

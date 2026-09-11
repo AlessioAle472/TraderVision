@@ -18,7 +18,9 @@ if (missingVars.length > 0) {
 }
 
 const app = express();
-const PORT = process.env.PORT || 49152;
+// Keep the API port aligned with the Vite development proxy and frontend .env.
+const PORT = process.env.PORT || 5001;
+let databaseStatus = 'connecting';
 
 // Trust proxy is required if running behind a reverse proxy (Vercel, Railway, Render, Nginx)
 // for correct rate limiting by client IP and HTTPS detection.
@@ -62,7 +64,6 @@ app.use(cors({
     if (!origin) return callback(null, true);
     if (
       allowedOrigins.indexOf(origin) !== -1 ||
-      origin.endsWith('.vercel.app') ||
       origin.includes('tradervision-quantitativemarkets.com')
     ) {
       return callback(null, true);
@@ -114,14 +115,14 @@ app.use('/api/ads',    adsRoutes);
 app.use('/api',        cotRoutes);
 app.use('/api/stripe', stripeRouter);
 
-// ── Background Jobs ────────────────────────────────────────────────────────
-initAIJobs();
-marketCronJob.init();
-cotCronJob.init();
-
 // ── Health Check ───────────────────────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Trader Vision API is running' });
+  const isDatabaseReady = databaseStatus === 'connected';
+  res.status(isDatabaseReady ? 200 : 503).json({
+    status: isDatabaseReady ? 'ok' : 'degraded',
+    database: databaseStatus,
+    message: 'Trader Vision API is running'
+  });
 });
 
 // ── Global Error Handler ───────────────────────────────────────────────────
@@ -135,14 +136,27 @@ app.use((err, req, res, next) => {
 });
 
 // ── Database + Server Start ────────────────────────────────────────────────
-mongoose.connect(process.env.MONGODB_URI)
+function startBackgroundJobs() {
+  initAIJobs();
+  marketCronJob.init();
+  cotCronJob.init();
+}
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server listening on port ${PORT}`);
+});
+
+mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
   .then(() => {
+    databaseStatus = 'connected';
     console.log('✅ Connected to MongoDB Atlas');
-    app.listen(PORT, '0.0.0.0', () => {
-      console.log(`✅ Server listening on port ${PORT}`);
-    });
+    startBackgroundJobs();
   })
   .catch(err => {
+    databaseStatus = 'disconnected';
     console.error('❌ MongoDB connection error:', err.message);
-    process.exit(1); // Cannot run without DB
+    if (process.env.NODE_ENV === 'production') {
+      process.exit(1);
+    }
+    console.warn('⚠️ Starting in local degraded mode; database-backed features are unavailable.');
   });

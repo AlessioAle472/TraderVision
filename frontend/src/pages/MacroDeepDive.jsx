@@ -21,38 +21,39 @@ import DOMPurify from 'dompurify';
 const MacroDeepDive = () => {
  const navigate = useNavigate();
  const { user } = useAuth();
-  const { data, isLoading: loading } = useMacroDeepDive();
-  const [synthesis, setSynthesis] = useState('');
-  const [synthesisLoading, setSynthesisLoading] = useState(false);
+ const { data, isLoading: loading } = useMacroDeepDive();
+ const [synthesis, setSynthesis] = useState('');
+ const [synthesisLoading, setSynthesisLoading] = useState(false);
 
-  useEffect(() => {
-    if (data && user?.role === 'admin' && !synthesis) {
-      fetchSynthesis(data);
-    }
-  }, [data, user?.role, synthesis]);
+ useEffect(() => {
+ if (data && user?.role ==='admin' && !synthesis) {
+ fetchSynthesis(data);
+ }
+ }, [data, user?.role, synthesis]);
 
-  const fetchSynthesis = async (macroData) => {
-    try {
-      setSynthesisLoading(true);
-      const res = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/ai-synthesis`, {
-        chartData: macroData.chart,
-        fundamentals: macroData.fundamentals,
-        correlations: macroData.correlationMatrix.correlations,
-        regime: 'Macro Divergence' // Placeholder for now or could be calculated
-      });
-      setSynthesis(res.data.synthesis);
-    } catch (error) {
-      console.error('Error fetching AI synthesis:', error);
-      setSynthesis("Impossibile generare la sintesi AI al momento.");
-    } finally {
-      setSynthesisLoading(false);
-    }
-  };
+ const fetchSynthesis = async (macroData) => {
+ try {
+ setSynthesisLoading(true);
+ const apiBase = (() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })();
+ const res = await axios.post(`${apiBase}/ai-synthesis`, {
+ chartData: macroData.chart,
+ fundamentals: macroData.fundamentals,
+ correlations: macroData.correlationMatrix.correlations,
+ regime:'Macro Divergence' // Placeholder for now or could be calculated
+ });
+ setSynthesis(res.data.synthesis);
+ } catch (error) {
+ console.error('Error fetching AI synthesis:', error);
+ setSynthesis("Impossibile generare la sintesi AI al momento.");
+ } finally {
+ setSynthesisLoading(false);
+ }
+ };
 
  if (loading) {
  return (
  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
- <Loader2 className="w-10 h-10 text-blue-500 animate-spin"/>
+ <Loader2 className="w-10 h-10 text-blue-500 animate-spin border-4 border-primary border-t-transparent"/>
  <p className="text-gray-400 font-bold uppercase tracking-widest text-xs">Analisi Flussi Istituzionali in corso…</p>
  </div>
  );
@@ -80,7 +81,7 @@ const MacroDeepDive = () => {
  </div>
  </div>
  
- <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 /20">
+ <div className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10">
  <Globe className="w-4 h-4 text-blue-400"/>
  <span className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Global Terminal Active</span>
  </div>
@@ -157,22 +158,22 @@ const MacroDeepDive = () => {
  <XAxis 
  dataKey="date"
  stroke="#475569"
- tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} 
+ tick={{ fill:'#64748b', fontSize: 10, fontWeight:'bold' }} 
  axisLine={false} 
  tickLine={false} 
  />
  <YAxis 
- domain={['dataMin - 5', 'dataMax + 5']} 
- tick={{ fill: '#64748b', fontSize: 10, fontWeight: 'bold' }} 
+ domain={['dataMin - 5','dataMax + 5']} 
+ tick={{ fill:'#64748b', fontSize: 10, fontWeight:'bold' }} 
  axisLine={false} 
  tickLine={false} 
  />
  <Tooltip 
- contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '16px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)' }}
- itemStyle={{ fontSize: '12px', fontWeight: '800' }}
- labelStyle={{ marginBottom: '8px', color: '#94a3b8', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
+ contentStyle={{ backgroundColor:'#0f172a', borderColor:'#334155', borderRadius:'16px', boxShadow:'0 25px 50px -12px rgba(0,0,0,0.5)' }}
+ itemStyle={{ fontSize:'12px', fontWeight:'800' }}
+ labelStyle={{ marginBottom:'8px', color:'#94a3b8', fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.1em' }}
  />
- <Legend verticalAlign="top"height={36} iconType="circle"wrapperStyle={{ fontSize: '10px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.1em', paddingTop: '0' }} />
+ <Legend verticalAlign="top"height={36} iconType="circle"wrapperStyle={{ fontSize:'10px', fontWeight:'800', textTransform:'uppercase', letterSpacing:'0.1em', paddingTop:'0' }} />
  
  <Area type="monotone"dataKey="SPY"name="Equities (SPY)"stroke="#3b82f6"strokeWidth={4} fillOpacity={1} fill="url(#colorSPY)"/>
  <Area type="monotone"dataKey="GLD"name="Gold (GLD)"stroke="#eab308"strokeWidth={4} fillOpacity={1} fill="url(#colorGLD)"/>
@@ -192,7 +193,7 @@ const MacroDeepDive = () => {
  </h2>
  <p className="text-xl font-bold text-white tracking-tight">30-Day Asset Co-movement</p>
  </div>
- <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-500 /20">Pearson (r)</div>
+ <div className="px-3 py-1 rounded-full bg-emerald-500/10 text-[10px] font-bold text-emerald-500/20">Pearson (r)</div>
  </div>
 
  <div className="grid grid-cols-4 gap-4">
@@ -234,7 +235,7 @@ const MacroDeepDive = () => {
  </div>
 
  {/* Synthesis Column */}
- {user?.role === 'admin' && (
+ {user?.role ==='admin' && (
  <div className="space-y-8">
  <div className="bg-gradient-to-br from-slate-900/60 to-slate-900/20 backdrop-blur-xl rounded-[2.5rem] p-8 shadow-2xl h-full flex flex-col">
  <div className="flex items-center gap-3 mb-8">
@@ -250,13 +251,13 @@ const MacroDeepDive = () => {
  <div className="flex-grow space-y-6">
  {synthesisLoading ? (
  <div className="flex flex-col items-center justify-center h-48 gap-4 opacity-50">
- <Loader2 className="w-8 h-8 text-blue-500 animate-spin"/>
+ <Loader2 className="w-8 h-8 text-blue-500 animate-spin border-4 border-primary border-t-transparent"/>
  <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Sinergia dei Dati in corso…</p>
  </div>
  ) : (
  <div 
  className="text-sm text-gray-300 leading-relaxed font-medium transition-all duration-500 animate-in fade-in"
- dangerouslySetInnerHTML={{ __html: window.DOMPurify ? window.DOMPurify.sanitize(synthesis) : synthesis }}
+ dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(synthesis) }}
  />
  )}
  </div>
@@ -289,16 +290,16 @@ const MacroDeepDive = () => {
 // Sub-components
 const MetricCard = ({ title, subtitle, value, change, color, icon, isBps = false }) => {
  const colorMap = {
- blue: 'text-blue-500 bg-blue-500/10 /20',
- orange: 'text-orange-500 bg-orange-500/10 /20',
- emerald: 'text-emerald-500 bg-emerald-500/10 /20',
- rose: 'text-rose-500 bg-rose-500/10 /20',
+ blue:'text-blue-500 bg-blue-500/10',
+ orange:'text-orange-500 bg-orange-500/10',
+ emerald:'text-emerald-500 bg-emerald-500/10',
+ rose:'text-rose-500 bg-rose-500/10',
  };
 
- const isPositive = typeof change === 'string' ? change.startsWith('+') : change > 0;
+ const isPositive = typeof change ==='string' ? change.startsWith('+') : change > 0;
  
  return (
- <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl group hover: transition-all duration-300">
+ <div className="bg-slate-900/40 backdrop-blur-xl p-8 rounded-[2rem] shadow-xl group hover:transition-all duration-300">
  <div className="flex items-center justify-between mb-8">
  <div>
  <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest mb-1">{title}</h3>
@@ -311,7 +312,7 @@ const MetricCard = ({ title, subtitle, value, change, color, icon, isBps = false
  
  <div className="flex items-end justify-between">
  <span className="text-4xl font-black text-white tracking-tighter">{value || '--'}</span>
- <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isPositive ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+ <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isPositive ?'bg-emerald-500/10 text-emerald-400' :'bg-rose-500/10 text-rose-400'}`}>
  <span className="text-xs font-black">{change || '0%'}</span>
  </div>
  </div>
@@ -321,16 +322,16 @@ const MetricCard = ({ title, subtitle, value, change, color, icon, isBps = false
 
 const CorrelationCell = ({ value }) => {
  const getBg = (v) => {
- if (v >= 0.7) return 'bg-emerald-500/20 text-emerald-400 /30';
- if (v >= 0.3) return 'bg-emerald-500/10 text-emerald-500/70 /10';
- if (v <= -0.7) return 'bg-rose-500/20 text-rose-400 /30';
- if (v <= -0.3) return 'bg-rose-500/10 text-rose-500/70 /10';
- return 'bg-white/5 text-gray-500 ';
+ if (v >= 0.7) return'bg-emerald-500/20 text-emerald-400/30';
+ if (v >= 0.3) return'bg-emerald-500/10 text-emerald-500/70';
+ if (v <= -0.7) return'bg-rose-500/20 text-rose-400/30';
+ if (v <= -0.3) return'bg-rose-500/10 text-rose-500/70';
+ return'bg-white/5 text-gray-500';
  };
 
  return (
  <div className={`h-12 flex items-center justify-center rounded-xl text-xs font-black transition-all ${getBg(value)}`}>
- {value !== undefined ? value.toFixed(2) : '--'}
+ {value !== undefined ? value.toFixed(2) :'--'}
  </div>
  );
 };

@@ -17,6 +17,9 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
       return (
         <div style={{ padding: '20px', background: '#222', color: '#ff5555', minHeight: '100vh', fontFamily: 'monospace' }}>
           <h2>Something went wrong in the component.</h2>

@@ -38,6 +38,7 @@ router.post('/register', authLimiter, async (req, res) => {
       password,
       isMaster,
       plan,
+      subscriptionPlan: plan,
     });
 
     if (user) {
@@ -148,5 +149,48 @@ router.put('/settings', protect, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// ── Dev Token Helper (Development only) ──────────────────────────────────
+if (process.env.NODE_ENV === 'development') {
+  router.get('/dev-token', async (req, res) => {
+    try {
+      let user = await User.findOne({ email: 'admin@local.dev' });
+      if (!user) {
+        user = await User.create({
+          email: 'admin@local.dev',
+          password: 'devPassword123!',
+          isMaster: true,
+          role: 'admin',
+          plan: 'pro',
+          subscriptionPlan: 'pro'
+        });
+      } else {
+        if (!user.isMaster || user.role !== 'admin' || user.plan !== 'pro') {
+          user.isMaster = true;
+          user.role = 'admin';
+          user.plan = 'pro';
+          user.subscriptionPlan = 'pro';
+          await user.save();
+        }
+      }
+      res.json({
+        user: {
+          _id: user._id,
+          email: user.email,
+          name: 'Admin',
+          isMaster: true,
+          role: 'admin',
+          plan: 'pro',
+          subscriptionPlan: 'pro',
+          theme: user.theme || 'dark'
+        },
+        token: generateToken(user._id)
+      });
+    } catch (err) {
+      console.error('[Auth] Error generating dev token:', err);
+      res.status(500).json({ error: 'Failed to generate dev token' });
+    }
+  });
+}
 
 module.exports = router;

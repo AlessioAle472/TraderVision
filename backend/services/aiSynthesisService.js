@@ -23,7 +23,7 @@ async function generateSynthesis(chartData, fundamentals, correlations, regime) 
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un analista macroeconomico istituzionale. Il regime attuale è identificato come: ${regime}.
         
@@ -65,7 +65,7 @@ async function generateQuickInsight(ticker, price) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un analista quantitativo. La coppia ${ticker} ha generato un segnale "Strong Buy" dal nostro modello matematico al prezzo di ${price}. 
         Scrivi un singolo commento rapido (massimo 15 parole) che giustifichi questa forza relativa. Usa un tono professionale (es: "${ticker} mostra forza relativa dominante dovuta al fly-to-quality").`;
@@ -85,7 +85,7 @@ async function generateCryptoDivergence(cryptoAssets) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         // Format data to give context to the AI
         const context = cryptoAssets.map(a => `${a.ticker}: Score ${a.smartScore} (${a.smartScoreLabel})`).join(', ');
@@ -110,7 +110,7 @@ async function generateStagflationAlert(oilTicker, oilScore, spyScore) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un macroeconomista quantitativo. Il nostro sistema ha rilevato una seria anomalia di mercato.
         Il petrolio (${oilTicker}) è in STRONG BUY (Score: ${oilScore}), mentre l'S&P 500 è debole/in stallo (Score: ${spyScore}).
@@ -132,7 +132,7 @@ async function generateCapitalFlow(averages) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un macroeconomista quantitativo esperto di allocazione geografica del rischio. 
         Analizza questi punteggi medi (Smart Quant Score) aggregati per regione:
@@ -159,7 +159,7 @@ async function moderateContent(text) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un moderatore AI per un social network finanziario premium.
         Valuta il seguente testo e decidi se deve essere segnalato (isFlagged: true).

@@ -17,9 +17,9 @@ const SmartScoreDonut = ({ score }) => {
  const pct = Math.max(0, Math.min(100, score));
  const strokeDashoffset = circumference - (pct / 100) * circumference;
 
- let color = '#ef4444'; // red < 40
- if (pct >= 70) color = '#22c55e'; // green
- else if (pct >= 40) color = '#eab308'; // yellow
+ let color ='#ef4444'; // red < 40
+ if (pct >= 70) color ='#22c55e'; // green
+ else if (pct >= 40) color ='#eab308'; // yellow
 
  return (
  <div className="relative flex items-center justify-center">
@@ -37,7 +37,7 @@ const SmartScoreDonut = ({ score }) => {
  fill="transparent"
  strokeWidth={stroke}
  strokeDasharray={`${circumference} ${circumference}`}
- style={{ strokeDashoffset, transition: 'stroke-dashoffset 1.5s ease-out' }}
+ style={{ strokeDashoffset, transition:'stroke-dashoffset 1.5s ease-out' }}
  strokeLinecap="round"
  r={normalizedRadius}
  cx={radius}
@@ -76,12 +76,12 @@ const PillarBar = ({ label, value, max, color }) => {
 // --- Asset type badge color ---
 const getTypeColor = (type) => {
  switch (type) {
- case 'EQUITY': return 'text-blue-400 bg-blue-400/10 /20';
- case 'CRYPTOCURRENCY': return 'text-orange-400 bg-orange-400/10 /20';
- case 'FUTURE': return 'text-purple-400 bg-purple-400/10 /20';
- case 'CURRENCY': return 'text-teal-400 bg-teal-400/10 /20';
- case 'INDEX': return 'text-indigo-400 bg-indigo-400/10 /20';
- default: return 'text-gray-400 bg-gray-400/10 /20';
+ case'EQUITY': return'text-blue-400 bg-blue-400/10';
+ case'CRYPTOCURRENCY': return'text-orange-400 bg-orange-400/10';
+ case'FUTURE': return'text-purple-400 bg-purple-400/10';
+ case'CURRENCY': return'text-teal-400 bg-teal-400/10';
+ case'INDEX': return'text-indigo-400 bg-indigo-400/10';
+ default: return'text-gray-400 bg-gray-400/10';
  }
 };
 
@@ -109,15 +109,13 @@ const TickerAnalysis = () => {
  setAsset(detail);
 
  // Resolve yahoo ticker for chart
- const yahooMap = {
- 'EURUSD': 'EURUSD=X', 'Gold': 'GC=F', 'WTI': 'CL=F',
- 'SP500': '^GSPC', 'BTC': 'BTC-USD'
+ const yahooMap = {'EURUSD':'EURUSD=X','Gold':'GC=F','WTI':'CL=F','SP500':'^GSPC','BTC':'BTC-USD'
  };
  const chartTicker = yahooMap[ticker] || ticker;
 
  const to = Math.floor(Date.now() / 1000);
  const from = to - (365 * 24 * 60 * 60); // 1 year
- const data = await apiClient.getHistoricalData(chartTicker, 'D', from, to);
+ const data = await apiClient.getHistoricalData(chartTicker,'D', from, to);
  if (active && data) {
  // Map to Lightweight Charts format
  const formattedData = data.map(d => ({
@@ -144,7 +142,7 @@ const TickerAnalysis = () => {
  return (
  <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-6">
  <div className="relative">
- <div className="w-16 h-16 rounded-full -primary animate-spin"></div>
+ <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
  <div className="absolute inset-0 flex items-center justify-center">
  <Activity className="w-6 h-6 text-primary"/>
  </div>
@@ -179,16 +177,16 @@ const TickerAnalysis = () => {
  const var1D = asset?.var1D ?? 0;
  const isPositive = var1D >= 0;
 
- let scoreLabel = 'Mantieni';
- if (score >= 80) scoreLabel = 'Forte Acquisto';
- else if (score >= 60) scoreLabel = 'Acquisto';
- else if (score >= 40) scoreLabel = 'Mantieni';
- else if (score >= 20) scoreLabel = 'Vendi';
- else scoreLabel = 'Forte Vendita';
+ let scoreLabel ='Mantieni';
+ if (score >= 80) scoreLabel ='Forte Acquisto';
+ else if (score >= 60) scoreLabel ='Acquisto';
+ else if (score >= 40) scoreLabel ='Mantieni';
+ else if (score >= 20) scoreLabel ='Vendi';
+ else scoreLabel ='Forte Vendita';
 
- let scoreLabelColor = 'text-yellow-400';
- if (score >= 70) scoreLabelColor = 'text-success';
- else if (score < 40) scoreLabelColor = 'text-danger';
+ let scoreLabelColor ='text-yellow-400';
+ if (score >= 70) scoreLabelColor ='text-success';
+ else if (score < 40) scoreLabelColor ='text-danger';
 
  // Finnhub websocket key setup - ideally from env
  const finnhubKey = import.meta.env.VITE_FINNHUB_KEY || '';
@@ -199,10 +197,10 @@ const TickerAnalysis = () => {
  {/* --- Header --- */}
  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-surface p-6 rounded-3xl shadow-xl relative overflow-hidden">
  {/* Glow effect based on trend */}
- <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -mr-20 -mt-20 opacity-10 ${isPositive ? 'bg-success' : 'bg-danger'}`}></div>
+ <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-3xl -mr-20 -mt-20 opacity-10 ${isPositive ?'bg-success' :'bg-danger'}`}></div>
  
  <div className="flex items-center gap-4 relative z-10">
- <button onClick={() => navigate('/')} className="p-2.5 rounded-xl bg-surface-hover hover: text-text-secondary hover:text-text transition-all shadow-md">
+ <button onClick={() => navigate('/')} className="p-2.5 rounded-xl bg-surface-hover hover:text-text-secondary hover:text-text transition-all shadow-md">
  <ArrowLeft className="w-5 h-5"/>
  </button>
  <div>
@@ -214,7 +212,7 @@ const TickerAnalysis = () => {
  className="group p-1 -ml-1 transition-all focus:outline-none"
  title={isWatched(ticker) ?"Rimuovi dalla Watchlist":"Aggiungi alla Watchlist"}
  >
- <Star className={`w-6 h-6 transition-transform duration-300 transform group-hover:scale-110 group-active:scale-95 ${isWatched(ticker) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`} />
+ <Star className={`w-6 h-6 transition-transform duration-300 transform group-hover:scale-110 group-active:scale-95 ${isWatched(ticker) ?'fill-yellow-400 text-yellow-400' :'text-slate-600 hover:text-yellow-400'}`} />
  </button>
  </h1>
  {asset?.settore && (
@@ -230,13 +228,13 @@ const TickerAnalysis = () => {
  <div className="flex flex-col md:items-end relative z-10">
  <div className="flex items-baseline gap-3">
  <span className="text-4xl font-black text-text tracking-tighter">
- {asset?.prezzo ? Number(asset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
+ {asset?.prezzo ? Number(asset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) :'---'}
  </span>
  <span className="text-text-secondary text-sm font-bold uppercase tracking-widest">USD</span>
  </div>
- <span className={`flex items-center gap-1.5 text-base font-bold px-3 py-1 rounded-full mt-2 ${isPositive ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'}`}>
+ <span className={`flex items-center gap-1.5 text-base font-bold px-3 py-1 rounded-full mt-2 ${isPositive ?'bg-success/10 text-success' :'bg-danger/10 text-danger'}`}>
  {isPositive ? <TrendingUp className="w-4 h-4"/> : <TrendingDown className="w-4 h-4"/>}
- {isPositive ? '+' : ''}{Number(var1D).toFixed(2)}% (24H)
+ {isPositive ?'+' :''}{Number(var1D).toFixed(2)}% (24H)
  </span>
  </div>
  </div>
@@ -264,7 +262,7 @@ const TickerAnalysis = () => {
  <LightweightChart symbol={ticker} data={histData} finnhubKey={finnhubKey} />
  ) : (
  <div className="h-[360px] flex items-center justify-center">
- <RefreshCw className="w-8 h-8 text-slate-600 animate-spin"/>
+ <RefreshCw className="w-8 h-8 text-slate-600 animate-spin border-4 border-primary border-t-transparent"/>
  </div>
  )}
  </div>
@@ -272,7 +270,7 @@ const TickerAnalysis = () => {
 
  {/* Technical Detail Badges Grid */}
  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
- <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover: transition-colors">
+ <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover:transition-colors">
  <div className="flex items-center gap-2 mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
  <TrendingUp className="w-4 h-4 text-primary"/>
  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest flex items-center">
@@ -280,11 +278,11 @@ const TickerAnalysis = () => {
  <InfoTooltip text="Media Mobile Esponenziale a 50 periodi: indica la direzione del trend di medio periodo"/>
  </div>
  </div>
- <div className={`text-xl font-black ${asset?.trend === 'Long' ? 'text-success' : asset?.trend === 'Short' ? 'text-danger' : 'text-text-secondary'}`}>
+ <div className={`text-xl font-black ${asset?.trend ==='Long' ?'text-success' : asset?.trend ==='Short' ?'text-danger' :'text-text-secondary'}`}>
  {asset?.trend || 'Neutral'}
  </div>
  </div>
- <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover: transition-colors">
+ <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover:transition-colors">
  <div className="flex items-center gap-2 mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
  <Target className="w-4 h-4 text-emerald-500"/>
  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest flex items-center">
@@ -296,7 +294,7 @@ const TickerAnalysis = () => {
  {asset?.fib_level_touched || 'None'}
  </div>
  </div>
- <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover: transition-colors">
+ <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover:transition-colors">
  <div className="flex items-center gap-2 mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
  <BarChart2 className="w-4 h-4 text-purple-500"/>
  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest flex items-center">
@@ -304,11 +302,11 @@ const TickerAnalysis = () => {
  <InfoTooltip text="Volume odierno rispetto alla media 20 giorni: valori >1x indicano interesse crescente"/>
  </div>
  </div>
- <div className={`text-xl font-black ${asset?.volume_vs_avg > 1 ? 'text-purple-400' : 'text-text-secondary'}`}>
- {asset?.volume_vs_avg ?`${asset.volume_vs_avg}x`: '1.0x'}
+ <div className={`text-xl font-black ${asset?.volume_vs_avg > 1 ?'text-purple-400' :'text-text-secondary'}`}>
+ {asset?.volume_vs_avg ?`${asset.volume_vs_avg}x`:'1.0x'}
  </div>
  </div>
- <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover: transition-colors">
+ <div className="bg-surface p-5 rounded-3xl shadow-lg flex flex-col justify-between group hover:transition-colors">
  <div className="flex items-center gap-2 mb-3 opacity-60 group-hover:opacity-100 transition-opacity">
  <Activity className="w-4 h-4 text-orange-500"/>
  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest flex items-center">
@@ -333,7 +331,7 @@ const TickerAnalysis = () => {
  
  <div className="flex flex-col items-center mb-8">
  <SmartScoreDonut score={score} />
- <div className={`mt-6 px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest ${scoreLabelColor} ${scoreLabelColor.replace('text-', 'bg-')}/10 ${scoreLabelColor.replace('text-', '-')}/20`}>
+ <div className={`mt-6 px-4 py-1.5 rounded-full text-sm font-black uppercase tracking-widest ${scoreLabelColor} ${scoreLabelColor.replace('text-','bg-')}/10 ${scoreLabelColor.replace('text-','-')}/20`}>
  {scoreLabel}
  </div>
  </div>
@@ -344,9 +342,9 @@ const TickerAnalysis = () => {
  <PillarBar label="3. Asset & Macro"value={bd.asset_score} max={30} color="#f59e0b"/>
  </div>
 
- {asset?.settore === 'FUTURE' && bd.macro_reason && (
- <div className={`mt-8 flex items-start gap-3 p-4 rounded-xl text-xs ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-500/10 /25 text-amber-300' : 'bg-surface-hover text-text-secondary'}`}>
- <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${bd.macro_reason.includes('Safe Haven') ? 'text-amber-400' : 'text-text-secondary/50'}`} />
+ {asset?.settore ==='FUTURE' && bd.macro_reason && (
+ <div className={`mt-8 flex items-start gap-3 p-4 rounded-xl text-xs ${bd.macro_reason.includes('Safe Haven') ?'bg-amber-500/10 text-amber-300' :'bg-surface-hover text-text-secondary'}`}>
+ <AlertCircle className={`w-4 h-4 shrink-0 mt-0.5 ${bd.macro_reason.includes('Safe Haven') ?'text-amber-400' :'text-text-secondary/50'}`} />
  <p className="leading-relaxed font-medium italic">{bd.macro_reason}</p>
  </div>
  )}

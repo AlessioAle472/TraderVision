@@ -21,7 +21,18 @@ export const AuthProvider = ({ children }) => {
  useEffect(() => {
  const fetchUser = async () => {
  if (import.meta.env.DEV) {
- setUser({ name: 'Admin', email: 'admin@local.dev', isMaster: true, plan: 'pro', theme: 'dark' });
+ try {
+ const res = await axios.get(`${API_BASE_URL}/auth/dev-token`);
+ if (res.data?.token) {
+ localStorage.setItem('token', res.data.token);
+ setUser(res.data.user);
+ setLoading(false);
+ return;
+ }
+ } catch (e) {
+ console.warn('Could not fetch dev token:', e.message);
+ }
+ setUser({ name: 'Admin', email: 'admin@local.dev', isMaster: true, role: 'admin', plan: 'pro', theme: 'dark' });
  setLoading(false);
  return;
  }

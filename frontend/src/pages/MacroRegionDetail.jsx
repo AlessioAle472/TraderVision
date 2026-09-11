@@ -6,18 +6,18 @@ import TradingViewWidget from '../components/TradingViewWidget';
 
 // Mapping Region to Benchmark ETF
 const REGION_TICKERS = {
- europa: 'FEZ', // Euro Stoxx 50
- cina: 'FXI', // iShares China Large-Cap
- australia: 'EWA', // MSCI Australia
- canada: 'EWC', // MSCI Canada
+ europa:'FEZ', // Euro Stoxx 50
+ cina:'FXI', // iShares China Large-Cap
+ australia:'EWA', // MSCI Australia
+ canada:'EWC', // MSCI Canada
 };
 
 // Fallback Mock Data in case navigated directly without state
 const FALLBACK_SCORES = {
- europa: { score: 53, change: '+1.2' },
- canada: { score: 58, change: '+0.5' },
- cina: { score: 43, change: '-2.1' },
- australia: { score: 61, change: '+0.8' },
+ europa: { score: 53, change:'+1.2' },
+ canada: { score: 58, change:'+0.5' },
+ cina: { score: 43, change:'-2.1' },
+ australia: { score: 61, change:'+0.8' },
 };
 
 const MacroRegionDetail = () => {
@@ -45,7 +45,7 @@ const MacroRegionDetail = () => {
  const fetchRegionData = async () => {
  if (!ticker) {
  if (active) {
- setError(`Regione '${regionName}' non supportata o ticker mancante.`);
+ setError(`Regione'${regionName}' non supportata o ticker mancante.`);
  setLoading(false);
  }
  return;
@@ -76,7 +76,7 @@ const MacroRegionDetail = () => {
  if (loading) {
  return (
  <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
- <Loader2 className="w-10 h-10 text-emerald-500 animate-spin"/>
+ <Loader2 className="w-10 h-10 text-emerald-500 animate-spin border-4 border-primary border-t-transparent"/>
  <p className="text-gray-400 font-medium">Sincronizzazione API Centrali {regionName} ({ticker})…</p>
  </div>
  );
@@ -118,7 +118,7 @@ const MacroRegionDetail = () => {
  Outlook {regionName}
  </h1>
  <div className="flex items-center gap-2 mt-1">
- <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-400 /30">
+ <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest bg-emerald-500/20 text-emerald-400/30">
  Benchmark: {ticker}
  </span>
  <span className="text-sm text-gray-400">Analisi quantitativa e regime regionale.</span>
@@ -132,7 +132,7 @@ const MacroRegionDetail = () => {
  <div className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Global Macro Index</div>
  <div className="flex items-center gap-2 justify-end mt-1">
  <span className="text-2xl font-black text-white">{macroScore}</span>
- <span className={`text-sm font-bold flex items-center ${isPositiveMacro ? 'text-emerald-400' : 'text-rose-400'}`}>
+ <span className={`text-sm font-bold flex items-center ${isPositiveMacro ?'text-emerald-400' :'text-rose-400'}`}>
  {isPositiveMacro ? <TrendingUp className="w-3 h-3 mr-0.5"/> : <TrendingDown className="w-3 h-3 mr-0.5"/>}
  {macroChange}
  </span>
@@ -144,8 +144,8 @@ const MacroRegionDetail = () => {
  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
  
  {/* Left Side: Real-Time TV Chart */}
- <div className="lg:col-span-2 bg-surface /50 rounded-2xl overflow-hidden shadow-xl flex flex-col h-[500px]">
- <div className="p-4 /50 flex justify-between items-center bg-slate-800/20">
+ <div className="lg:col-span-2 bg-surface/50 rounded-2xl overflow-hidden shadow-xl flex flex-col h-[500px]">
+ <div className="p-4 flex justify-between items-center bg-slate-800/20">
  <div className="flex items-center gap-4">
  <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider flex items-center gap-2">
  <Activity className="w-4 h-4 text-emerald-500"/> Price Action ({ticker})
@@ -155,11 +155,11 @@ const MacroRegionDetail = () => {
  {/* Live Pricing from backend payload */}
  <div className="flex items-baseline gap-2">
  <span className="text-lg font-bold text-white">
- {assetData?.prezzo ? Number(assetData.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
+ {assetData?.prezzo ? Number(assetData.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) :'---'}
  </span>
- <span className={`flex items-center gap-0.5 text-xs font-bold ${isPositivePrice ? 'text-success' : 'text-danger'}`}>
+ <span className={`flex items-center gap-0.5 text-xs font-bold ${isPositivePrice ?'text-success' :'text-danger'}`}>
  {isPositivePrice ? <TrendingUp className="w-3 h-3"/> : <TrendingDown className="w-3 h-3"/>}
- {isPositivePrice ? '+' : ''}{Number(var1D).toFixed(2)}%
+ {isPositivePrice ?'+' :''}{Number(var1D).toFixed(2)}%
  </span>
  </div>
  </div>
@@ -171,14 +171,14 @@ const MacroRegionDetail = () => {
 
  {/* Right Side: Quant Score & Fundamentals */}
  <div className="space-y-6 h-full flex flex-col">
- <div className="bg-surface /50 rounded-2xl p-6 shadow-xl flex-1">
+ <div className="bg-surface/50 rounded-2xl p-6 shadow-xl flex-1">
  <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-6 flex items-center gap-2">
  <Target className="w-4 h-4 text-purple-500"/> Analisi Quantitativa
  </h2>
  
- <div className="flex flex-col items-center justify-center p-6 bg-slate-800/30 rounded-xl /50 mb-6">
+ <div className="flex flex-col items-center justify-center p-6 bg-slate-800/30 rounded-xl mb-6">
  <div className="text-[10px] uppercase font-black tracking-widest text-gray-500 mb-2">Smart Score</div>
- <div className={`text-6xl font-black ${assetData?.smartScore >= 70 ? 'text-emerald-500' : assetData?.smartScore < 40 ? 'text-rose-500' : 'text-yellow-500'}`}>
+ <div className={`text-6xl font-black ${assetData?.smartScore >= 70 ?'text-emerald-500' : assetData?.smartScore < 40 ?'text-rose-500' :'text-yellow-500'}`}>
  {assetData?.smartScore || '--'}
  </div>
  <div className="px-3 py-1 rounded-full bg-slate-800 text-xs font-bold text-gray-300 mt-3 uppercase tracking-wider">
@@ -187,26 +187,26 @@ const MacroRegionDetail = () => {
  </div>
 
  <div className="space-y-4">
- <div className="flex justify-between items-center py-2 /50">
+ <div className="flex justify-between items-center py-2">
  <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">RSI (14D)</span>
  <span className="text-sm font-bold text-white">{assetData?.rsi || '--'}</span>
  </div>
- <div className="flex justify-between items-center py-2 /50">
+ <div className="flex justify-between items-center py-2">
  <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Trend 50D</span>
- <span className={`text-sm font-bold ${assetData?.trend === 'Long' ? 'text-emerald-400' : assetData?.trend === 'Short' ? 'text-rose-400' : 'text-gray-400'}`}>
+ <span className={`text-sm font-bold ${assetData?.trend ==='Long' ?'text-emerald-400' : assetData?.trend ==='Short' ?'text-rose-400' :'text-gray-400'}`}>
  {assetData?.trend || 'N/A'}
  </span>
  </div>
- <div className="flex justify-between items-center py-2 /50">
+ <div className="flex justify-between items-center py-2">
  <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">Relative Vol.</span>
- <span className={`text-sm font-bold ${assetData?.volume_vs_avg > 1 ? 'text-purple-400' : 'text-gray-400'}`}>
- {assetData?.volume_vs_avg ?`${assetData.volume_vs_avg}x`: '--'}
+ <span className={`text-sm font-bold ${assetData?.volume_vs_avg > 1 ?'text-purple-400' :'text-gray-400'}`}>
+ {assetData?.volume_vs_avg ?`${assetData.volume_vs_avg}x`:'--'}
  </span>
  </div>
  </div>
  
  {assetData?.breakdown?.macro_reason && (
- <div className="mt-6 p-4 rounded-xl bg-orange-500/10 /20 text-xs text-orange-400 font-medium italic">
+ <div className="mt-6 p-4 rounded-xl bg-orange-500/10 text-xs text-orange-400 font-medium italic">
  {assetData.breakdown.macro_reason}
  </div>
  )}

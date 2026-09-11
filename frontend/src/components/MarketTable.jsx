@@ -8,21 +8,21 @@ import InfoTooltip from './InfoTooltip';
 
 // Smart Score ranges for filtering
 const SCORE_RANGES = [
- { label: 'Tutti', min: 0, max: 100 },
- { label: 'Forte Acquisto ≥ 80', min: 80, max: 100 },
- { label: 'Acquisto 60-79', min: 60, max: 79 },
- { label: 'Mantieni 40-59', min: 40, max: 59 },
- { label: 'Vendi < 40', min: 0, max: 39 },
+ { label:'Tutti', min: 0, max: 100 },
+ { label:'Forte Acquisto ≥ 80', min: 80, max: 100 },
+ { label:'Acquisto 60-79', min: 60, max: 79 },
+ { label:'Mantieni 40-59', min: 40, max: 59 },
+ { label:'Vendi < 40', min: 0, max: 39 },
 ];
 
 const MARKET_LABELS = {
- EQUITY: '📈 Equity',
- CRYPTO: '₿ Crypto',
- FUTURE: '🛢️ Futures',
- FOREX: '💱 Forex',
- CURRENCY: '💱 Forex',
- COMMODITIES: '🛢️ Commodities',
- INDICES: '📊 Indices',
+ EQUITY:'📈 Equity',
+ CRYPTO:'₿ Crypto',
+ FUTURE:'🛢️ Futures',
+ FOREX:'💱 Forex',
+ CURRENCY:'💱 Forex',
+ COMMODITIES:'🛢️ Commodities',
+ INDICES:'📊 Indices',
 };
 
 const MomentumBar = ({ value }) => {
@@ -63,7 +63,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  const [scoreFilter, setScoreFilter] = useState(0);
 
  // Available categories (using fixed list or dynamic)
- const categories = ['EQUITY', 'FOREX', 'CRYPTO', 'COMMODITIES', 'INDICES'];
+ const categories = ['EQUITY','FOREX','CRYPTO','COMMODITIES','INDICES'];
 
  const filteredAssets = useMemo(() => {
  const range = SCORE_RANGES[scoreFilter];
@@ -72,7 +72,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  });
  }, [assets, scoreFilter]);
 
- const hasActiveFilters = activeCategory !== 'EQUITY' || scoreFilter !== 0;
+ const hasActiveFilters = activeCategory !=='EQUITY' || scoreFilter !== 0;
 
  const resetFilters = () => {
  onCategoryChange('EQUITY');
@@ -80,9 +80,9 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  };
 
  const getSmartScoreColor = (score) => {
- if (score > 70) return 'text-success bg-success/10 shadow-[0_0_12px_rgba(34,197,94,0.15)]';
- if (score >= 40) return 'text-yellow-400 bg-yellow-400/10 /20';
- return 'text-danger bg-danger/10 ';
+ if (score > 70) return'text-success bg-success/10 shadow-[0_0_12px_rgba(34,197,94,0.15)]';
+ if (score >= 40) return'text-yellow-400 bg-yellow-400/10';
+ return'text-danger bg-danger/10';
  };
 
  // Removed early return for loading to handle it inside the table body
@@ -98,8 +98,8 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  onClick={() => onCategoryChange(cat)}
  className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 ${
  activeCategory === cat
- ? 'bg-primary text-white shadow-lg shadow-primary/30'
- : 'bg-background text-text-secondary hover: hover:text-text'
+ ?'bg-primary text-white shadow-lg shadow-primary/30'
+ :'bg-background text-text-secondary hover:text-text'
  }`}
  >
  {MARKET_LABELS[cat] ?? cat}
@@ -114,8 +114,8 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  onClick={() => setScoreFilter(i)}
  className={`px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-tighter font-black transition-all duration-300 ${
  scoreFilter === i
- ? 'bg-surface-hover text-text '
- : 'bg-background text-text-secondary hover: hover:text-text'
+ ?'bg-surface-hover text-text'
+ :'bg-background text-text-secondary hover:text-text'
  }`}
  >
  {range.label}
@@ -134,7 +134,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  </div>
 
  {/* Table Content */}
- <div className="table-scroll"style={{ WebkitOverflowScrolling: 'touch' }}>
+ <div className="table-scroll"style={{ WebkitOverflowScrolling:'touch' }}>
  <table className="w-full text-left min-w-[800px]">
  <thead className="bg-surface-hover">
  <tr>
@@ -153,7 +153,7 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  </th>
  </tr>
  </thead>
- <tbody className="divide-y divide-">
+ <tbody className="divide-y divide-border">
  {loading && assets.length === 0 ? (
  // Mostra 8 righe skeleton durante il caricamento iniziale
  [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
@@ -170,12 +170,12 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  filteredAssets.map((asset) => (
  <tr
  key={asset.ticker}
- className="hover:bg-primary/5 transition-all group cursor-pointer hover:"
+ className="hover:bg-primary/5 transition-all group cursor-pointer"
  onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
  >
  <td className="p-4 w-10"onClick={(e) => e.stopPropagation()}>
  <button onClick={() => toggleWatchlist(asset.ticker)} className="focus:outline-none">
- <Star className={`w-4 h-4 transition-all ${isWatched(asset.ticker) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`} />
+ <Star className={`w-4 h-4 transition-all ${isWatched(asset.ticker) ?'fill-yellow-400 text-yellow-400' :'text-slate-600 hover:text-yellow-400'}`} />
  </button>
  </td>
  <td className="p-4">
@@ -190,10 +190,10 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  </div>
  </td>
  <td className="p-4 text-right font-mono text-sm text-text font-medium">
- {typeof asset.prezzo === 'number' ?`$${asset.prezzo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`: '---'}
+ {typeof asset.prezzo ==='number' ?`$${asset.prezzo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`:'---'}
  </td>
  <td className="p-4 text-right">
- <div className={`inline-flex items-center gap-1 font-mono text-sm font-bold ${asset.var1D >= 0 ? 'text-success' : 'text-danger'}`}>
+ <div className={`inline-flex items-center gap-1 font-mono text-sm font-bold ${asset.var1D >= 0 ?'text-success' :'text-danger'}`}>
  {asset.var1D >= 0 ? <ArrowUpRight className="w-3.5 h-3.5"/> : <ArrowDownRight className="w-3.5 h-3.5"/>}
  {Math.abs(asset.var1D).toFixed(2)}%
  </div>

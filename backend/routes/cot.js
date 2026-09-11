@@ -1,13 +1,13 @@
 const express = require('express');
 const router = express.Router();
 const { getCotData, forceUpdateCotData } = require('../controllers/cotController');
-const { protect, master } = require('../middleware/authMiddleware');
+const { protect, optionalAuth, master } = require('../middleware/authMiddleware');
 const { softRequirePro, FREE_LIMIT } = require('../middleware/requirePro');
 
 // GET /api/cot-data
 // Free users receive only the first FREE_LIMIT instruments + a paywall flag.
 // PRO users receive the full dataset.
-router.get('/cot-data', protect, softRequirePro, async (req, res, next) => {
+router.get('/cot-data', optionalAuth, softRequirePro, async (req, res, next) => {
   try {
     // Delegate actual data fetch to the controller via a helper
     // We wrap the response to truncate for free users

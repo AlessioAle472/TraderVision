@@ -3,10 +3,6 @@ const axios = require('axios');
 const YahooFinance = require('yahoo-finance2').default;
 // suppressNotices silences the survey prompt; validateResult is passed per-call
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
-const { exec } = require('child_process');
-const util = require('util');
-const path = require('path');
-const execPromise = util.promisify(exec);
 const macroCalculator = require('./macroCalculator');
 
 class MarketDataService {
@@ -23,7 +19,7 @@ class MarketDataService {
       console.log('[MarketDataService] Fetching trending tickers from screener...');
       // validateResult: false — disables strict JSON schema check that fails when
       // Yahoo adds new fields not yet reflected in yahoo-finance2's bundled schema
-      const result = await yf.screener({ scrIds: 'day_gainers' }, { count, validateResult: false });
+      const result = await yf.screener('day_gainers', { count }, { validateResult: false });
       
       if (result && result.quotes && result.quotes.length > 0) {
         return result.quotes.map(q => ({

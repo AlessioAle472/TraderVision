@@ -43,7 +43,7 @@ const TradingViewWidget = ({ symbol }) => {
 
  // Clean up previous script if any
  if (container.current) {
- container.current.innerHTML = '';
+ container.current.innerHTML ='';
  }
 
  const script = document.createElement("script");
@@ -54,31 +54,11 @@ const TradingViewWidget = ({ symbol }) => {
  if (active) setWidgetError(true);
  };
  
- const hideTopToolbar = effectivePlan !== 'pro';
+ const hideTopToolbar = effectivePlan !=='pro';
 
  // HARDCODED LOCKDOWN CONFIGURATION
- script.innerHTML = JSON.stringify({
-"autosize": true,
-"symbol": finalSymbol,
-"interval":"D",
-"timezone":"Etc/UTC",
-"theme":"dark",
-"style":"1",
-"locale":"en",
-"enable_publishing": false,
-"allow_symbol_change": false,
-"hide_top_toolbar": hideTopToolbar,
-"hide_side_toolbar": hideTopToolbar,
-"hide_legend": false,
-"save_image": false,
-"details": false,
-"calendar": false,
-"studies": effectivePlan === 'pro' ? [
-"RSI@tv-basicstudies",
-"MACD@tv-basicstudies",
-"MASimple@tv-basicstudies"
- ] : [],
-"support_host":"https://www.tradingview.com"
+ script.innerHTML = JSON.stringify({"autosize": true,"symbol": finalSymbol,"interval":"D","timezone":"Etc/UTC","theme":"dark","style":"1","locale":"en","enable_publishing": false,"allow_symbol_change": false,"hide_top_toolbar": hideTopToolbar,"hide_side_toolbar": hideTopToolbar,"hide_legend": false,"save_image": false,"details": false,"calendar": false,"studies": effectivePlan ==='pro' ? ["RSI@tv-basicstudies","MACD@tv-basicstudies","MASimple@tv-basicstudies"
+ ] : [],"support_host":"https://www.tradingview.com"
  });
  
  if (container.current) {
@@ -122,11 +102,11 @@ const TradingViewWidget = ({ symbol }) => {
  type="text"
  value={editValue} 
  onChange={(e) => setEditValue(e.target.value)}
- className="bg-background text-text text-xs px-3 py-1.5 rounded-lg focus:outline-none focus: w-40"
+ className="bg-background text-text text-xs px-3 py-1.5 rounded-lg focus:outline-none focus:w-40"
  placeholder="e.g. BINANCE:BTCUSDT"
  />
  <button disabled={isSaving} onClick={handleSaveMapping} className="p-1.5 bg-success/20 text-success hover:bg-success/30 rounded-md transition-colors disabled:opacity-50">
- {isSaving ? <RefreshCw className="w-4 h-4 animate-spin"/> : <Check className="w-4 h-4"/>}
+ {isSaving ? <RefreshCw className="w-4 h-4 animate-spin border-4 border-primary border-t-transparent"/> : <Check className="w-4 h-4"/>}
  </button>
  <button disabled={isSaving} onClick={() => setIsEditing(false)} className="p-1.5 bg-danger/20 text-danger hover:bg-danger/30 rounded-md transition-colors disabled:opacity-50">
  <X className="w-4 h-4"/>
@@ -138,7 +118,7 @@ const TradingViewWidget = ({ symbol }) => {
  
  {isLoadingMapping && (
  <div className="absolute inset-0 z-10 flex flex-col items-center justify-center min-h-[500px] bg-slate-900 rounded-lg">
- <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4"/>
+ <RefreshCw className="w-8 h-8 text-primary animate-spin mb-4 border-4 border-primary border-t-transparent"/>
  <span className="text-gray-400 text-sm font-medium animate-pulse">Risoluzione ticker in corso...</span>
  </div>
  )}
@@ -152,10 +132,10 @@ const TradingViewWidget = ({ symbol }) => {
  )}
 
  {/* Il container DEVE essere sempre nel DOM, così il ref è disponibile quando React completa l'update dello stato */}
- <div className="relative h-full w-full"style={{ minHeight: '500px' }}>
+ <div className="relative h-full w-full"style={{ minHeight:'500px' }}>
  {/* Fallback visibile mentre l'iframe di TV carica (dietro le quinte) */}
  <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/30 rounded-lg -z-10">
- <RefreshCw className="w-6 h-6 text-slate-500 animate-spin mb-3 opacity-50"/>
+ <RefreshCw className="w-6 h-6 text-slate-500 animate-spin mb-3 opacity-50 border-4 border-primary border-t-transparent"/>
  <span className="text-slate-500 text-sm font-medium">Inizializzazione grafico per {currentTvSymbol || symbol}...</span>
  </div>
  

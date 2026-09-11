@@ -11,7 +11,7 @@ import {
 import { useModerator } from '../hooks/useModerator';
 import ModerationWarning from '../components/ModerationWarning';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = (() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })();
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function timeAgo(isoString) {
@@ -137,7 +137,7 @@ const TopicDetail = () => {
  // ── Fetch topic data ──────────────────────────────────────────────────────
  useEffect(() => {
  setLoading(true);
- fetch(`${API_BASE}/api/community/topic/${id}`)
+ fetch(`${API_BASE}/community/topic/${id}`)
  .then((r) => {
  if (!r.ok) throw new Error('Not found');
  return r.json();

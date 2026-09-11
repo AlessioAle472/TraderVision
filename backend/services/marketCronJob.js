@@ -5,10 +5,7 @@ const macroCalculator = require('./macroCalculator');
 const economicCalendar = require('./economicCalendar');
 const YF = require('yahoo-finance2').default;
 const yf = new YF({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
-const { exec } = require('child_process');
-const util = require('util');
 const path = require('path');
-const execPromise = util.promisify(exec);
 
 // Factor ETF proxies
 const FACTOR_TICKERS = {
@@ -206,13 +203,23 @@ class MarketCronJob {
     console.log('[MarketCronJob] Finished calculations and saved to database successfully.');
   }
 
-  init() {
+  async init() {
     // Run every day at 06:00 AM
     cron.schedule('0 6 * * *', async () => {
       console.log('[MarketCronJob] Triggered by cron schedule at 06:00 AM.');
       await this.runCalculations();
     });
     console.log('[MarketCronJob] Scheduled at 06:00 AM daily.');
+
+    try {
+      const existing = await PreloadedMarketData.findOne({ dataId: 'latest' });
+      if (!existing || !existing.marketsData) {
+        console.log('[MarketCronJob] No existing market data found in DB, initiating initial calculation...');
+        this.runCalculations().catch(e => console.error('[MarketCronJob] Initial run error:', e.message));
+      }
+    } catch (err) {
+      console.warn('[MarketCronJob] Could not check preloaded data:', err.message);
+    }
   }
 }
 

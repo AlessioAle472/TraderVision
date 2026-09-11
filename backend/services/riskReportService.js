@@ -36,7 +36,7 @@ async function generateRiskReport(chartData, fundamentals, correlations) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const prompt = `Sei un analista senior del rischio per un fondo hedge quantitativo.
         

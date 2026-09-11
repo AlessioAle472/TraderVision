@@ -34,7 +34,7 @@ const PremiumGate = ({ children }) => {
  Sblocca l'analisi macroeconomica avanzata e l'intelligenza artificiale quantitativa passando al piano Pro.
  </p>
  <button 
- onClick={() => navigate('/settings')}
+ onClick={() => navigate('/pricing')}
  className="w-full py-3 px-4 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-primary/20 flex items-center justify-center gap-2"
  >
  Sblocca Accesso

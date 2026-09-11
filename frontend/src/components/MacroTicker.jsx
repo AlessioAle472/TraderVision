@@ -31,7 +31,10 @@ const MacroTicker = () => {
 
  if (!data) {
  try {
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/economic-calendar?timeframe=this_week`);
+ const apiBase = (() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })();
+ const token = localStorage.getItem('token');
+ const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+ const res = await fetch(`${apiBase}/economic-calendar?timeframe=this_week`, { headers });
  if (res.ok) {
  data = await res.json();
  localStorage.setItem(cacheKey, JSON.stringify(data));
@@ -40,8 +43,9 @@ const MacroTicker = () => {
  } catch(e) {}
  }
 
- if (data && Array.isArray(data)) {
- const high = data.filter(e => e.impact === 'HIGH' && e.event);
+ const events = Array.isArray(data) ? data : (data?.events || []);
+ if (events.length > 0) {
+ const high = events.filter(e => e.impact ==='HIGH' && e.event);
  setHighImpactEvents([...high.slice(0, 15), ...high.slice(0, 15)]); 
  } else {
  setHighImpactEvents([]);
@@ -70,7 +74,7 @@ const MacroTicker = () => {
  if (highImpactEvents.length === 0) return null;
 
  return (
- <div className="flex-1 overflow-hidden flex items-center h-10 mr-4 bg-slate-900/60 rounded-xl /50 px-2 relative hidden md:flex">
+ <div className="flex-1 overflow-hidden flex items-center h-10 mr-4 bg-slate-900/60 rounded-xl px-2 relative hidden md:flex">
  <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-slate-900 to-transparent z-10 rounded-l-xl"></div>
  
  <div className="flex items-center gap-2 mr-6 z-20 bg-slate-800 px-3 py-1 rounded-lg font-bold text-[10px] uppercase tracking-widest text-primary shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -86,7 +90,7 @@ const MacroTicker = () => {
  <span className="font-bold text-white uppercase bg-slate-700 px-1.5 py-0.5 rounded text-[10px]">{evt.country}</span>
  <span className="text-gray-300 font-medium pl-1">{evt.event}</span>
  
- {evt.ai_projection && user?.role === 'admin' && (
+ {evt.ai_projection && user?.role ==='admin' && (
  <span className="text-danger font-bold uppercase tracking-wider text-[9px] bg-danger/10 px-1.5 py-0.5 rounded flex items-center gap-1 ml-1 shadow-[0_0_10px_rgba(239,68,68,0.2)]">
  <Sparkles className="w-2.5 h-2.5"/> Avviso Volatilità AI
  </span>

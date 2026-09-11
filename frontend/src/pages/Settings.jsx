@@ -6,13 +6,13 @@ const Settings = () => {
  const { user, updateSettings } = useAuth();
  
  const [formData, setFormData] = useState({
- email: '',
- password: '',
- confirmPassword: '',
+ email:'',
+ password:'',
+ confirmPassword:'',
  });
  
 
- const [status, setStatus] = useState({ type: '', message: '' });
+ const [status, setStatus] = useState({ type:'', message:'' });
  const [isLoading, setIsLoading] = useState(false);
 
  useEffect(() => {
@@ -29,10 +29,10 @@ const Settings = () => {
 
  const handleSubmit = async (e) => {
  e.preventDefault();
- setStatus({ type: '', message: '' });
+ setStatus({ type:'', message:'' });
 
  if (formData.password && formData.password !== formData.confirmPassword) {
- setStatus({ type: 'error', message: 'Le password non coincidono.' });
+ setStatus({ type:'error', message:'Le password non coincidono.' });
  return;
  }
 
@@ -43,7 +43,7 @@ const Settings = () => {
  if (formData.password) updateData.password = formData.password;
 
  if (Object.keys(updateData).length === 0) {
- setStatus({ type: 'info', message: 'Nessuna modifica da salvare.' });
+ setStatus({ type:'info', message:'Nessuna modifica da salvare.' });
  setIsLoading(false);
  return;
  }
@@ -51,10 +51,10 @@ const Settings = () => {
  const result = await updateSettings(updateData);
  
  if (result.success) {
- setStatus({ type: 'success', message: 'Impostazioni aggiornate con successo!' });
- setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+ setStatus({ type:'success', message:'Impostazioni aggiornate con successo!' });
+ setFormData(prev => ({ ...prev, password:'', confirmPassword:'' }));
  } else {
- setStatus({ type: 'error', message: result.message || 'Errore durante l\'aggiornamento.' });
+ setStatus({ type:'error', message: result.message || 'Errore durante l\'aggiornamento.' });
  }
  
  setIsLoading(false);
@@ -78,11 +78,10 @@ const Settings = () => {
 
  {status.message && (
  <div className={`p-4 rounded-xl flex items-center gap-3 ${
- status.type === 'error' ? 'bg-danger/10 text-danger ' : 
- status.type === 'success' ? 'bg-success/10 text-success ' : 
- 'bg-primary/10 text-primary '
+ status.type ==='error' ?'bg-danger/10 text-danger' : 
+ status.type ==='success' ?'bg-success/10 text-success' :'bg-primary/10 text-primary'
  }`}>
- {status.type === 'error' ? <AlertCircle className="w-5 h-5"/> : <CheckCircle2 className="w-5 h-5"/>}
+ {status.type ==='error' ? <AlertCircle className="w-5 h-5"/> : <CheckCircle2 className="w-5 h-5"/>}
  <p className="font-medium">{status.message}</p>
  </div>
  )}
@@ -92,7 +91,7 @@ const Settings = () => {
 
 
  {/* Account Details Section */}
- <section className="bg-surface p-6 rounded-2xl /30 dark:/50 shadow-sm">
+ <section className="bg-surface p-6 rounded-2xl dark:/50 shadow-sm">
  <h2 className="text-xl font-bold text-text mb-6 flex items-center gap-2">
  Credenziali
  </h2>
@@ -109,7 +108,7 @@ const Settings = () => {
  name="email"
  value={formData.email}
  onChange={handleChange}
- className="w-full pl-10 pr-4 py-3 bg-background /20 dark: rounded-xl focus:outline-none focus: focus: text-text transition-colors"
+ className="w-full pl-10 pr-4 py-3 bg-background/20 dark:rounded-xl focus:outline-none focus:text-text transition-colors"
  placeholder="La tua email"
  required
  />
@@ -128,7 +127,7 @@ const Settings = () => {
  name="password"
  value={formData.password}
  onChange={handleChange}
- className="w-full pl-10 pr-4 py-3 bg-background /20 dark: rounded-xl focus:outline-none focus: focus: text-text transition-colors"
+ className="w-full pl-10 pr-4 py-3 bg-background/20 dark:rounded-xl focus:outline-none focus:text-text transition-colors"
  placeholder="Lascia vuoto per non modificare"
  />
  </div>
@@ -145,7 +144,7 @@ const Settings = () => {
  name="confirmPassword"
  value={formData.confirmPassword}
  onChange={handleChange}
- className="w-full pl-10 pr-4 py-3 bg-background /20 dark: rounded-xl focus:outline-none focus: focus: text-text transition-colors"
+ className="w-full pl-10 pr-4 py-3 bg-background/20 dark:rounded-xl focus:outline-none focus:text-text transition-colors"
  placeholder="Conferma la password"
  />
  </div>
@@ -156,7 +155,7 @@ const Settings = () => {
 
  {/* Master User Badge */}
  {user?.isMaster && (
- <section className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-6 rounded-2xl /20">
+ <section className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 p-6 rounded-2xl">
  <h3 className="text-amber-500 font-bold flex items-center gap-2 mb-2">
  Privilegi Master Attivi
  </h3>
@@ -173,7 +172,7 @@ const Settings = () => {
  className="flex items-center gap-2 py-3 px-8 bg-primary hover:bg-blue-600 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-primary/30"
  >
  <Save className="w-5 h-5"/>
- {isLoading ? 'Salvataggio...' : 'Salva Modifiche'}
+ {isLoading ?'Salvataggio...' :'Salva Modifiche'}
  </button>
  </div>
  </form>

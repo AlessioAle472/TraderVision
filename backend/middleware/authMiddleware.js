@@ -34,11 +34,27 @@ const master = (req, res, next) => {
 };
 
 const verifyAdmin = (req, res, next) => {
-  if (req.user && req.user.role === 'admin') {
+  if (req.user && (req.user.role === 'admin' || req.user.isMaster)) {
     next();
   } else {
     res.status(403).json({ message: 'Forbidden: Admin access required for AI features' });
   }
 };
 
-module.exports = { protect, master, verifyAdmin };
+const optionalAuth = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      req.user = await User.findById(decoded.id).select('-password');
+    } catch (error) {
+      // Token invalid or expired: proceed as anonymous user
+    }
+  }
+  next();
+};
+
+module.exports = { protect, optionalAuth, master, verifyAdmin };

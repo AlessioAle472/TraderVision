@@ -67,7 +67,12 @@ const getAssetDetails = async (req, res, next) => {
     const { ticker } = req.params;
     console.log("[Backend] getAssetDetails requested for ticker:", ticker);
 
-    const config = await MarketConfig.findOne({ configId: 'default' });
+    let config = null;
+    try {
+      config = await MarketConfig.findOne({ configId: 'default' });
+    } catch (dbErr) {
+      console.warn("[Backend] MarketConfig fetch skipped in getAssetDetails:", dbErr.message);
+    }
     let resolvedYahooTicker = ticker;
     let resolvedName = ticker;
     

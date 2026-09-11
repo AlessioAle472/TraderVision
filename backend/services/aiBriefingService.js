@@ -28,7 +28,7 @@ async function generateAIBriefing(newsData) {
     // 1. Fetch upcoming macro events for context
     const calendarEvents = await economicCalendar.getHighImpactEvents().catch(() => []);
     const topEvents = calendarEvents.slice(0, 3);
-    const calendarContext = topEvents.map(e => `${e.time} (${e.cur}): ${e.event}`).join(', ');
+    const calendarContext = topEvents.map(e => `${e.time} (${e.country}): ${e.event}`).join(', ');
 
     if (!apiKey) {
         console.warn('GEMINI_API_KEY missing. Returning fallback briefing.');
@@ -45,7 +45,7 @@ async function generateAIBriefing(newsData) {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+        const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
 
         const newsContext = newsData.slice(0, 6).map((n, i) => `${i+1}. ${n.title}`).join('\n');
         

@@ -11,11 +11,9 @@ const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_mock'); // fallb
 router.post('/create-checkout-session', protect, async (req, res) => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
-      // MOCK FALLBACK se non c'è chiave Stripe
-      req.user.subscriptionPlan = 'pro';
-      req.user.stripeCustomerId = 'cus_mock_' + Math.floor(Math.random() * 1000000);
-      await req.user.save();
-      return res.json({ url: '/markets?payment_success=true' });
+      return res.status(503).json({ 
+        error: 'Payment system is not configured. Please contact support.',
+      });
     }
 
     const session = await stripe.checkout.sessions.create({

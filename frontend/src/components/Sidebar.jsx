@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   LogIn, LogOut, LayoutDashboard, LineChart, Settings,
   MessageSquare, Calendar, Globe, Coins, Radar, BarChart2,
-  TrendingUp, ChevronDown, Zap
+  TrendingUp, ChevronDown, Zap, Bookmark
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -96,6 +96,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/crypto" icon={Coins} label="Crypto" onClick={closeMobile} />
             <NavItem to="/global-macro" icon={Globe} label="Macro Globale" onClick={closeMobile} />
             <NavItem to="/cot" icon={BarChart2} label="COT" onClick={closeMobile} />
+            <NavItem to="/watchlist" icon={Bookmark} label="Watchlist" onClick={closeMobile} />
           </NavGroup>
 
           {/* Gruppo Strumenti */}
@@ -107,7 +108,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           {/* Community + Admin (senza sezione) */}
           <div className="pt-2 space-y-0.5">
             <NavItem to="/community" icon={MessageSquare} label={t('sidebar.community')} onClick={closeMobile} />
-            {user?.role === 'admin' && (
+            {(user?.role === 'admin' || user?.isMaster) && (
               <NavItem to="/daily-news" icon={Calendar} label={t('sidebar.dailyNews')} onClick={closeMobile} />
             )}
           </div>
@@ -117,7 +118,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         <div className="p-3 space-y-1 border-t border-white/[0.04]">
           {/* Upgrade CTA */}
           <button
-            onClick={() => navigate('/register')}
+            onClick={() => navigate('/pricing')}
             className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 group"
           >
             <Zap className="w-3.5 h-3.5 group-hover:animate-pulse" />

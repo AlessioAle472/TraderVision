@@ -393,7 +393,7 @@ const Markets = () => {
           {/* CTA */}
           <div className="flex flex-wrap items-center gap-4 pt-2">
             <button
-              onClick={() => navigate('/register')}
+              onClick={() => navigate('/pricing')}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0"
             >
               <Zap className="w-4 h-4" />

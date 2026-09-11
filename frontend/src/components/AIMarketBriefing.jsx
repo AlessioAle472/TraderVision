@@ -13,7 +13,7 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
  return (
  <div className="w-full h-[280px] rounded-3xl bg-slate-900/40 backdrop-blur-md animate-pulse flex items-center justify-center shadow-2xl">
  <div className="flex flex-col items-center gap-3">
- <div className="w-8 h-8 rounded-full -transparent animate-spin"></div>
+ <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
  <span className="text-gray-500 text-[10px] font-black uppercase tracking-[0.2em]">Analisi AI in corso...</span>
  </div>
  </div>
@@ -21,9 +21,9 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
  }
 
  // Fallback data
- const title = data?.title ||"Mercati in Stasi: Nessun Aggiornamento Rilevante";
+ const title = data?.title || "Mercati in Stasi: Nessun Aggiornamento Rilevante";
  const bullets = Array.isArray(data?.bullets) ? data.bullets : ["Attendendo dati macro dall'AI..."];
- const timestamp = data?.timestamp ||"---";
+ const timestamp = data?.timestamp || "---";
 
  return (
  <div className="relative group overflow-hidden rounded-3xl bg-slate-900/40 backdrop-blur-md shadow-2xl transition-all hover:shadow-indigo-500/10">
@@ -40,7 +40,7 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
  />
  <div className="absolute inset-0 bg-gradient-to-r lg:bg-gradient-to-l from-slate-900 via-transparent to-transparent"></div>
  <div className="absolute top-4 left-4">
- <div className="flex items-center gap-2 bg-indigo-500/30 backdrop-blur-md px-3 py-1 rounded-full /30 text-indigo-400">
+ <div className="flex items-center gap-2 bg-indigo-500/30 backdrop-blur-md px-3 py-1 rounded-full text-indigo-400">
  <Zap className="w-3 h-3 fill-indigo-500"/>
  <span className="text-[9px] font-black uppercase tracking-widest">Macro Alpha</span>
  </div>
@@ -54,8 +54,7 @@ const AIMarketBriefing = ({ data, loading, onSubscribe, onForceSend }) => {
  <span>Ultimo aggiornamento: {timestamp}</span>
  </div>
  
- <h2 className="text-xl lg:text-2xl font-black text-white mb-4 italic leading-tight">
-"{title}"
+ <h2 className="text-xl lg:text-2xl font-black text-white mb-4 italic leading-tight">"{title}"
  </h2>
 
  <div className="space-y-2 mb-6">

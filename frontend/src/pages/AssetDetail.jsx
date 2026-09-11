@@ -16,9 +16,9 @@ const SmartScoreDonut = ({ score }) => {
  const pct = Math.max(0, Math.min(100, score));
  const strokeDashoffset = circumference - (pct / 100) * circumference;
 
- let color = '#ef4444'; // red < 40
- if (pct >= 70) color = '#22c55e'; // green
- else if (pct >= 40) color = '#eab308'; // yellow
+ let color ='#ef4444'; // red < 40
+ if (pct >= 70) color ='#22c55e'; // green
+ else if (pct >= 40) color ='#eab308'; // yellow
 
  return (
  <div className="relative flex items-center justify-center">
@@ -36,7 +36,7 @@ const SmartScoreDonut = ({ score }) => {
  fill="transparent"
  strokeWidth={stroke}
  strokeDasharray={`${circumference} ${circumference}`}
- style={{ strokeDashoffset, transition: 'stroke-dashoffset 0.6s ease' }}
+ style={{ strokeDashoffset, transition:'stroke-dashoffset 0.6s ease' }}
  strokeLinecap="round"
  r={normalizedRadius}
  cx={radius}
@@ -73,12 +73,12 @@ const PillarBar = ({ label, value, max, color }) => {
 // --- Asset type badge color ---
 const getTypeColor = (type) => {
  switch (type) {
- case 'EQUITY': return 'text-blue-400 bg-blue-400/10 /20';
- case 'CRYPTOCURRENCY': return 'text-orange-400 bg-orange-400/10 /20';
- case 'FUTURE': return 'text-purple-400 bg-purple-400/10 /20';
- case 'CURRENCY': return 'text-teal-400 bg-teal-400/10 /20';
- case 'INDEX': return 'text-indigo-400 bg-indigo-400/10 /20';
- default: return 'text-gray-400 bg-gray-400/10 /20';
+ case'EQUITY': return'text-blue-400 bg-blue-400/10';
+ case'CRYPTOCURRENCY': return'text-orange-400 bg-orange-400/10';
+ case'FUTURE': return'text-purple-400 bg-purple-400/10';
+ case'CURRENCY': return'text-teal-400 bg-teal-400/10';
+ case'INDEX': return'text-indigo-400 bg-indigo-400/10';
+ default: return'text-gray-400 bg-gray-400/10';
  }
 };
 
@@ -106,15 +106,13 @@ const AssetDetail = () => {
  setAsset(detail);
 
  // Resolve yahoo ticker for chart - use raw for yahoo chart
- const yahooMap = {
- 'EURUSD': 'EURUSD=X', 'Gold': 'GC=F', 'WTI': 'CL=F',
- 'SP500': '^GSPC', 'BTC': 'BTC-USD'
+ const yahooMap = {'EURUSD':'EURUSD=X','Gold':'GC=F','WTI':'CL=F','SP500':'^GSPC','BTC':'BTC-USD'
  };
  const chartTicker = detail.yahooTicker || yahooMap[ticker] || ticker;
 
  const to = Math.floor(Date.now() / 1000);
  const from = to - (365 * 24 * 60 * 60);
- const data = await apiClient.getHistoricalData(chartTicker, 'D', from, to);
+ const data = await apiClient.getHistoricalData(chartTicker,'D', from, to);
  if (active) setHistData(data);
  } catch (err) {
  if (active) setError(err.message || 'Failed to load asset data');
@@ -131,7 +129,7 @@ const AssetDetail = () => {
  return (
  <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-6">
  <div className="relative">
- <div className="w-16 h-16 rounded-full -primary animate-spin"></div>
+ <div className="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin"></div>
  <div className="absolute inset-0 flex items-center justify-center">
  <RefreshCw className="w-6 h-6 text-primary animate-pulse"/>
  </div>
@@ -167,22 +165,22 @@ const AssetDetail = () => {
  const var1D = asset?.var1D ?? 0;
  const isPositive = var1D >= 0;
 
- let scoreLabel = 'Hold';
- if (score >= 80) scoreLabel = 'Strong Buy';
- else if (score >= 60) scoreLabel = 'Buy';
- else if (score >= 40) scoreLabel = 'Hold';
- else if (score >= 20) scoreLabel = 'Sell';
- else scoreLabel = 'Strong Sell';
+ let scoreLabel ='Hold';
+ if (score >= 80) scoreLabel ='Strong Buy';
+ else if (score >= 60) scoreLabel ='Buy';
+ else if (score >= 40) scoreLabel ='Hold';
+ else if (score >= 20) scoreLabel ='Sell';
+ else scoreLabel ='Strong Sell';
 
- let scoreLabelColor = 'text-yellow-400';
- if (score >= 70) scoreLabelColor = 'text-success';
- else if (score < 40) scoreLabelColor = 'text-danger';
+ let scoreLabelColor ='text-yellow-400';
+ if (score >= 70) scoreLabelColor ='text-success';
+ else if (score < 40) scoreLabelColor ='text-danger';
 
  const donutData = [
- { name: 'Technical', value: bd.tech_score, fill: '#6366f1' },
- { name: 'Seasonality', value: bd.seasonality_score, fill: '#22c55e' },
- { name: 'Asset/Fundamental', value: bd.asset_score, fill: '#f59e0b' },
- { name: 'Remaining', value: Math.max(0, 100 - score), fill: '#1e293b' }
+ { name:'Technical', value: bd.tech_score, fill:'#6366f1' },
+ { name:'Seasonality', value: bd.seasonality_score, fill:'#22c55e' },
+ { name:'Asset/Fundamental', value: bd.asset_score, fill:'#f59e0b' },
+ { name:'Remaining', value: Math.max(0, 100 - score), fill:'#1e293b' }
  ];
 
  return (
@@ -202,7 +200,7 @@ const AssetDetail = () => {
  className="group p-1 -ml-1 transition-all focus:outline-none"
  title={isWatched(ticker) ?"Rimuovi dalla Watchlist":"Aggiungi alla Watchlist"}
  >
- <Star className={`w-6 h-6 transition-all duration-300 transform group-hover:scale-110 group-active:scale-95 ${isWatched(ticker) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`} />
+ <Star className={`w-6 h-6 transition-all duration-300 transform group-hover:scale-110 group-active:scale-95 ${isWatched(ticker) ?'fill-yellow-400 text-yellow-400' :'text-slate-600 hover:text-yellow-400'}`} />
  </button>
  </h1>
  {asset?.settore && (
@@ -218,11 +216,11 @@ const AssetDetail = () => {
  </div>
  <div className="flex items-baseline gap-3 mt-1 flex-wrap">
  <span className="text-2xl font-semibold text-text">
- {asset?.prezzo ? Number(asset?.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) : '---'}
+ {asset?.prezzo ? Number(asset?.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }) :'---'}
  </span>
- <span className={`flex items-center gap-1 text-sm font-medium ${isPositive ? 'text-success' : 'text-danger'}`}>
+ <span className={`flex items-center gap-1 text-sm font-medium ${isPositive ?'text-success' :'text-danger'}`}>
  {isPositive ? <TrendingUp className="w-4 h-4"/> : <TrendingDown className="w-4 h-4"/>}
- {isPositive ? '+' : ''}{Number(var1D).toFixed(2)}%
+ {isPositive ?'+' :''}{Number(var1D).toFixed(2)}%
  </span>
  </div>
  </div>
@@ -260,7 +258,7 @@ const AssetDetail = () => {
  ) : (
  <ResponsiveContainer width="100%"height={260}>
  <AreaChart data={histData.map(d => ({ 
- time: new Date(d.time * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), 
+ time: new Date(d.time * 1000).toLocaleDateString('en-US', { month:'short', day:'numeric' }), 
  close: d.close 
  }))} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
  <defs>
@@ -270,13 +268,13 @@ const AssetDetail = () => {
  </linearGradient>
  </defs>
  <CartesianGrid strokeDasharray="3 3"stroke="rgba(51,65,85,0.2)"vertical={false} />
- <XAxis dataKey="time"tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.floor(histData.length / 8)} />
- <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} width={65} tickFormatter={v => v.toLocaleString()} />
+ <XAxis dataKey="time"tick={{ fill:'#64748b', fontSize: 10 }} axisLine={false} tickLine={false} interval={Math.floor(histData.length / 8)} />
+ <YAxis tick={{ fill:'#64748b', fontSize: 10 }} axisLine={false} tickLine={false} domain={['auto','auto']} width={65} tickFormatter={v => v.toLocaleString()} />
  <Tooltip
- contentStyle={{ background: '#0f172a', borderRadius: 8, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
- labelStyle={{ color: '#94a3b8' }}
- itemStyle={{ color: '#f1f5f9' }}
- formatter={v => [Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }), 'Close']}
+ contentStyle={{ background:'#0f172a', borderRadius: 8, boxShadow:'0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+ labelStyle={{ color:'#94a3b8' }}
+ itemStyle={{ color:'#f1f5f9' }}
+ formatter={v => [Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 }),'Close']}
  />
  <Area type="monotone"dataKey="close"stroke="#94a3b8"strokeWidth={1.5} fill="url(#yahooGradient)"dot={false} />
  </AreaChart>
@@ -297,14 +295,14 @@ const AssetDetail = () => {
  <div className={`text-2xl font-bold ${scoreLabelColor}`}>{scoreLabel}</div>
  <div className="text-xs text-gray-500 mt-1">
  {location.state?.regionalScore 
- ? 'Basato su Divergenza Macro' 
- : 'Basato su Trend tecnico'}
+ ?'Basato su Divergenza Macro' 
+ :'Basato su Trend tecnico'}
  </div>
  <div className="mt-4 space-y-1">
- {asset?.rsi && asset.rsi !== '-' && (
+ {asset?.rsi && asset.rsi !=='-' && (
  <div className="text-sm text-text-secondary">RSI (14D) <span className="text-text font-semibold">{asset?.rsi}</span></div>
  )}
- {asset?.pe && asset.pe !== '-' && (
+ {asset?.pe && asset.pe !=='-' && (
  <div className="text-sm text-text-secondary">Fwd P/E Ratio <span className="text-text font-semibold">{asset?.pe}</span></div>
  )}
  </div>
@@ -330,7 +328,7 @@ const AssetDetail = () => {
  EMA 50 Trend
  <InfoTooltip text="Media Mobile Esponenziale a 50 periodi: indica la direzione del trend"/>
  </div>
- <div className={`text-sm font-bold ${asset?.trend === 'Long' ? 'text-success' : asset?.trend === 'Short' ? 'text-danger' : 'text-text-secondary'}`}>
+ <div className={`text-sm font-bold ${asset?.trend ==='Long' ?'text-success' : asset?.trend ==='Short' ?'text-danger' :'text-text-secondary'}`}>
  {asset?.trend || 'Neutral'}
  </div>
  </div>
@@ -348,8 +346,8 @@ const AssetDetail = () => {
  Volume vs Avg
  <InfoTooltip text="Volume odierno rispetto alla media 20 giorni"/>
  </div>
- <div className={`text-sm font-bold ${asset?.volume_vs_avg > 1 ? 'text-primary' : 'text-text-secondary'}`}>
- {asset?.volume_vs_avg ?`${asset?.volume_vs_avg}x`: '1.0x'}
+ <div className={`text-sm font-bold ${asset?.volume_vs_avg > 1 ?'text-primary' :'text-text-secondary'}`}>
+ {asset?.volume_vs_avg ?`${asset?.volume_vs_avg}x`:'1.0x'}
  </div>
  </div>
  <div className="p-3 rounded-xl bg-surface-hover">
@@ -361,9 +359,9 @@ const AssetDetail = () => {
  </div>
  </div>
 
- {asset?.settore === 'FUTURE' && bd.macro_reason && (
- <div className={`mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-500/10 /25 text-amber-300' : 'bg-surface-hover text-text-secondary'}`}>
- <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${bd.macro_reason.includes('Safe Haven') ? 'bg-amber-400' : 'bg-text-secondary/50'}`} />
+ {asset?.settore ==='FUTURE' && bd.macro_reason && (
+ <div className={`mt-2 flex items-center gap-2 px-3 py-2 rounded-lg text-xs ${bd.macro_reason.includes('Safe Haven') ?'bg-amber-500/10 text-amber-300' :'bg-surface-hover text-text-secondary'}`}>
+ <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${bd.macro_reason.includes('Safe Haven') ?'bg-amber-400' :'bg-text-secondary/50'}`} />
  <em className="not-italic leading-snug">{bd.macro_reason}</em>
  </div>
  )}

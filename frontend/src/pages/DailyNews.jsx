@@ -19,7 +19,7 @@ const SubscriptionModal = ({ isOpen, onClose, onConfirm }) => {
 
  return (
  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in duration-300">
- <div className="bg-surface w-full max-w-md rounded-3xl /50 p-8 shadow-2xl animate-in zoom-in-95 duration-300">
+ <div className="bg-surface w-full max-w-md rounded-3xl p-8 shadow-2xl animate-in zoom-in-95 duration-300">
  <div className="flex justify-between items-start mb-6">
  <div className="space-y-1">
  <h3 className="text-xl font-bold text-white">Ricevi il Market Briefing</h3>
@@ -38,7 +38,7 @@ const SubscriptionModal = ({ isOpen, onClose, onConfirm }) => {
  placeholder="tuonome@esempio.com"
  value={email}
  onChange={(e) => setEmail(e.target.value)}
- className="w-full bg-slate-800/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus: focus: transition-all font-medium"
+ className="w-full bg-slate-800/50 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-gray-600 focus:outline-none focus:transition-all font-medium"
  />
  </div>
  <button 
@@ -77,26 +77,27 @@ const Toast = ({ message, visible }) => {
 
 const DailyNews = () => {
  const { t, i18n } = useTranslation();
-  const { data: briefing, isLoading: briefingLoading } = useAiBriefing();
-  const queryClient = useQueryClient();
-  
-  // Newsletter States
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '' });
+ const { data: briefing, isLoading: briefingLoading } = useAiBriefing();
+ const queryClient = useQueryClient();
+ 
+ // Newsletter States
+ const [isModalOpen, setIsModalOpen] = useState(false);
+ const [toast, setToast] = useState({ visible: false, message:'' });
 
  const handleSubscribe = async (email) => {
  try {
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/newsletter/subscribe`, {
- method: 'POST',
- headers: { 'Content-Type': 'application/json' },
+ const apiBase = (() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })();
+ const res = await fetch(`${apiBase}/newsletter/subscribe`, {
+ method:'POST',
+ headers: {'Content-Type':'application/json' },
  body: JSON.stringify({ email })
  });
  const data = await res.json();
  
  if (data.success) {
  setIsModalOpen(false);
- setToast({ visible: true, message: 'Iscrizione confermata! Riceverai il prossimo briefing.' });
- setTimeout(() => setToast({ visible: false, message: '' }), 5000);
+ setToast({ visible: true, message:'Iscrizione confermata! Riceverai il prossimo briefing.' });
+ setTimeout(() => setToast({ visible: false, message:'' }), 5000);
  }
  } catch (err) {
  console.error("Newsletter subscription failure:", err);
@@ -105,9 +106,9 @@ const DailyNews = () => {
 
  const handleForceSend = async () => {
  try {
- setToast({ visible: true, message: 'Flusso AI avviato! Controlla il terminale o la casella email.' });
- const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5001'}/api/briefing/force-send`, {
- method: 'POST'
+ setToast({ visible: true, message:'Flusso AI avviato! Controlla il terminale o la casella email.' });
+ const res = await fetch(`${(() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })()}/briefing/force-send`, {
+ method:'POST'
  });
  const data = await res.json();
  if (data.success) {
@@ -116,7 +117,7 @@ const DailyNews = () => {
  } catch (err) {
  console.error("Force-send failure:", err);
  } finally {
- setTimeout(() => setToast({ visible: false, message: '' }), 5000);
+ setTimeout(() => setToast({ visible: false, message:'' }), 5000);
  }
  };
 
@@ -127,7 +128,7 @@ const DailyNews = () => {
  <div className="space-y-2">
  <div className="flex items-center gap-3">
  <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-calendar-gradient shadow-xl shadow-emerald-500/20"
- style={{ background: 'linear-gradient(135deg, #10b981, #14b8a6)' }}>
+ style={{ background:'linear-gradient(135deg, #10b981, #14b8a6)' }}>
  <CalendarIcon className="w-6 h-6 text-white"/>
  </div>
  <h1 className="text-3xl font-extrabold text-white tracking-tight">{t('sidebar.dailyNews')}</h1>
@@ -137,7 +138,7 @@ const DailyNews = () => {
  </p>
  </div>
 
- <div className="flex items-center gap-2 bg-surface/50 px-4 py-2 rounded-2xl /50 backdrop-blur-sm">
+ <div className="flex items-center gap-2 bg-surface/50 px-4 py-2 rounded-2xl backdrop-blur-sm">
  <Sparkles className="w-4 h-4 text-primary"/>
  <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">Premium AI Analysis Enabled</span>
  </div>
@@ -169,7 +170,7 @@ const DailyNews = () => {
  <span className="text-[10px] text-gray-600 font-medium uppercase tracking-widest">Powered by TradingView</span>
  </div>
  
- <div className="bg-surface rounded-3xl /50 p-6 shadow-2xl relative">
+ <div className="bg-surface rounded-3xl p-6 shadow-2xl relative">
  <CustomCalendar />
  </div>
  </section>

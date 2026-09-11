@@ -31,13 +31,12 @@ const RiskReport = () => {
  analysis:`
  <p><strong>Analisi del Rischio Esecutiva:</strong> Il portafoglio presenta attualmente una vulnerabilità elevata dovuta alla correlazione inversa con il comparto energetico. Il de-risking forzato è un pericolo reale se il petrolio supera i massimi recenti.</p>
  <p>La pressione inflazionistica rimane il driver principale della volatilità, influenzando direttamente le decisioni di allocazione degli asset istituzionali e provocando repentine rotazioni settoriali.</p>
- <p>Si consiglia una riduzione tattica della leva e un incremento delle posizioni in asset non correlati per mitigare l'impatto di possibili shock esterni lato offerta energetica.</p>
-`,
+ <p>Si consiglia una riduzione tattica della leva e un incremento delle posizioni in asset non correlati per mitigare l'impatto di possibili shock esterni lato offerta energetica.</p>`,
  riskScores: [
- { subject: 'Inflation', A: 80, fullMark: 100 },
- { subject: 'Interest Rates', A: 45, fullMark: 100 },
- { subject: 'Recession', A: 40, fullMark: 100 },
- { subject: 'Market Volatility', A: 65, fullMark: 100 }
+ { subject:'Inflation', A: 80, fullMark: 100 },
+ { subject:'Interest Rates', A: 45, fullMark: 100 },
+ { subject:'Recession', A: 40, fullMark: 100 },
+ { subject:'Market Volatility', A: 65, fullMark: 100 }
  ]
  };
 
@@ -51,14 +50,17 @@ const RiskReport = () => {
  const fetchRiskReport = async () => {
  try {
  setLoading(true);
- const macroRes = await axios.get('/api/macro-deep-dive');
+ const apiBase = (() => { const u = import.meta.env.VITE_API_URL || 'http://localhost:5001'; return u.endsWith('/api') ? u : `${u}/api`; })();
+ const token = localStorage.getItem('token');
+ const headers = token ? { Authorization: `Bearer ${token}` } : {};
+ const macroRes = await axios.get(`${apiBase}/macro-deep-dive`, { headers });
  const { chart, fundamentals, correlationMatrix } = macroRes.data;
 
- const res = await axios.post('/api/risk/report', {
+ const res = await axios.post(`${apiBase}/risk/report`, {
  chartData: chart,
  fundamentals,
  correlations: correlationMatrix.correlations
- });
+ }, { headers });
  
  if (res.data && res.data.riskScores) {
  setReport(res.data);
@@ -76,7 +78,7 @@ const RiskReport = () => {
  return (
  <div className="flex flex-col items-center justify-center min-h-[70vh] gap-6">
  <div className="relative">
- <Loader2 className="w-12 h-12 text-blue-500 animate-spin"/>
+ <Loader2 className="w-12 h-12 text-blue-500 animate-spin border-4 border-primary border-t-transparent"/>
  <ShieldAlert className="w-5 h-5 text-blue-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"/>
  </div>
  <div className="text-center">
@@ -111,7 +113,7 @@ const RiskReport = () => {
  
  <button 
  onClick={() => alert('PDF Export functionality coming soon to Terminal.')}
- className="hidden md:flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600/10 /20 text-blue-400 hover:bg-blue-600 hover:text-white transition-all duration-300 font-black uppercase tracking-widest text-[10px]"
+ className="hidden md:flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all duration-300 font-black uppercase tracking-widest text-[10px]"
  >
  <Download className="w-4 h-4"/>
  Export PDF
@@ -144,7 +146,7 @@ const RiskReport = () => {
  <PolarGrid stroke="#334155"opacity={0.6} />
  <PolarAngleAxis 
  dataKey="subject"
- tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: '900', letterSpacing: '0.1em' }} 
+ tick={{ fill:'#94a3b8', fontSize: 10, fontWeight:'900', letterSpacing:'0.1em' }} 
  />
  <PolarRadiusAxis 
  angle={30} 
@@ -169,11 +171,11 @@ const RiskReport = () => {
 
  <div className="grid grid-cols-2 gap-4 relative z-10 pt-4 animate-fade-in delay-500">
  {riskScores?.map((s, i) => (
- <div key={i} className="flex flex-col p-4 rounded-2xl bg-white/5 hover: transition-colors duration-300">
+ <div key={i} className="flex flex-col p-4 rounded-2xl bg-white/5 hover:transition-colors duration-300">
  <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{s.subject}</span>
  <div className="flex items-end justify-between mt-1">
- <span className={`text-xl font-black ${s.A > 75 ? 'text-rose-500' : 'text-white'}`}>{s.A}%</span>
- <div className={`w-2 h-2 rounded-full ${s.A > 75 ? 'bg-rose-500 animate-pulse' : 'bg-emerald-500'}`} />
+ <span className={`text-xl font-black ${s.A > 75 ?'text-rose-500' :'text-white'}`}>{s.A}%</span>
+ <div className={`w-2 h-2 rounded-full ${s.A > 75 ?'bg-rose-500 animate-pulse' :'bg-emerald-500'}`} />
  </div>
  </div>
  ))}
@@ -199,14 +201,13 @@ const RiskReport = () => {
  />
  </div>
 
- <div className="mt-12 p-6 rounded-3xl bg-rose-500/5 /10 flex gap-5 animate-fade-in delay-1000">
+ <div className="mt-12 p-6 rounded-3xl bg-rose-500/5 flex gap-5 animate-fade-in delay-1000">
  <div className="p-3 rounded-2xl bg-rose-500/10 text-rose-500 h-fit">
  <TrendingDown className="w-5 h-5"/>
  </div>
  <div>
  <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-[0.2em] mb-1">Risk Warning</h4>
- <p className="text-xs text-slate-400 font-medium leading-relaxed italic">
-"L'esposizione attuale richiede una vigilanza costante sui flussi energetici e sulla curva dei rendimenti. Una divergenza eccessiva potrebbe innescare una fase di de-risking forzato."
+ <p className="text-xs text-slate-400 font-medium leading-relaxed italic">"L'esposizione attuale richiede una vigilanza costante sui flussi energetici e sulla curva dei rendimenti. Una divergenza eccessiva potrebbe innescare una fase di de-risking forzato."
  </p>
  </div>
  </div>
@@ -252,8 +253,7 @@ const RiskReport = () => {
  @keyframes slideRight {
  from { opacity: 0; transform: translateX(20px); }
  to { opacity: 1; transform: translateX(0); }
- }
-`}
+ }`}
  </style>
  </div>
  );

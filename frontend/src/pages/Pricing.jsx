@@ -108,7 +108,11 @@ const Pricing = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5001/api/stripe/create-checkout-session', {
+      const apiBase = (() => {
+        const url = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+        return url.endsWith('/api') ? url : `${url}/api`;
+      })();
+      const res = await fetch(`${apiBase}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
