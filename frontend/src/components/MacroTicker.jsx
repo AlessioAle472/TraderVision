@@ -22,7 +22,7 @@ const MacroTicker = () => {
  let data = null;
  if (cachedData && lastFetch) {
  const ageInMs = Date.now() - parseInt(lastFetch, 10);
- if (ageInMs < 12 * 60 * 60 * 1000) {
+ if (ageInMs < 2 * 60 * 1000) {
  try {
  data = JSON.parse(cachedData);
  } catch(e) {}
@@ -54,6 +54,9 @@ const MacroTicker = () => {
 
  fetchTickerData();
  
+ // Auto refresh ticker every 60s
+ const interval = setInterval(fetchTickerData, 60000);
+ 
  // Listen to local refresh event (same tab)
  const handleRefresh = () => fetchTickerData();
  window.addEventListener('macro-refresh', handleRefresh);
@@ -66,6 +69,7 @@ const MacroTicker = () => {
  };
  window.addEventListener('storage', handleStorage);
  return () => {
+ clearInterval(interval);
  window.removeEventListener('storage', handleStorage);
  window.removeEventListener('macro-refresh', handleRefresh);
  };
@@ -89,6 +93,11 @@ const MacroTicker = () => {
  <span className="text-gray-500 font-mono tracking-tighter">{evt.time}</span>
  <span className="font-bold text-white uppercase bg-slate-700 px-1.5 py-0.5 rounded text-[10px]">{evt.country}</span>
  <span className="text-gray-300 font-medium pl-1">{evt.event}</span>
+ {evt.actual && (
+ <span className="text-emerald-400 font-semibold text-[10px] bg-emerald-500/10 px-1.5 py-0.5 rounded ml-0.5">
+ Act: {evt.actual}
+ </span>
+ )}
  
  {evt.ai_projection && user?.role ==='admin' && (
  <span className="text-danger font-bold uppercase tracking-wider text-[9px] bg-danger/10 px-1.5 py-0.5 rounded flex items-center gap-1 ml-1 shadow-[0_0_10px_rgba(239,68,68,0.2)]">

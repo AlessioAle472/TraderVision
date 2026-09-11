@@ -1,13 +1,12 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
-const cheerio = require('cheerio');
 const { getCache, setCache } = require('../utils/cache');
 
-const CACHE_FILENAME = 'economic_calendar_raw.json';
-// Cache valida per 1 minuto per aggiornare in tempo reale i dati in uscita (Actual)
-const CACHE_TTL_MS = 1 * 60 * 1000;
+const CACHE_PREFIX = 'economic_calendar_';
+// Cache valida per 60 secondi per garantire aggiornamenti in tempo reale dei dati effettivi (Actual)
+const CACHE_TTL_MS = 60 * 1000;
 
-// Paesi supportati dal calendario (mappa country code → nome)
+// Mappatura codici paese
 const COUNTRY_MAP = {
     USD: 'US', EUR: 'EU', GBP: 'GB', JPY: 'JP', CAD: 'CA',
     AUD: 'AU', NZD: 'NZ', CHF: 'CH', CNY: 'CN', CNH: 'CN',
@@ -16,80 +15,129 @@ const COUNTRY_MAP = {
     'AU': 'AU', 'NZ': 'NZ', 'CH': 'CH', 'CN': 'CN',
 };
 
-const MYFXBOOK_COUNTRY_MAP = {
-    'united-states': 'US',
-    'euro-area': 'EU',
-    'germany': 'DE',
-    'france': 'FR',
-    'italy': 'IT',
-    'spain': 'ES',
-    'united-kingdom': 'GB',
-    'japan': 'JP',
-    'china': 'CN',
-    'switzerland': 'CH',
-    'canada': 'CA',
-    'australia': 'AU',
-    'new-zealand': 'NZ',
-    'singapore': 'SG',
-    'hong-kong': 'HK',
-    'south-korea': 'KR',
-    'india': 'IN',
-    'brazil': 'BR',
-    'mexico': 'MX',
-    'south-africa': 'ZA',
-    'norway': 'NO',
-    'sweden': 'SE',
-    'denmark': 'DK',
-    'netherlands': 'NL',
-    'belgium': 'BE',
-    'austria': 'AT',
-    'finland': 'FI',
-    'ireland': 'IE',
-    'portugal': 'PT',
-    'greece': 'GR',
-    'russia': 'RU',
-    'turkey': 'TR',
-    'indonesia': 'ID',
-    'malaysia': 'MY',
-    'thailand': 'TH',
-    'philippines': 'PH',
-    'taiwan': 'TW',
-    'poland': 'PL',
-    'czech-republic': 'CZ',
-    'hungary': 'HU',
-    'romania': 'RO',
-    'chile': 'CL',
-    'colombia': 'CO',
-    'peru': 'PE',
-    'argentina': 'AR',
-    'israel': 'IL',
-    'egypt': 'EG',
-    'saudi-arabia': 'SA',
-    'united-arab-emirates': 'AE',
+const formatVal = (val, scale) => {
+    if (val === null || val === undefined) return '';
+    return `${val}${scale || ''}`;
 };
 
-// ─── Source 1: ForexFactory XML Feed ──────────────────────────────────────────
-const fetchFromForexFactory = async () => {
-    const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-    };
+/**
+ * Calcola l'intervallo temporale ISO per la query del calendario
+ */
+const getTimeframeRange = (timeframe = 'today') => {
+    const now = new Date();
+    let start = new Date(now);
+    let end = new Date(now);
 
-    const response = await axios.get(url, { headers, timeout: 10000 });
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const parsed = await parser.parseStringPromise(response.data);
-
-    if (!parsed?.weeklyevents?.event) {
-        throw new Error('XML vuoto o struttura inattesa');
+    if (timeframe === 'yesterday') {
+        start.setDate(now.getDate() - 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+    } else if (timeframe === 'tomorrow') {
+        start.setDate(now.getDate() + 1);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setHours(23, 59, 59, 999);
+    } else if (timeframe === 'this_week') {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        start = new Date(now);
+        start.setDate(diff);
+        start.setHours(0, 0, 0, 0);
+        end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        end.setHours(23, 59, 59, 999);
+    } else {
+        // 'today' default
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
     }
 
-    const raw = Array.isArray(parsed.weeklyevents.event)
+    return { from: start.toISOString(), to: end.toISOString() };
+};
+
+/**
+ * ─── Source 1 (Principale): Feed Live Eventi TradingView ───────────────────────
+ * Fornisce dati in tempo reale con Actual live, Forecast, Previous, Country e Timezone.
+ * 100% gratuito e coerente con Investing.com e le piattaforme istituzionali.
+ */
+const fetchFromTradingView = async (timeframe) => {
+    const { from, to } = getTimeframeRange(timeframe);
+    const url = `https://economic-calendar.tradingview.com/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+    const response = await axios.get(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Origin': 'https://www.tradingview.com',
+            'Referer': 'https://www.tradingview.com/',
+            'Accept': 'application/json, text/plain, */*',
+        },
+        timeout: 8000,
+    });
+
+    const rawEvents = response.data?.result || [];
+    const now = new Date();
+
+    return rawEvents.map((e, index) => {
+        const d = new Date(e.date);
+        let impact = 'LOW';
+        if (e.importance === 1) impact = 'HIGH';
+        else if (e.importance === 0) impact = 'MEDIUM';
+
+        const rawCountry = (e.country || 'US').trim().toUpperCase();
+        const mappedCountry = COUNTRY_MAP[rawCountry] || rawCountry;
+
+        const timeStr = d.toLocaleTimeString('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+        });
+
+        const dateStr = d.toLocaleDateString('it-IT', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+        });
+
+        return {
+            id: e.id || `tv-${index}`,
+            time: timeStr,
+            country: mappedCountry,
+            event: e.title || e.indicator || 'Evento Macro',
+            impact: impact,
+            actual: formatVal(e.actual, e.scale),
+            consensus: formatVal(e.forecast, e.scale),
+            previous: formatVal(e.previous, e.scale),
+            currency: e.currency || '',
+            timestamp: d.getTime(),
+            localDateStr: d.toLocaleDateString(),
+            dateString: dateStr,
+            dateKey: d.toISOString().split('T')[0],
+            isPast: d < now,
+        };
+    }).sort((a, b) => a.timestamp - b.timestamp);
+};
+
+/**
+ * ─── Source 2 (Fallback): ForexFactory Feed XML ───────────────────────────────
+ */
+const fetchFromForexFactory = async () => {
+    const url = 'https://nfs.faireconomy.media/ff_calendar_thisweek.xml';
+    const response = await axios.get(url, {
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+            'Accept': 'application/xml,text/xml,*/*',
+        },
+        timeout: 8000,
+    });
+
+    const parser = new xml2js.Parser({ explicitArray: false });
+    const parsed = await parser.parseStringPromise(response.data);
+    const raw = Array.isArray(parsed?.weeklyevents?.event)
         ? parsed.weeklyevents.event
-        : [parsed.weeklyevents.event];
+        : [parsed?.weeklyevents?.event].filter(Boolean);
+
+    const now = new Date();
 
     return raw.map((ev, index) => {
         let eventTime = new Date();
@@ -97,7 +145,6 @@ const fetchFromForexFactory = async () => {
             if (ev.date && typeof ev.date === 'string') {
                 const parts = ev.date.split('-');
                 if (parts.length === 3) {
-                    // Formato: MM-DD-YYYY
                     eventTime = new Date(parseInt(parts[2]), parseInt(parts[0]) - 1, parseInt(parts[1]));
                 }
             }
@@ -111,7 +158,7 @@ const fetchFromForexFactory = async () => {
         const mappedCountry = COUNTRY_MAP[rawCountry] || rawCountry;
 
         return {
-            id: index,
+            id: `ff-${index}`,
             time: ev.time || '--:--',
             country: mappedCountry,
             event: ev.title || '',
@@ -121,320 +168,83 @@ const fetchFromForexFactory = async () => {
             previous: ev.previous || '',
             timestamp: eventTime.getTime(),
             localDateStr: eventTime.toLocaleDateString(),
-            dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
+            dateString: eventTime.toLocaleDateString('it-IT', { weekday: 'short', month: 'short', day: 'numeric' }),
+            dateKey: eventTime.toISOString().split('T')[0],
+            isPast: eventTime < now,
         };
     });
 };
 
-// ─── Source 2: Myfxbook Economic Calendar RSS (Real-Time Live Actuals) ────────
-const fetchFromMyFxBookRSS = async () => {
-    const url = 'https://www.myfxbook.com/rss/forex-economic-calendar-events';
-    const headers = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'application/rss+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Cache-Control': 'no-cache',
-    };
-
-    const response = await axios.get(url, { headers, timeout: 15000 });
-    const parser = new xml2js.Parser({ explicitArray: false });
-    const parsed = await parser.parseStringPromise(response.data);
-
-    const items = parsed?.rss?.channel?.item;
-    if (!items) {
-        throw new Error('Myfxbook RSS vuoto o non valido');
-    }
-
-    const raw = Array.isArray(items) ? items : [items];
-
-    return raw.map((item, idx) => {
-        const pubDate = new Date(item.pubDate || Date.now());
-        let countrySlug = '';
-        if (item.link && typeof item.link === 'string') {
-            countrySlug = item.link.split('/')[4]?.toLowerCase() || '';
-        }
-        const mappedCountry = MYFXBOOK_COUNTRY_MAP[countrySlug] || (countrySlug ? countrySlug.slice(0, 2).toUpperCase() : 'US');
-
-        let impact = 'LOW';
-        let previous = '';
-        let consensus = '';
-        let actual = '';
-
-        if (item.description && typeof item.description === 'string') {
-            try {
-                const $ = cheerio.load(item.description);
-                const tds = $('td');
-                if (tds.length >= 5) {
-                    const impactHtml = tds.eq(1).html() || '';
-                    if (impactHtml.includes('high-impact')) impact = 'HIGH';
-                    else if (impactHtml.includes('medium-impact')) impact = 'MEDIUM';
-                    else impact = 'LOW';
-
-                    previous = tds.eq(2).text().replace(/\s+/g, ' ').trim();
-                    consensus = tds.eq(3).text().replace(/\s+/g, ' ').trim();
-                    actual = tds.eq(4).text().replace(/\s+/g, ' ').trim();
-                }
-            } catch (_) {}
-        }
-
-        const hours = pubDate.getHours();
-        const mins = String(pubDate.getMinutes()).padStart(2, '0');
-        const ampm = hours >= 12 ? 'pm' : 'am';
-        const h12 = hours % 12 || 12;
-
-        return {
-            id: idx + 5000,
-            time: `${h12}:${mins}${ampm}`,
-            country: mappedCountry,
-            event: (item.title || '').trim(),
-            impact,
-            actual: actual || '',
-            consensus: consensus || '',
-            previous: previous || '',
-            timestamp: pubDate.getTime(),
-            localDateStr: pubDate.toLocaleDateString(),
-            dateString: pubDate.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
-        };
-    });
-};
-
-
-
-// ─── Source 3: FRED (Federal Reserve Economic Data) — solo eventi USA ─────────
-const fetchFromFRED = async () => {
-    const now = new Date();
-    const weekStart = new Date(now);
-    const day = weekStart.getDay();
-    weekStart.setDate(weekStart.getDate() - day + (day === 0 ? -6 : 1));
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-
-    const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    const FRED_API_KEY = process.env.FRED_API_KEY;
-
-    if (!FRED_API_KEY) throw new Error('FRED_API_KEY non configurata');
-
-    const url = `https://api.stlouisfed.org/fred/releases/dates?realtime_start=${fmt(weekStart)}&realtime_end=${fmt(weekEnd)}&api_key=${FRED_API_KEY}&file_type=json`;
-    const response = await axios.get(url, { timeout: 20000 });
-
-    if (!response.data?.release_dates) throw new Error('Risposta FRED non valida');
-
-    // Nomi chiave → impatto (euristica)
-    const highImpactKeywords = ['CPI', 'GDP', 'NFP', 'Nonfarm', 'FOMC', 'Federal Funds', 'Unemployment', 'PCE', 'Retail Sales', 'PPI'];
-    const mediumImpactKeywords = ['ISM', 'PMI', 'Housing', 'Durable', 'Trade', 'Consumer', 'Manufacturing', 'Industrial'];
-
-    return response.data.release_dates.map((ev, index) => {
-        const eventTime = new Date(ev.date + 'T12:00:00');
-        const name = ev.release_name || '';
-
-        let impact = 'LOW';
-        if (highImpactKeywords.some(k => name.includes(k))) impact = 'HIGH';
-        else if (mediumImpactKeywords.some(k => name.includes(k))) impact = 'MEDIUM';
-
-        return {
-            id: 1000 + index,
-            time: '12:00',
-            country: 'US',
-            event: name,
-            impact,
-            actual: '',
-            consensus: '',
-            previous: '',
-            timestamp: eventTime.getTime(),
-            localDateStr: eventTime.toLocaleDateString(),
-            dateString: eventTime.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }),
-        };
-    });
-};
-
-// ─── Cache Check ──────────────────────────────────────────────────────────────
-const isCacheValid = (cached) => {
-    if (!cached || !cached.timestamp || !Array.isArray(cached.events)) return false;
-    // Invalida istantaneamente cache vecchie che contengono codici non normalizzati (es. AUD, CNY, JPY)
-    const hasOldCountryCode = cached.events.some(e => ['AUD', 'CNY', 'JPY', 'USD', 'EUR', 'GBP', 'CAD', 'NZD', 'CHF'].includes(e.country));
-    if (hasOldCountryCode) return false;
-    const age = Date.now() - new Date(cached.timestamp).getTime();
-    return age < CACHE_TTL_MS;
-};
-
-// ─── Main Fetch con caching + multi-source fallback e Live Actuals ──────────
-let _inMemoryCache = null; // Cache in-memory aggiuntiva per ridurre I/O su file
-
-const fetchRawWeekEvents = async () => {
-    // 1. Controlla cache in-memory
-    if (_inMemoryCache && isCacheValid(_inMemoryCache)) {
-        console.log('[CalendarService] Serving from in-memory cache');
-        return _inMemoryCache.events;
-    }
-
-    // 2. Controlla cache su file
-    const fileCached = getCache(CACHE_FILENAME);
-    if (isCacheValid(fileCached)) {
-        console.log('[CalendarService] Serving from file cache');
-        _inMemoryCache = fileCached;
-        return fileCached.events;
-    }
-
-    // 3. Multiprova e Unione Sorgenti in tempo reale
-    let ffEvents = [];
-    let myfxEvents = [];
-
-    try {
-        console.log('[CalendarService] Fetching ForexFactory schedule...');
-        ffEvents = await fetchFromForexFactory();
-    } catch (err) {
-        console.warn(`[CalendarService] ❌ ForexFactory failed: ${err.message}`);
-    }
-
-    try {
-        console.log('[CalendarService] Fetching Myfxbook live actuals...');
-        myfxEvents = await fetchFromMyFxBookRSS();
-    } catch (err) {
-        console.warn(`[CalendarService] ❌ Myfxbook RSS failed: ${err.message}`);
-    }
-
-    // Se abbiamo almeno una sorgente funzionante
-    if (ffEvents.length > 0 || myfxEvents.length > 0) {
-        let mergedEvents = [...ffEvents];
-
-        // Arricchisci il calendario di ForexFactory con i valori LIVE Actual, Consensus e Previous da Myfxbook RSS
-        if (myfxEvents.length > 0 && ffEvents.length > 0) {
-            mergedEvents = ffEvents.map(ffe => {
-                const ffeDateStr = new Date(ffe.timestamp).toISOString().slice(0, 10);
-                const match = myfxEvents.find(my => {
-                    const myDateStr = new Date(my.timestamp).toISOString().slice(0, 10);
-                    if (ffeDateStr !== myDateStr || my.country !== ffe.country) return false;
-                    const cleanFfe = ffe.event.toLowerCase().replace(/australia|china|japan|germany|us|uk|euro|eu|m\/m|y\/y|q\/q|\s+/gi, ' ').trim();
-                    const cleanMy = my.event.toLowerCase().replace(/australia|china|japan|germany|us|uk|euro|eu|m\/m|y\/y|q\/q|\s+/gi, ' ').trim();
-                    return ffe.event.toLowerCase().includes(cleanMy) || my.event.toLowerCase().includes(cleanFfe) || (ffe.time === my.time && ffe.time !== '--:--');
-                });
-                if (match && match.actual) {
-                    return {
-                        ...ffe,
-                        actual: match.actual,
-                        consensus: match.consensus || ffe.consensus,
-                        previous: match.previous || ffe.previous,
-                        impact: match.impact || ffe.impact
-                    };
-                }
-                return ffe;
-            });
-        }
-
-        // Aggiungi tutti gli eventi odierni di Myfxbook che potrebbero non essere in ForexFactory (così da visualizzare sempre ogni dato Actual pubblicato)
-        myfxEvents.forEach(my => {
-            const myDateStr = new Date(my.timestamp).toISOString().slice(0, 10);
-            const exists = mergedEvents.some(ffe => {
-                const ffeDateStr = new Date(ffe.timestamp).toISOString().slice(0, 10);
-                return ffeDateStr === myDateStr && ffe.country === my.country && ffe.time === my.time;
-            });
-            if (!exists) {
-                mergedEvents.push(my);
-            }
-        });
-
-        // Ordina temporalmente gli eventi
-        mergedEvents.sort((a, b) => a.timestamp - b.timestamp);
-
-        console.log(`[CalendarService] ✅ Merged ${mergedEvents.length} events (FF: ${ffEvents.length}, Myfxbook: ${myfxEvents.length})`);
-        const cachePayload = { events: mergedEvents, timestamp: new Date().toISOString(), source: 'Merged(FF+Myfxbook)' };
-        setCache(CACHE_FILENAME, cachePayload);
-        _inMemoryCache = cachePayload;
-        return mergedEvents;
-    }
-
-    // 4. Se ForexFactory e Myfxbook falliscono entrambi, tenta fallback su FRED
-    try {
-        console.log('[CalendarService] Trying fallback source: FRED');
-        const fredEvents = await fetchFromFRED();
-        if (fredEvents && fredEvents.length > 0) {
-            const cachePayload = { events: fredEvents, timestamp: new Date().toISOString(), source: 'FRED' };
-            setCache(CACHE_FILENAME, cachePayload);
-            _inMemoryCache = cachePayload;
-            return fredEvents;
-        }
-    } catch (err) {
-        console.warn(`[CalendarService] ❌ FRED failed: ${err.message}`);
-    }
-
-    // 5. Tutte le sorgenti fallite — restituisce errore leggibile
-    throw new Error('Tutte le sorgenti del calendario economico sono temporaneamente non disponibili.');
-};
-
-// ─── Funzione pubblica esposta al controller ──────────────────────────────────
+/**
+ * Funzione principale esposta al controller del calendario economico
+ */
 const fetchFinnhubCalendar = async (timeframe = 'today') => {
-    let allEvents;
+    const cacheKey = `${CACHE_PREFIX}${timeframe}.json`;
+    const cached = getCache(cacheKey);
+
+    if (cached && cached.timestamp && (Date.now() - cached.timestamp < CACHE_TTL_MS)) {
+        return cached.data;
+    }
+
     try {
-        allEvents = await fetchRawWeekEvents();
-    } catch (err) {
-        console.error('[CalendarService] Fatal fetch error:', err.message);
-        return [{
-            id: 999,
-            time: '--:--',
-            country: 'All',
-            event: 'Dati temporaneamente non disponibili - Riprova tra qualche minuto',
-            impact: 'LOW',
-            actual: '',
-            consensus: '',
-            previous: '',
-            isPast: false,
-            timestamp: Date.now(),
-            localDateStr: new Date().toLocaleDateString(),
-            dateString: new Date().toLocaleDateString(),
-        }];
-    }
-
-    const now = new Date();
-    const formatKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    // Calcola le date YYYY-MM-DD per il filtro
-    const targetKeys = [];
-    if (timeframe === 'yesterday') {
-        const d = new Date(); d.setDate(now.getDate() - 1);
-        targetKeys.push(formatKey(d));
-    } else if (timeframe === 'tomorrow') {
-        const d = new Date(); d.setDate(now.getDate() + 1);
-        targetKeys.push(formatKey(d));
-    } else if (timeframe === 'this_week') {
-        const day = now.getDay();
-        const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
-        const d = new Date(now);
-        d.setDate(diffToMonday);
-        for (let i = 0; i < 7; i++) {
-            const temp = new Date(d);
-            temp.setDate(temp.getDate() + i);
-            targetKeys.push(formatKey(temp));
+        console.log(`[CalendarService] Fetching real-time calendar from TradingView (${timeframe})...`);
+        const events = await fetchFromTradingView(timeframe);
+        
+        if (events && events.length > 0) {
+            setCache(cacheKey, { timestamp: Date.now(), data: events });
+            console.log(`[CalendarService] ✅ Fetched ${events.length} live events with actuals.`);
+            return events;
         }
-    } else {
-        // today (default)
-        targetKeys.push(formatKey(now));
+    } catch (err) {
+        console.warn(`[CalendarService] TradingView live fetch error: ${err.message}. Falling back to ForexFactory...`);
     }
 
-    const enriched = allEvents.map(ev => {
-        const rawCountry = (ev.country || 'All').trim().toUpperCase();
-        const mappedCountry = COUNTRY_MAP[rawCountry] || rawCountry;
-        const dObj = new Date(ev.timestamp || Date.now());
-        const dateKey = formatKey(dObj);
-        return {
-            ...ev,
-            country: mappedCountry,
-            dateKey,
-            isPast: dObj < now,
-        };
-    });
+    // Fallback su ForexFactory
+    try {
+        const ffEvents = await fetchFromForexFactory();
+        if (ffEvents && ffEvents.length > 0) {
+            setCache(cacheKey, { timestamp: Date.now(), data: ffEvents });
+            return ffEvents;
+        }
+    } catch (ffErr) {
+        console.error('[CalendarService] Fallback also failed:', ffErr.message);
+    }
 
-    return enriched
-        .filter(ev => targetKeys.includes(ev.dateKey))
-        .sort((a, b) => a.timestamp - b.timestamp);
+    // Se esiste una cache precedente anche scaduta, servila prima di dare errore
+    if (cached && cached.data) {
+        return cached.data;
+    }
+
+    return [{
+        id: 'fallback-0',
+        time: '--:--',
+        country: 'ALL',
+        event: 'Dati temporaneamente non disponibili - Riprova tra qualche istante',
+        impact: 'LOW',
+        actual: '',
+        consensus: '',
+        previous: '',
+        isPast: false,
+        timestamp: Date.now(),
+        localDateStr: new Date().toLocaleDateString(),
+        dateString: new Date().toLocaleDateString(),
+        dateKey: new Date().toISOString().split('T')[0],
+    }];
 };
 
-// ─── getHighImpactEvents per i cron job ──────────────────────────────────────
+/**
+ * getHighImpactEvents per i cron job e il briefing AI
+ */
 const getHighImpactEvents = async () => {
     try {
         const events = await fetchFinnhubCalendar('today');
-        return events.filter(e => e.impact === 'HIGH').slice(0, 5);
+        const high = events.filter(e => e.impact === 'HIGH');
+        if (high.length > 0) return high.slice(0, 5);
+        const weekEvents = await fetchFinnhubCalendar('this_week');
+        return weekEvents.filter(e => e.impact === 'HIGH').slice(0, 5);
     } catch (error) {
         console.error('[CalendarService] Error fetching high impact events:', error.message);
-        return [{ time: '--:--', country: 'USD', event: 'Calendar Unavailable', impact: 'HIGH' }];
+        return [{ time: '--:--', country: 'USD', event: 'Calendario in aggiornamento', impact: 'HIGH' }];
     }
 };
 
