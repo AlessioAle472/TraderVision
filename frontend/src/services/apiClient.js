@@ -170,11 +170,17 @@ const apiClient = {
   },
   
   // SOCIAL ENDPOINTS
-  getFeed: async (page = 1, limit = 20, groupId = null) => {
+  getFeed: async (page = 1, limit = 20, groupId = null, ticker = null, search = null) => {
     try {
       let url = `${API_BASE_URL}/social/posts?page=${page}&limit=${limit}`;
       if (groupId) {
-        url += `&groupId=${groupId}`;
+        url += `&groupId=${encodeURIComponent(groupId)}`;
+      }
+      if (ticker) {
+        url += `&ticker=${encodeURIComponent(ticker)}`;
+      }
+      if (search) {
+        url += `&search=${encodeURIComponent(search)}`;
       }
       const response = await axios.get(url);
       return response.data;

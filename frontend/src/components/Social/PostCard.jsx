@@ -1,93 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Repeat2, MessageCircle, MoreHorizontal, Flag, Trash2, Send } from 'lucide-react';
+import React, { useState } from 'react';
+import { Heart, Repeat2, MessageCircle, MoreHorizontal, Flag, Trash2, Send, Share2, BadgeCheck, Check, Copy } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import apiClient from '../../services/apiClient';
 import RepostModal from './RepostModal';
 
 const formatTimeAgo = (dateString) => {
+  if (!dateString) return 'ora';
   const date = new Date(dateString);
   const now = new Date();
   const seconds = Math.floor((now - date) / 1000);
   
-  if (seconds < 60) return `${seconds}s`;
+  if (seconds < 60) return `${Math.max(1, seconds)}s`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours}h`;
   const days = Math.floor(hours / 24);
-  return `${days}d`;
+  if (days < 7) return `${days}g`;
+  return date.toLocaleDateString('it-IT', { month: 'short', day: 'numeric' });
 };
 
-const parseCashtags = (text) => {
+const parseCashtagsAndMentions = (text, onSelectTicker) => {
   if (!text) return null;
-  const regex = /(\$[A-Z0-9\-\.]+)/g;
+  // Match $CASHTAGS, #HASHTAGS, and @MENTIONS
+  const regex = /(\$[A-Z0-9\-\.]+|#[A-Za-z0-9_]+|@[A-Za-z0-9_]+)/g;
   const parts = text.split(regex);
   
   return parts.map((part, i) => {
-    if (part.match(regex)) {
+    if (!part) return null;
+    if (part.startsWith('$')) {
       const ticker = part.substring(1);
       return (
-        <Link key={i} to={`/asset/${ticker}`} className="text-blue-400 hover:underline">
+        <span
+          key={i}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (onSelectTicker) onSelectTicker(part);
+          }}
+          className="text-[#1d9bf0] font-medium hover:underline cursor-pointer"
+        >
           {part}
-        </Link>
+        </span>
+      );
+    }
+    if (part.startsWith('#') || part.startsWith('@')) {
+      return (
+        <span key={i} className="text-[#1d9bf0] hover:underline cursor-pointer">
+          {part}
+        </span>
       );
     }
     return part;
   });
 };
 
-const REACTIONS = [
-  { type: 'like', icon: '👍' },
-  { type: 'love', icon: '❤️' },
-  { type: 'rocket', icon: '🚀' },
-  { type: 'haha', icon: '😂' },
-  { type: 'bull', icon: '📈' },
-  { type: 'bear', icon: '📉' }
-];
-
 const getUserId = () => {
   try {
     const token = localStorage.getItem('token');
-    if (!token) return null; // No token = unauthenticated user
+    if (!token) return null;
     const base64Url = token.split('.')[1];
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
     const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
         return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
     }).join(''));
     return JSON.parse(jsonPayload).id;
-  } catch(e) { return null; } // Parse failure = treat as unauthenticated
+  } catch(e) { return null; }
 };
 
-const PostCard = ({ post, onInteraction }) => {
+const PostCard = ({ post, onInteraction, onSelectTicker }) => {
   const currentUserId = getUserId();
   
   const [reactions, setReactions] = useState(post.reactions || []);
   const [repostsCount, setRepostsCount] = useState(post.reposts?.length || 0);
+  const [commentsCount, setCommentsCount] = useState(post.commentsCount || 0);
   const [showMenu, setShowMenu] = useState(false);
-  const [showReactionMenu, setShowReactionMenu] = useState(false);
+  const [copiedToast, setCopiedToast] = useState(false);
   
-  // Comments state
+  // Comments thread state
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState('');
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   
   // Repost modal
   const [showRepostModal, setShowRepostModal] = useState(false);
 
-  const userReaction = reactions.find(r => r.user === currentUserId)?.type;
-  
-  const handleReact = async (type) => {
+  // Check if current user liked
+  const isLikedByMe = reactions.some(r => r.user === currentUserId || r.user?._id === currentUserId);
+  const likesCount = reactions.length;
+
+  // Optimistic like toggle (0ms delay)
+  const handleToggleLike = async () => {
+    const prevReactions = [...reactions];
+    if (isLikedByMe) {
+      setReactions(prev => prev.filter(r => (r.user !== currentUserId && r.user?._id !== currentUserId)));
+    } else {
+      setReactions(prev => [...prev, { user: currentUserId, type: 'like' }]);
+    }
+
     try {
-      setShowReactionMenu(false);
-      const data = await apiClient.reactToPost(post._id, type);
-      setReactions(data.reactions);
+      const data = await apiClient.reactToPost(post._id, 'like');
+      if (data && data.reactions) {
+        setReactions(data.reactions);
+      }
     } catch (err) {
-      console.error(err);
+      console.error('Like error, reverting', err);
+      setReactions(prevReactions);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Sei sicuro di voler eliminare questo post?")) return;
+    if (!window.confirm("Eliminare definitivamente questo post?")) return;
     try {
       await apiClient.deletePost(post._id);
       if (onInteraction) onInteraction();
@@ -106,13 +130,23 @@ const PostCard = ({ post, onInteraction }) => {
     }
   };
 
+  const handleShare = () => {
+    const url = window.location.origin + `/community?post=${post._id}`;
+    navigator.clipboard?.writeText(url);
+    setCopiedToast(true);
+    setTimeout(() => setCopiedToast(false), 2200);
+  };
+
   const toggleComments = async () => {
-    if (!showComments) {
+    if (!showComments && comments.length === 0) {
       try {
+        setIsLoadingComments(true);
         const data = await apiClient.getComments(post._id);
-        setComments(data);
+        setComments(data || []);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load comments', err);
+      } finally {
+        setIsLoadingComments(false);
       }
     }
     setShowComments(!showComments);
@@ -120,187 +154,267 @@ const PostCard = ({ post, onInteraction }) => {
 
   const handleCommentSubmit = async (e) => {
     e.preventDefault();
-    if (!newComment.trim()) return;
+    if (!newComment.trim() || isSubmittingComment) return;
+    
+    setIsSubmittingComment(true);
     try {
       const addedComment = await apiClient.createComment(post._id, newComment);
-      setComments([...comments, addedComment]);
+      setComments(prev => [...prev, addedComment]);
+      setCommentsCount(prev => prev + 1);
       setNewComment('');
     } catch (err) {
-      alert("Errore nell'invio del commento.");
+      alert("Errore durante l'invio del commento.");
+    } finally {
+      setIsSubmittingComment(false);
     }
   };
 
   const backendUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
+  const author = post.author || {};
+  const isVerified = author.isMaster || author.role === 'admin' || author.plan === 'pro';
+  const authorInitial = author.name ? author.name.charAt(0).toUpperCase() : 'T';
 
   return (
-    <div className="bg-[#0f131a] border-b border-white/5 p-4 hover:bg-[#131821] transition-colors relative">
-      <div className="flex gap-3">
-        <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white shrink-0 overflow-hidden">
-          {post.author?.avatar ? (
-            <img src={post.author.avatar} alt="Avatar" className="w-full h-full object-cover" />
-          ) : (
-            post.author?.name?.charAt(0) || 'U'
-          )}
+    <article className="border-b border-white/10 hover:bg-white/[0.02] transition-colors duration-150 px-4 py-3.5 relative">
+      {/* Copied Link Toast */}
+      {copiedToast && (
+        <div className="absolute top-2 right-4 bg-[#1d9bf0] text-white text-xs px-3 py-1 rounded-full shadow-lg flex items-center gap-1 z-30 animate-bounce">
+          <Check className="w-3 h-3" /> Link copiato negli appunti!
         </div>
-        
+      )}
+
+      <div className="flex gap-3">
+        {/* Left: User Avatar */}
+        <div className="shrink-0">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#1d9bf0] to-indigo-600 flex items-center justify-center font-bold text-white overflow-hidden shadow-sm">
+            {author.avatar ? (
+              <img src={author.avatar} alt={author.name} className="w-full h-full object-cover" />
+            ) : (
+              <span>{authorInitial}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Right: Content */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 truncate">
-              <span className="font-bold text-white truncate">{post.author?.name || 'Utente Premium'}</span>
-              <span className="text-gray-500 truncate">{post.author?.username || '@trader'}</span>
-              <span className="text-gray-500">·</span>
-              <span className="text-gray-500 shrink-0 hover:underline cursor-pointer">{formatTimeAgo(post.createdAt)}</span>
+          {/* Header Row */}
+          <div className="flex items-center justify-between gap-1 leading-tight">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <span className="font-bold text-white text-[15px] hover:underline cursor-pointer truncate">
+                {author.name || 'TraderVision Member'}
+              </span>
+
+              {/* Verified / Pro Checkmark */}
+              {isVerified && (
+                <BadgeCheck className="w-4 h-4 text-[#1d9bf0] fill-[#1d9bf0] text-black shrink-0" title="Trader Verificato / Pro" />
+              )}
+
+              <span className="text-neutral-500 text-sm truncate">
+                {author.username || '@trader'}
+              </span>
+
+              <span className="text-neutral-500 text-xs">·</span>
+
+              <span className="text-neutral-500 text-sm hover:underline cursor-pointer shrink-0">
+                {formatTimeAgo(post.createdAt)}
+              </span>
+
+              {/* Sentiment Pill (Bullish / Bearish) */}
+              {post.sentiment === 'bullish' && (
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  🐂 Bullish
+                </span>
+              )}
+              {post.sentiment === 'bearish' && (
+                <span className="ml-1 px-2 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                  🐻 Bearish
+                </span>
+              )}
             </div>
-            
+
+            {/* Menu Options */}
             <div className="relative">
-              <button onClick={() => setShowMenu(!showMenu)} className="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
-                <MoreHorizontal size={18} />
+              <button 
+                type="button"
+                onClick={() => setShowMenu(!showMenu)} 
+                className="text-neutral-500 hover:text-[#1d9bf0] p-1.5 rounded-full hover:bg-[#1d9bf0]/10 transition-colors"
+              >
+                <MoreHorizontal className="w-4 h-4" />
               </button>
-              
+
               {showMenu && (
-                <div className="absolute right-0 mt-1 w-48 bg-[#1a1f2b] border border-white/10 rounded-xl shadow-lg py-1 z-10">
-                  <button 
-                    onClick={handleDelete}
-                    className="w-full text-left px-4 py-2 text-red-400 hover:bg-white/5 flex items-center gap-2"
+                <div className="absolute right-0 mt-1 w-44 bg-[#16181C] border border-white/10 rounded-xl shadow-2xl py-1 z-30">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleShare();
+                      setShowMenu(false);
+                    }}
+                    className="w-full text-left px-3.5 py-2 text-xs text-neutral-300 hover:bg-white/5 flex items-center gap-2"
                   >
-                    <Trash2 size={16} /> Elimina Post
+                    <Copy className="w-3.5 h-3.5" /> Copia Link Post
                   </button>
                   <button 
-                    onClick={handleReport}
-                    className="w-full text-left px-4 py-2 text-yellow-500 hover:bg-white/5 flex items-center gap-2"
+                    type="button"
+                    onClick={handleDelete}
+                    className="w-full text-left px-3.5 py-2 text-xs text-rose-400 hover:bg-white/5 flex items-center gap-2"
                   >
-                    <Flag size={16} /> Segnala Post
+                    <Trash2 className="w-3.5 h-3.5" /> Elimina Post
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={handleReport}
+                    className="w-full text-left px-3.5 py-2 text-xs text-amber-400 hover:bg-white/5 flex items-center gap-2"
+                  >
+                    <Flag className="w-3.5 h-3.5" /> Segnala Post
                   </button>
                 </div>
               )}
             </div>
           </div>
-          
-          <div className="mt-1 text-[15px] leading-relaxed text-gray-100 whitespace-pre-wrap">
-            {parseCashtags(post.content)}
+
+          {/* Tweet Text */}
+          <div className="mt-1 text-[15px] text-[#e7e9ea] leading-relaxed whitespace-pre-wrap break-words">
+            {parseCashtagsAndMentions(post.content, onSelectTicker)}
           </div>
-          
+
+          {/* Media (Images) */}
           {post.mediaUrl && (
-            <div className="mt-3 relative rounded-2xl overflow-hidden border border-white/10">
+            <div className="mt-3 rounded-2xl overflow-hidden border border-white/10 max-h-[460px] bg-neutral-900">
               <img 
                 src={`${backendUrl}${post.mediaUrl}`} 
-                alt="Post Media" 
-                className="w-full h-auto max-h-[500px] object-cover"
+                alt="Media Post" 
+                className="w-full h-auto max-h-[460px] object-cover hover:opacity-95 transition-opacity cursor-pointer"
                 loading="lazy"
+                onClick={() => window.open(`${backendUrl}${post.mediaUrl}`, '_blank')}
               />
             </div>
           )}
 
+          {/* Quoted Post (if repost with quote) */}
           {post.originalPostId && (
-            <div className="mt-3 p-3 border border-white/10 rounded-xl bg-white/5">
-              <div className="flex items-center gap-2 mb-1">
-                <Repeat2 size={14} className="text-gray-400" />
-                <span className="text-xs text-gray-400 font-bold">{post.originalPostId.author?.name}</span>
+            <div className="mt-3 p-3 border border-white/10 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] transition-colors">
+              <div className="flex items-center gap-1.5 mb-1 text-xs">
+                <span className="font-bold text-white">{post.originalPostId.author?.name || 'Utente'}</span>
+                <span className="text-neutral-500">{post.originalPostId.author?.username || '@trader'}</span>
               </div>
-              <p className="text-sm text-gray-200">{parseCashtags(post.originalPostId.content)}</p>
+              <p className="text-sm text-neutral-300">
+                {parseCashtagsAndMentions(post.originalPostId.content, onSelectTicker)}
+              </p>
             </div>
           )}
-          
-          <div className="flex items-center justify-between mt-3 text-gray-500 max-w-md relative">
-            <button onClick={toggleComments} className="flex items-center gap-1.5 hover:text-blue-400 transition-colors group">
-              <div className="p-2 rounded-full group-hover:bg-blue-400/10 transition-colors">
-                <MessageCircle size={18} />
-              </div>
-            </button>
-            
-            <button 
-              onClick={() => setShowRepostModal(true)}
-              className="flex items-center gap-1.5 hover:text-green-400 transition-colors group"
-            >
-              <div className="p-2 rounded-full group-hover:bg-green-400/10 transition-colors">
-                <Repeat2 size={18} />
-              </div>
-              <span className="text-sm">{repostsCount > 0 ? repostsCount : ''}</span>
-            </button>
-            
-            <div className="relative" onMouseLeave={() => setShowReactionMenu(false)}>
-              <button 
-                onMouseEnter={() => setShowReactionMenu(true)}
-                onClick={() => handleReact('like')}
-                className={`flex items-center gap-1.5 transition-colors group ${userReaction ? 'text-pink-500' : 'hover:text-pink-500'}`}
-              >
-                <div className={`p-2 rounded-full transition-colors ${userReaction ? 'bg-pink-500/10' : 'group-hover:bg-pink-500/10'}`}>
-                  {userReaction ? (
-                     <span className="text-lg leading-none">{REACTIONS.find(r => r.type === userReaction)?.icon || '👍'}</span>
-                  ) : (
-                    <Heart size={18} />
-                  )}
-                </div>
-                <span className="text-sm">{reactions.length > 0 ? reactions.length : ''}</span>
-              </button>
 
-              {showReactionMenu && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-2 z-20">
-                  <div className="bg-[#1a1f2b] border border-white/10 rounded-full shadow-lg p-1 flex gap-1">
-                    {REACTIONS.map(reaction => (
-                      <button
-                        key={reaction.type}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReact(reaction.type);
-                        }}
-                        className="w-10 h-10 hover:bg-white/10 rounded-full flex items-center justify-center text-xl transition-transform hover:scale-125"
-                      >
-                        {reaction.icon}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Action Row: The 4 X Buttons */}
+          <div className="flex items-center justify-between mt-3 text-neutral-500 max-w-md pt-1">
+            {/* 1. Reply / Comments */}
+            <button 
+              type="button"
+              onClick={toggleComments}
+              className="flex items-center gap-1.5 hover:text-[#1d9bf0] transition-colors group"
+            >
+              <div className="p-1.5 rounded-full group-hover:bg-[#1d9bf0]/10 transition-colors">
+                <MessageCircle className="w-4 h-4" />
+              </div>
+              <span className="text-xs">{commentsCount > 0 ? commentsCount : ''}</span>
+            </button>
+
+            {/* 2. Repost */}
+            <button 
+              type="button"
+              onClick={() => setShowRepostModal(true)}
+              className="flex items-center gap-1.5 hover:text-[#00ba7c] transition-colors group"
+            >
+              <div className="p-1.5 rounded-full group-hover:bg-[#00ba7c]/10 transition-colors">
+                <Repeat2 className="w-4 h-4" />
+              </div>
+              <span className="text-xs">{repostsCount > 0 ? repostsCount : ''}</span>
+            </button>
+
+            {/* 3. Like (Optimistic) */}
+            <button 
+              type="button"
+              onClick={handleToggleLike}
+              className={`flex items-center gap-1.5 transition-colors group ${isLikedByMe ? 'text-[#f91880]' : 'hover:text-[#f91880]'}`}
+            >
+              <div className={`p-1.5 rounded-full transition-all ${isLikedByMe ? 'bg-[#f91880]/10 scale-110' : 'group-hover:bg-[#f91880]/10'}`}>
+                <Heart className={`w-4 h-4 ${isLikedByMe ? 'fill-[#f91880] text-[#f91880]' : ''}`} />
+              </div>
+              <span className={`text-xs ${isLikedByMe ? 'font-bold text-[#f91880]' : ''}`}>
+                {likesCount > 0 ? likesCount : ''}
+              </span>
+            </button>
+
+            {/* 4. Share */}
+            <button 
+              type="button"
+              onClick={handleShare}
+              className="flex items-center gap-1.5 hover:text-[#1d9bf0] transition-colors group"
+              title="Condividi o copia link"
+            >
+              <div className="p-1.5 rounded-full group-hover:bg-[#1d9bf0]/10 transition-colors">
+                <Share2 className="w-4 h-4" />
+              </div>
+            </button>
           </div>
         </div>
       </div>
 
+      {/* Inline Comments Thread */}
       {showComments && (
-        <div className="mt-4 pl-12">
-          <div className="space-y-3 mb-4">
-            {comments.map(c => (
-              <div key={c._id} className="flex gap-2">
-                <div className="w-8 h-8 rounded-full bg-slate-700 overflow-hidden shrink-0">
-                  {c.author?.avatar ? (
-                    <img src={c.author.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="flex items-center justify-center w-full h-full text-xs font-bold text-white">
-                      {c.author?.name?.charAt(0) || 'U'}
-                    </span>
-                  )}
-                </div>
-                <div className="bg-[#1a1f2b] rounded-xl rounded-tl-none p-3 border border-white/5 flex-1">
-                  <div className="flex items-baseline gap-2 mb-1">
-                    <span className="font-bold text-white text-sm">{c.author?.name}</span>
-                    <span className="text-xs text-gray-500">{formatTimeAgo(c.createdAt)}</span>
-                  </div>
-                  <p className="text-sm text-gray-300">{c.content}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <form onSubmit={handleCommentSubmit} className="flex gap-2">
+        <div className="mt-4 pt-3 border-t border-white/5 pl-12">
+          {/* Quick Reply Form */}
+          <form onSubmit={handleCommentSubmit} className="flex items-center gap-2 mb-4">
             <input 
               type="text" 
               value={newComment}
               onChange={(e) => setNewComment(e.target.value)}
-              placeholder="Scrivi un commento..." 
-              className="flex-1 bg-[#1a1f2b] border border-white/10 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              placeholder={`Rispondi a ${author.username || '@trader'}...`} 
+              className="flex-1 bg-[#16181C] border border-white/10 focus:border-[#1d9bf0] rounded-full px-4 py-2 text-sm text-white placeholder-neutral-500 outline-none transition-colors"
             />
             <button 
               type="submit"
-              disabled={!newComment.trim()}
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600 disabled:opacity-50 transition-colors"
+              disabled={!newComment.trim() || isSubmittingComment}
+              className="bg-[#1d9bf0] hover:bg-[#1a8cd8] disabled:opacity-50 text-white font-bold text-xs px-4 py-2 rounded-full transition-colors shrink-0"
             >
-              <Send size={16} />
+              {isSubmittingComment ? '...' : 'Rispondi'}
             </button>
           </form>
+
+          {/* Comments List */}
+          {isLoadingComments ? (
+            <div className="text-xs text-neutral-500 py-2">Caricamento risposte...</div>
+          ) : comments.length === 0 ? (
+            <div className="text-xs text-neutral-500 py-1">Nessuna risposta ancora. Sii il primo a rispondere!</div>
+          ) : (
+            <div className="space-y-3">
+              {comments.map(c => (
+                <div key={c._id} className="flex gap-2.5 items-start">
+                  <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center font-bold text-white text-xs overflow-hidden shrink-0 mt-0.5">
+                    {c.author?.avatar ? (
+                      <img src={c.author.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <span>{c.author?.name ? c.author.name.charAt(0) : 'U'}</span>
+                    )}
+                  </div>
+                  <div className="bg-[#16181C] rounded-2xl p-3 border border-white/5 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-1 leading-none">
+                      <span className="font-bold text-white text-xs">{c.author?.name || 'Trader'}</span>
+                      <span className="text-neutral-500 text-[11px]">{c.author?.username || '@trader'}</span>
+                      <span className="text-neutral-500 text-[10px]">·</span>
+                      <span className="text-neutral-500 text-[11px]">{formatTimeAgo(c.createdAt)}</span>
+                    </div>
+                    <p className="text-xs text-neutral-200 whitespace-pre-wrap break-words">
+                      {parseCashtagsAndMentions(c.content, onSelectTicker)}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
+      {/* Repost Modal */}
       {showRepostModal && (
         <RepostModal 
           post={post} 
@@ -311,7 +425,7 @@ const PostCard = ({ post, onInteraction }) => {
           }} 
         />
       )}
-    </div>
+    </article>
   );
 };
 

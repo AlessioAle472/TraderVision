@@ -36,13 +36,15 @@ const upload = multer({
   }
 });
 
-// GET /api/social/posts - Get feed
+// GET /api/social/posts - Get feed with optional ticker, search, or group filter
 router.get('/posts', protect, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     const groupId = req.query.groupId || null;
+    const ticker = req.query.ticker ? req.query.ticker.trim() : null;
+    const search = req.query.search ? req.query.search.trim() : null;
 
     const query = { isFlagged: false };
     if (groupId) {
@@ -51,26 +53,45 @@ router.get('/posts', protect, async (req, res) => {
       query.groupId = null; // Solo post pubblici se non specificato
     }
 
+    if (ticker) {
+      const cleanTicker = ticker.replace('$', '');
+      query.content = { $regex: new RegExp(`\\$${cleanTicker}\\b`, 'i') };
+    } else if (search) {
+      query.content = { $regex: new RegExp(search, 'i') };
+    }
+
     const posts = await Post.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Math.min(limit, 50)) // Cap at 50 to prevent large payload abuse
-      .populate('author', 'name username avatar')
+      .populate('author', 'name username email avatar isMaster role plan')
       .populate('reposts', 'name username')
       .populate({
         path: 'originalPostId',
-        populate: { path: 'author', select: 'name username avatar' }
+        populate: { path: 'author', select: 'name username email avatar isMaster role plan' }
       })
       .exec();
 
-    // Map over posts to generate missing usernames retroactively if needed
+    // Map over posts to generate missing usernames and handle null authors safely
     const formattedPosts = posts.map(post => {
-      const authorObj = post.author ? post.author.toObject() : { name: 'Unknown' };
+      const authorObj = post.author ? post.author.toObject() : { 
+        name: 'TraderVision Member', 
+        username: '@trader', 
+        avatar: null,
+        isMaster: false,
+        role: 'user'
+      };
       if (!authorObj.username) {
-        authorObj.username = '@user';
-        authorObj.name = authorObj.name || 'User';
+        authorObj.username = authorObj.email ? `@${authorObj.email.split('@')[0]}` : '@trader';
       }
-      return { ...post.toObject(), author: authorObj };
+      if (!authorObj.name) {
+        authorObj.name = authorObj.email ? authorObj.email.split('@')[0] : 'Trader';
+      }
+      return { 
+        ...post.toObject(), 
+        author: authorObj,
+        commentsCount: post.commentsCount || 0
+      };
     });
 
     res.json(formattedPosts);
@@ -83,7 +104,7 @@ router.get('/posts', protect, async (req, res) => {
 // POST /api/social/posts - Create new post
 router.post('/posts', protect, upload.single('media'), async (req, res) => {
   try {
-    const { content, groupId } = req.body;
+    const { content, groupId, sentiment } = req.body;
     
     if (!content && !req.file) {
       return res.status(400).json({ error: 'Content or media is required' });
@@ -95,7 +116,6 @@ router.post('/posts', protect, upload.single('media'), async (req, res) => {
       const moderationResult = await moderateContent(content);
       if (!moderationResult.isApproved) {
         isFlagged = true;
-        // Depending on strictness, we could return 403. Let's just flag it for now so it's hidden from the feed.
       }
     }
 
@@ -104,18 +124,22 @@ router.post('/posts', protect, upload.single('media'), async (req, res) => {
       mediaUrl = `/uploads/social/${req.file.filename}`;
     }
 
+    const validSentiment = ['bullish', 'bearish'].includes(sentiment) ? sentiment : null;
+
     const post = new Post({
-      author: req.user._id, // Assumes protect middleware attaches user
+      author: req.user._id,
       content: content || '',
       mediaUrl: mediaUrl,
       groupId: groupId || null,
+      sentiment: validSentiment,
+      commentsCount: 0,
       isFlagged: isFlagged
     });
 
     await post.save();
     
     const populatedPost = await Post.findById(post._id)
-        .populate('author', 'name username avatar')
+        .populate('author', 'name username avatar isMaster role plan')
         .exec();
 
     res.status(201).json(populatedPost);
@@ -282,8 +306,11 @@ router.post('/posts/:id/comments', protect, async (req, res) => {
 
     await comment.save();
     
+    // Increment commentsCount on the post
+    await Post.findByIdAndUpdate(post._id, { $inc: { commentsCount: 1 } }).catch(() => {});
+
     const populatedComment = await Comment.findById(comment._id)
-      .populate('author', 'name username avatar')
+      .populate('author', 'name username avatar isMaster role plan')
       .exec();
 
     res.status(201).json(populatedComment);

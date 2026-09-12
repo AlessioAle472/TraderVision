@@ -20,6 +20,15 @@ const postSchema = new mongoose.Schema({
     type: String,
     default: null
   },
+  sentiment: {
+    type: String,
+    enum: ['bullish', 'bearish', null],
+    default: null
+  },
+  commentsCount: {
+    type: Number,
+    default: 0
+  },
   reactions: [{
     user: {
       type: mongoose.Schema.Types.ObjectId,
