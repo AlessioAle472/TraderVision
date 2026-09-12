@@ -1,238 +1,319 @@
-import { useMemo, useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle, Star, SlidersHorizontal, X } from 'lucide-react';
+import { 
+  ArrowUpRight, ArrowDownRight, Star, AlertCircle, 
+  X, ChevronRight, Zap, Filter, SlidersHorizontal, 
+  Search, ArrowUpDown, TrendingUp, TrendingDown, Target
+} from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext';
-import Sparkline from './Sparkline';
-import { SkeletonRow } from './SkeletonLoader';
 import InfoTooltip from './InfoTooltip';
 
-// Smart Score ranges for filtering
-const SCORE_RANGES = [
- { label:'Tutti', min: 0, max: 100 },
- { label:'Forte Acquisto ≥ 80', min: 80, max: 100 },
- { label:'Acquisto 60-79', min: 60, max: 79 },
- { label:'Mantieni 40-59', min: 40, max: 59 },
- { label:'Vendi < 40', min: 0, max: 39 },
-];
+// Mini Sparkline SVG
+const Sparkline = ({ data, isPositive }) => {
+  if (!data || data.length < 2) return <div className="h-6 w-20 bg-white/5 rounded-md"></div>;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const width = 84;
+  const height = 26;
+
+  const points = data.map((val, idx) => {
+    const x = (idx / (data.length - 1)) * width;
+    const y = height - ((val - min) / range) * (height - 6) - 3;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const strokeColor = isPositive ? '#10b981' : '#f43f5e';
+  const fillColor = isPositive ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+
+  return (
+    <svg width={width} height={height} className="overflow-visible">
+      <defs>
+        <linearGradient id={`grad-${isPositive ? 'pos' : 'neg'}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={strokeColor} stopOpacity="0.3" />
+          <stop offset="100%" stopColor={strokeColor} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon
+        points={`0,${height} ${points} ${width},${height}`}
+        fill={`url(#grad-${isPositive ? 'pos' : 'neg'})`}
+      />
+      <polyline
+        points={points}
+        fill="none"
+        stroke={strokeColor}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+};
 
 const MARKET_LABELS = {
- EQUITY:'📈 Equity',
- CRYPTO:'₿ Crypto',
- FUTURE:'🛢️ Futures',
- FOREX:'💱 Forex',
- CURRENCY:'💱 Forex',
- COMMODITIES:'🛢️ Commodities',
- INDICES:'📊 Indices',
+  EQUITY: 'Azioni',
+  FOREX: 'Valute FX',
+  CRYPTO: 'Criptovalute',
+  COMMODITIES: 'Materie Prime',
+  INDICES: 'Indici Macro'
 };
 
-const MomentumBar = ({ value }) => {
- const isPositive = value >= 0;
- const absValue = Math.min(Math.abs(value), 5); // Max 5% for visual scaling
- const width = (absValue / 5) * 50; // 50% relative to center
+const SCORE_RANGES = [
+  { label: 'Tutti', min: 0, max: 100 },
+  { label: 'Strong Buy (≥80)', min: 80, max: 100 },
+  { label: 'Buy (60-79)', min: 60, max: 79 },
+  { label: 'Neutral (40-59)', min: 40, max: 59 },
+  { label: 'Sell (<40)', min: 0, max: 39 }
+];
 
- return (
- <div className="flex items-center justify-center w-24 h-5 relative">
- <div className="absolute left-1/2 w-px h-full bg-slate-700/50 -translate-x-1/2 z-10"/>
- <div className="w-full flex">
- <div className="w-1/2 flex justify-end">
- {!isPositive && (
- <div 
- className="h-1.5 bg-danger rounded-l-full shadow-[0_0_8px_rgba(239,68,68,0.4)]"
- style={{ width:`${width}%`}} 
- />
- )}
- </div>
- <div className="w-1/2 flex justify-start">
- {isPositive && (
- <div 
- className="h-1.5 bg-success rounded-r-full shadow-[0_0_8px_rgba(34,197,94,0.4)]"
- style={{ width:`${width}%`}} 
- />
- )}
- </div>
- </div>
- </div>
- );
-};
+const MarketTable = ({ assets = [], loading, activeCategory, onCategoryChange }) => {
+  const navigate = useNavigate();
+  const { isWatched, toggleWatchlist } = useWatchlist();
+  const [scoreFilter, setScoreFilter] = useState(0);
+  const [sortBy, setSortBy] = useState('smartScore'); // 'smartScore', 'var1D', 'prezzo'
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc', 'asc'
 
-const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryChange }) => {
- const navigate = useNavigate();
- const { toggleWatchlist, isWatched } = useWatchlist();
+  const categories = ['EQUITY', 'FOREX', 'CRYPTO', 'COMMODITIES', 'INDICES'];
 
- // Score Filters (Still relevant for secondary filtering)
- const [scoreFilter, setScoreFilter] = useState(0);
+  const filteredAndSortedAssets = useMemo(() => {
+    let result = [...assets];
+    const range = SCORE_RANGES[scoreFilter];
+    result = result.filter(a => (a.smartScore || 0) >= range.min && (a.smartScore || 0) <= range.max);
 
- // Available categories (using fixed list or dynamic)
- const categories = ['EQUITY','FOREX','CRYPTO','COMMODITIES','INDICES'];
+    result.sort((a, b) => {
+      let valA = a[sortBy] ?? 0;
+      let valB = b[sortBy] ?? 0;
+      if (typeof valA === 'string') valA = parseFloat(valA) || 0;
+      if (typeof valB === 'string') valB = parseFloat(valB) || 0;
+      return sortOrder === 'desc' ? valB - valA : valA - valB;
+    });
 
- const filteredAssets = useMemo(() => {
- const range = SCORE_RANGES[scoreFilter];
- return assets.filter((a) => {
- return a.smartScore >= range.min && a.smartScore <= range.max;
- });
- }, [assets, scoreFilter]);
+    return result;
+  }, [assets, scoreFilter, sortBy, sortOrder]);
 
- const hasActiveFilters = activeCategory !=='EQUITY' || scoreFilter !== 0;
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortBy(field);
+      setSortOrder('desc');
+    }
+  };
 
- const resetFilters = () => {
- onCategoryChange('EQUITY');
- setScoreFilter(0);
- };
+  const getSmartScoreBadge = (score) => {
+    if (score >= 80) return { bg: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400', label: 'STRONG BUY', glow: 'shadow-emerald-500/20' };
+    if (score >= 60) return { bg: 'bg-green-500/10 border-green-500/30 text-green-400', label: 'BUY', glow: 'shadow-green-500/20' };
+    if (score >= 40) return { bg: 'bg-amber-500/10 border-amber-500/30 text-amber-400', label: 'NEUTRAL', glow: 'shadow-amber-500/20' };
+    if (score >= 25) return { bg: 'bg-rose-500/10 border-rose-500/30 text-rose-400', label: 'SELL', glow: 'shadow-rose-500/20' };
+    return { bg: 'bg-rose-700/10 border-rose-700/30 text-rose-500', label: 'STRONG SELL', glow: 'shadow-rose-700/20' };
+  };
 
- const getSmartScoreColor = (score) => {
- if (score > 70) return'text-success bg-success/10 shadow-[0_0_12px_rgba(34,197,94,0.15)]';
- if (score >= 40) return'text-yellow-400 bg-yellow-400/10';
- return'text-danger bg-danger/10';
- };
+  return (
+    <div className="bg-gradient-to-b from-surface via-surface to-slate-950 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10">
+      
+      {/* ── Filter Bar Header ─────────────────────────────────────────────── */}
+      <div className="p-6 bg-slate-900/60 border-b border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Asset Class Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0 scrollbar-none">
+          {categories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => onCategoryChange(cat)}
+              className={`px-4 py-2 rounded-2xl text-xs font-black uppercase tracking-wider transition-all duration-300 shrink-0 ${
+                activeCategory === cat
+                  ? 'bg-primary text-white shadow-lg shadow-primary/30 border border-primary/50'
+                  : 'bg-black/30 text-text-secondary hover:text-white border border-white/5'
+              }`}
+            >
+              {MARKET_LABELS[cat] ?? cat}
+            </button>
+          ))}
+        </div>
 
- // Removed early return for loading to handle it inside the table body
-
- return (
- <div className="bg-surface rounded-2xl overflow-hidden shadow-2xl">
- {/* Table Header Filter Bar */}
- <div className="px-6 py-4 bg-background flex flex-wrap gap-4 items-center justify-between">
- <div className="flex flex-wrap gap-1.5">
- {categories.map((cat) => (
- <button
- key={cat}
- onClick={() => onCategoryChange(cat)}
- className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all duration-300 ${
- activeCategory === cat
- ?'bg-primary text-white shadow-lg shadow-primary/30'
- :'bg-background text-text-secondary hover:text-text'
- }`}
- >
- {MARKET_LABELS[cat] ?? cat}
- </button>
- ))}
- </div>
-
- <div className="flex flex-wrap gap-1.5">
- {SCORE_RANGES.map((range, i) => (
- <button
- key={range.label}
- onClick={() => setScoreFilter(i)}
- className={`px-3 py-1.5 rounded-xl text-[10px] uppercase tracking-tighter font-black transition-all duration-300 ${
- scoreFilter === i
- ?'bg-surface-hover text-text'
- :'bg-background text-text-secondary hover:text-text'
- }`}
- >
- {range.label}
- </button>
- ))}
- {hasActiveFilters && (
- <button
- onClick={resetFilters}
- className="ml-2 flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] uppercase font-bold text-text-secondary hover:text-text bg-surface transition-all"
- >
- <X className="w-3 h-3"/>
- Azzera
- </button>
- )}
- </div>
- </div>
-
- {/* Table Content */}
- <div className="table-scroll"style={{ WebkitOverflowScrolling:'touch' }}>
- <table className="w-full text-left min-w-[800px]">
- <thead className="bg-surface-hover">
- <tr>
- <th className="p-4 w-10"></th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest">Asset</th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">Prezzo</th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-right">24H %</th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">
- Momentum
- <InfoTooltip text="Variazione percentuale dei prezzi negli ultimi 7 giorni"/>
- </th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">Trend (7G)</th>
- <th className="p-4 text-[11px] font-bold text-text-secondary uppercase tracking-widest text-center">
- Smart Quant
- <InfoTooltip text="Punteggio quantitativo proprietario 0-100 basato su analisi tecnica, fondamentali e stagionalità"/>
- </th>
- </tr>
- </thead>
- <tbody className="divide-y divide-border">
- {loading && assets.length === 0 ? (
- // Mostra 8 righe skeleton durante il caricamento iniziale
- [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
- ) : filteredAssets.length === 0 ? (
- <tr>
- <td colSpan="7"className="p-12 text-center text-text-secondary bg-surface-hover/10">
- <div className="flex flex-col items-center gap-2">
- <AlertCircle className="w-8 h-8 opacity-20"/>
- <p className="font-medium">Nessun asset corrispondente ai criteri di ricerca.</p>
- </div>
- </td>
- </tr>
- ) : (
- filteredAssets.map((asset) => (
- <tr
- key={asset.ticker}
- className="hover:bg-primary/5 transition-all group cursor-pointer"
- onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
- >
- <td className="p-4 w-10"onClick={(e) => e.stopPropagation()}>
- <button onClick={() => toggleWatchlist(asset.ticker)} className="focus:outline-none">
- <Star className={`w-4 h-4 transition-all ${isWatched(asset.ticker) ?'fill-yellow-400 text-yellow-400' :'text-slate-600 hover:text-yellow-400'}`} />
- </button>
- </td>
- <td className="p-4">
- <div className="flex items-center gap-3">
- <div className="w-9 h-9 rounded-xl bg-surface-hover flex items-center justify-center font-black text-[12px] text-text">
- {asset.ticker.substring(0, 1)}
- </div>
- <div>
- <div className="text-sm font-bold tracking-tight text-text group-hover:text-primary transition-colors">{asset.ticker}</div>
- <div className="text-[10px] text-text-secondary uppercase font-black tracking-tighter opacity-60">{asset.settore}</div>
- </div>
- </div>
- </td>
- <td className="p-4 text-right font-mono text-sm text-text font-medium">
- {typeof asset.prezzo ==='number' ?`$${asset.prezzo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`:'---'}
- </td>
- <td className="p-4 text-right">
- <div className={`inline-flex items-center gap-1 font-mono text-sm font-bold ${asset.var1D >= 0 ?'text-success' :'text-danger'}`}>
- {asset.var1D >= 0 ? <ArrowUpRight className="w-3.5 h-3.5"/> : <ArrowDownRight className="w-3.5 h-3.5"/>}
- {Math.abs(asset.var1D).toFixed(2)}%
- </div>
- </td>
- <td className="p-4">
- <div className="flex justify-center">
- <MomentumBar value={asset.momentum || 0} />
- </div>
- </td>
- <td className="p-4">
- <div className="flex justify-center">
- <Sparkline data={asset.sparkline} isPositive={asset.is7DUp} />
- </div>
- </td>
- <td className="p-4 text-center">
-    <div className="flex flex-col items-center gap-1">
-      <div className="flex items-center gap-1.5">
-        <span className={`px-2.5 py-1 rounded-xl text-xs font-black tracking-wider transition-all ${getSmartScoreColor(asset.smartScore)}`}>
-          {asset.smartScore || 0}
-        </span>
-        <span className="text-[10px] font-black uppercase text-text-secondary">
-          {asset.smartScoreLabel || (asset.smartScore >= 60 ? 'BUY' : asset.smartScore <= 40 ? 'SELL' : 'HOLD')}
-        </span>
+        {/* Quant Score Range Filters */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+          <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary flex items-center gap-1 shrink-0">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-primary" /> Filtro Score:
+          </span>
+          {SCORE_RANGES.map((range, i) => (
+            <button
+              key={range.label}
+              onClick={() => setScoreFilter(i)}
+              className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all shrink-0 ${
+                scoreFilter === i
+                  ? 'bg-white/10 text-white border border-white/20 shadow-md'
+                  : 'bg-black/20 text-text-secondary hover:text-white border border-white/5'
+              }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
       </div>
-      {asset.tradeSetup?.setupName && (
-        <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold uppercase tracking-wider">
-          {asset.tradeSetup.setupName}
-        </span>
-      )}
+
+      {/* ── Table Content ─────────────────────────────────────────────────── */}
+      <div className="table-scroll overflow-x-auto">
+        <table className="w-full text-left min-w-[900px]">
+          <thead className="bg-black/30 border-b border-white/5">
+            <tr>
+              <th className="p-4 w-12 text-center">★</th>
+              <th className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest">
+                Strumento / Asset
+              </th>
+              <th 
+                className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest text-right cursor-pointer hover:text-text"
+                onClick={() => handleSort('prezzo')}
+              >
+                <span className="inline-flex items-center gap-1">
+                  Prezzo Live <ArrowUpDown className="w-3 h-3" />
+                </span>
+              </th>
+              <th 
+                className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest text-right cursor-pointer hover:text-text"
+                onClick={() => handleSort('var1D')}
+              >
+                <span className="inline-flex items-center gap-1">
+                  Var 24H <ArrowUpDown className="w-3 h-3" />
+                </span>
+              </th>
+              <th className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest text-center">
+                Trend & Sparkline
+              </th>
+              <th 
+                className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest text-center cursor-pointer hover:text-text"
+                onClick={() => handleSort('smartScore')}
+              >
+                <span className="inline-flex items-center gap-1">
+                  SmartQuant Score <ArrowUpDown className="w-3 h-3 text-primary" />
+                </span>
+              </th>
+              <th className="p-4 text-[11px] font-black text-text-secondary uppercase tracking-widest text-center">
+                Setup Operativo Rilevato
+              </th>
+              <th className="p-4 w-12 text-center"></th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-white/5 font-medium">
+            {loading && assets.length === 0 ? (
+              [...Array(6)].map((_, i) => (
+                <tr key={i} className="animate-pulse">
+                  <td colSpan="8" className="p-6 bg-white/[0.01]">
+                    <div className="h-8 bg-white/5 rounded-2xl w-full"></div>
+                  </td>
+                </tr>
+              ))
+            ) : filteredAndSortedAssets.length === 0 ? (
+              <tr>
+                <td colSpan="8" className="p-16 text-center text-text-secondary">
+                  <div className="flex flex-col items-center gap-3">
+                    <AlertCircle className="w-10 h-10 text-text-secondary/30" />
+                    <p className="text-sm font-bold">Nessun asset corrispondente ai criteri quantitativi selezionati.</p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              filteredAndSortedAssets.map((asset) => {
+                const badge = getSmartScoreBadge(asset.smartScore || 0);
+                const isPositive = (asset.var1D || 0) >= 0;
+
+                return (
+                  <tr
+                    key={asset.ticker}
+                    onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
+                    className="hover:bg-primary/[0.06] transition-all cursor-pointer group"
+                  >
+                    {/* Watchlist Star */}
+                    <td className="p-4 text-center" onClick={(e) => e.stopPropagation()}>
+                      <button 
+                        onClick={() => toggleWatchlist(asset.ticker)} 
+                        className="focus:outline-none p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                      >
+                        <Star className={`w-4 h-4 transition-all ${isWatched(asset.ticker) ? 'fill-yellow-400 text-yellow-400' : 'text-slate-600 hover:text-yellow-400'}`} />
+                      </button>
+                    </td>
+
+                    {/* Asset Name and Ticker */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 border border-white/5 flex items-center justify-center font-black text-sm text-white shadow-lg group-hover:border-primary/40 transition-colors">
+                          {asset.ticker.substring(0, 2)}
+                        </div>
+                        <div>
+                          <div className="text-sm font-black tracking-tight text-white group-hover:text-primary transition-colors flex items-center gap-1.5">
+                            {asset.ticker}
+                          </div>
+                          <div className="text-[10px] text-text-secondary uppercase font-mono tracking-wider">
+                            {asset.settore || 'EQUITY'}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Price */}
+                    <td className="p-4 text-right font-mono text-sm font-bold text-white">
+                      {typeof asset.prezzo === 'number' ? `$${asset.prezzo.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}` : '---'}
+                    </td>
+
+                    {/* 24H Change */}
+                    <td className="p-4 text-right">
+                      <span className={`inline-flex items-center gap-1 font-mono text-xs font-black px-2 py-1 rounded-lg ${isPositive ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                        {isPositive ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
+                        {Math.abs(asset.var1D || 0).toFixed(2)}%
+                      </span>
+                    </td>
+
+                    {/* Sparkline & Direction */}
+                    <td className="p-4">
+                      <div className="flex justify-center">
+                        <Sparkline data={asset.sparkline} isPositive={isPositive} />
+                      </div>
+                    </td>
+
+                    {/* SmartQuant Score & Pill */}
+                    <td className="p-4 text-center">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all group-hover:scale-105" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                        <span className={`text-base font-black font-mono tracking-tighter ${badge.bg.split(' ')[2]}`}>
+                          {asset.smartScore || 0}
+                        </span>
+                        <div className="h-3 w-px bg-white/10" />
+                        <span className={`text-[10px] font-black uppercase tracking-wider ${badge.bg.split(' ')[2]}`}>
+                          {asset.smartScoreLabel || badge.label}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Setup Detected */}
+                    <td className="p-4 text-center">
+                      {asset.tradeSetup?.setupName ? (
+                        <div className="inline-flex flex-col items-center">
+                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shadow-sm">
+                            {asset.tradeSetup.setupName}
+                          </span>
+                          {asset.tradeSetup?.targetPrice && (
+                            <span className="text-[9px] font-mono text-text-secondary mt-0.5">
+                              TP: ${asset.tradeSetup.targetPrice}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-text-secondary uppercase font-mono">Consolidamento</span>
+                      )}
+                    </td>
+
+                    {/* Action Chevron */}
+                    <td className="p-4 text-center text-text-secondary group-hover:text-primary transition-colors">
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </td>
- </tr>
- ))
- )}
- </tbody>
- </table>
- </div>
- </div>
- );
+  );
 };
 
 export default MarketTable;
