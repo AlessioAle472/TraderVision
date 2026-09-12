@@ -1,197 +1,363 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import MarketTable from '../components/MarketTable';
 import MacroCards from '../components/MacroCards';
 import CustomCalendar from '../components/ExperimentalCalendar/CustomCalendar';
 import AIMarketBriefing from '../components/AIMarketBriefing';
 import GoogleAd from '../components/GoogleAd';
 import { useWatchlist } from '../context/WatchlistContext';
-import { TrendingUp, Activity, Shield, RefreshCw, Target } from 'lucide-react';
+import { 
+  TrendingUp, TrendingDown, Activity, Shield, RefreshCw, Target, 
+  Zap, Crosshair, Sparkles, Compass, ArrowUpRight, ArrowDownRight, 
+  Layers, BarChart2, CheckCircle2, ChevronRight, Gauge, Radio
+} from 'lucide-react';
 import { SkeletonCard } from '../components/SkeletonLoader';
 import PremiumGate from '../components/PremiumGate';
 import { useAuth } from '../context/AuthContext';
 import { useDashboardData, useMacroOutlook, useAiBriefing } from '../hooks/useApiQuery';
 import ErrorBoundary from '../components/ErrorBoundary';
 import WidgetErrorFallback from '../components/WidgetErrorFallback';
+import InfoTooltip from '../components/InfoTooltip';
 
 const TAB_CONFIG = {
- EQUITY: null, // default trending
- FOREX: ['EURUSD=X','GBPUSD=X','USDJPY=X','USDCAD=X'],
- CRYPTO: ['BTC-USD','ETH-USD','SOL-USD','XRP-USD'],
- COMMODITIES: ['GC=F','SI=F','CL=F','HG=F','NG=F'],
- INDICES: ['^GSPC','^IXIC','^DJI','^RUT','^VIX']
+  EQUITY: null, // default trending
+  FOREX: ['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCAD=X'],
+  CRYPTO: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD'],
+  COMMODITIES: ['GC=F', 'SI=F', 'CL=F', 'HG=F', 'NG=F'],
+  INDICES: ['^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX']
 };
 
 const Dashboard = () => {
- const { watchlist } = useWatchlist();
- const { user } = useAuth();
- const [activeCategory, setActiveCategory] = useState('EQUITY');
- const [searchTerm, setSearchTerm] = useState('');
+  const { watchlist } = useWatchlist();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [activeCategory, setActiveCategory] = useState('EQUITY');
+  const [searchTerm, setSearchTerm] = useState('');
 
- let tickers = TAB_CONFIG[activeCategory];
- if (activeCategory ==='EQUITY' && watchlist.length > 0) {
- tickers = watchlist;
- }
+  let tickers = TAB_CONFIG[activeCategory];
+  if (activeCategory === 'EQUITY' && watchlist.length > 0) {
+    tickers = watchlist;
+  }
 
- const { data, isLoading: loading, refetch: refetchDashboard } = useDashboardData(tickers);
- const { data: macroData, refetch: refetchMacro } = useMacroOutlook();
- const { data: briefing, isLoading: briefingLoading, refetch: refetchBriefing } = useAiBriefing();
+  const { data, isLoading: loading, refetch: refetchDashboard } = useDashboardData(tickers);
+  const { data: macroData, refetch: refetchMacro } = useMacroOutlook();
+  const { data: briefing, isLoading: briefingLoading, refetch: refetchBriefing } = useAiBriefing();
 
- const handleRefresh = () => {
- refetchDashboard();
- refetchMacro();
- refetchBriefing();
- };
+  const handleRefresh = () => {
+    refetchDashboard();
+    refetchMacro();
+    refetchBriefing();
+  };
 
- const filteredAssets = (data?.assets || []).filter(asset => {
- const search = (searchTerm || '').toLowerCase();
- const ticker = (asset.ticker || '').toLowerCase();
- const name = (asset.name || '').toLowerCase();
- return ticker.includes(search) || name.includes(search);
- });
+  const assets = data?.assets || [];
+  const overview = data?.overview;
 
- const overview = data?.overview;
+  const filteredAssets = assets.filter(asset => {
+    const search = (searchTerm || '').toLowerCase();
+    const ticker = (asset.ticker || '').toLowerCase();
+    const name = (asset.name || '').toLowerCase();
+    return ticker.includes(search) || name.includes(search);
+  });
 
- return (
- <div className="max-w-7xl mx-auto space-y-8">
- <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
- <div className="space-y-3 flex-1">
- <div className="flex items-center gap-4 flex-wrap">
- <h1 className="text-3xl font-black text-text tracking-tight">Terminale di Mercato</h1>
- <div className="group relative">
- <span className="px-3 py-1.5 rounded-full bg-orange-500/10 text-orange-500/20 text-xs font-black tracking-widest uppercase flex items-center gap-2 cursor-help shadow-lg shadow-orange-500/5">
- <Target className="w-3.5 h-3.5"/>
- {macroData?.regime || 'ATTESA'}
- <span className="text-orange-100 bg-orange-500 px-1.5 py-0.5 rounded-md leading-none">{macroData?.score || 0}/100</span>
- </span>
- <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-surface text-xs text-text-secondary rounded-xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-30">
- Il regime macroeconomico quantitativo stimato è <em>{macroData?.regime}</em>. Indica la direzione generale dei flussi di capitale istituzionale.
- </div>
- </div>
- </div>
- <p className="text-text-secondary font-medium">Panoramica quantitativa professionale e segnali di tendenza.</p>
- </div>
- <div className="flex items-center gap-4 w-full md:w-auto">
- <button 
- onClick={handleRefresh}
- className="p-3 rounded-2xl bg-surface hover:text-text-secondary hover:text-text transition-all shadow-xl group shrink-0"
- disabled={loading}
- >
- <RefreshCw className={`w-5 h-5 ${loading ?'animate-spin' :''} group-hover:rotate-180 transition-transform duration-500`} />
- </button>
- </div>
- </header>
+  // Top Ranked Opportunities by SmartQuant Score
+  const topQuantPick = useMemo(() => {
+    if (!assets || assets.length === 0) return null;
+    const sorted = [...assets].sort((a, b) => (b.smartScore || 0) - (a.smartScore || 0));
+    return sorted[0];
+  }, [assets]);
 
- {user?.role ==='admin' && (
- <section className="mb-10">
- <PremiumGate>
- <ErrorBoundary fallback={<WidgetErrorFallback title="AI Market Briefing Error" />}>
- <AIMarketBriefing 
- data={briefing} 
- loading={briefingLoading}
- onSubscribe={() => window.location.href ='/daily-news'} 
- />
- </ErrorBoundary>
- </PremiumGate>
- </section>
- )}
+  // Market Breadth: Percentage of assets with Bullish/Bearish bias
+  const marketSentiment = useMemo(() => {
+    if (!assets || assets.length === 0) return { bullishPct: 60, bearishPct: 40, neutralCount: 0 };
+    const bullish = assets.filter(a => (a.smartScore || 0) >= 60).length;
+    const bearish = assets.filter(a => (a.smartScore || 0) <= 40).length;
+    const neutral = assets.length - bullish - bearish;
+    const bullishPct = Math.round((bullish / assets.length) * 100);
+    const bearishPct = Math.round((bearish / assets.length) * 100);
+    return { bullishPct, bearishPct, neutralCount: neutral, bullishCount: bullish, bearishCount: bearish };
+  }, [assets]);
 
- <section className="mb-10">
- <GoogleAd />
- </section>
+  return (
+    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+      {/* ── 1. Hero Terminal Ribbon ────────────────────────────────────────── */}
+      <div className="relative rounded-[2.5rem] bg-gradient-to-br from-slate-900 via-surface to-slate-950 p-6 md:p-8 border border-white/10 shadow-2xl overflow-hidden">
+        {/* Glow ambient background effects */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
+        <div className="absolute bottom-0 left-1/3 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
- {/* KPI Bar */}
- <div className="relative pt-2 pb-6 transition-colors duration-300">
- <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
- {loading && !overview ? (
- <>
- <SkeletonCard />
- <SkeletonCard />
- <SkeletonCard />
- </>
- ) : (
- <>
- <div className="bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
- <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
- <TrendingUp className="w-12 h-12 text-primary"/>
- </div>
- <h3 className="text-text-secondary font-medium text-sm mb-2 flex items-center gap-2">
- <TrendingUp className="w-4 h-4 text-primary"/> Indice S&P 500
- </h3>
- <div className="flex items-baseline gap-3">
- <div className="text-2xl font-bold text-text">
- {overview?.sp500?.price ? Number(overview.sp500.price).toLocaleString() :'---'}
- </div>
- <div className={`text-sm font-semibold ${overview?.sp500?.isUp ?'text-success' :'text-danger'}`}>
- {overview?.sp500?.change ?`${overview.sp500.isUp ?'+' :''}${overview.sp500.change.toFixed(2)}%`:'0.00%'}
- </div>
- </div>
- <p className="text-[10px] text-text-secondary/50 mt-2 uppercase tracking-wider font-bold">Indice S&P 500</p>
- </div>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5 shadow-lg shadow-emerald-500/5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                QUANT ENGINE LIVE v2.0
+              </span>
+              <span className="px-3 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-black tracking-widest uppercase flex items-center gap-1.5">
+                <Radio className="w-3 h-3 text-primary animate-pulse" />
+                4-PILLAR PRECISION
+              </span>
+            </div>
 
- <div className="bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
- <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
- <Activity className="w-12 h-12 text-yellow-500"/>
- </div>
- <h3 className="text-text-secondary font-medium text-sm mb-2 flex items-center gap-2">
- <Activity className="w-4 h-4 text-yellow-500"/> VIX (Indice di Paura)
- </h3>
- <div className="flex items-baseline gap-3">
- <div className="text-2xl font-bold text-text">
- {overview?.vix?.price ? overview.vix.price.toFixed(2) :'---'}
- </div>
- <div className={`text-sm px-2 py-0.5 rounded-full font-bold ${overview?.vix?.isScary ?'bg-danger/20 text-danger' :'bg-success/20 text-success'}`}>
- {overview?.vix?.isScary ?'Alta Volatilità' :'Stabile'}
- </div>
- </div>
- <p className="text-[10px] text-text-secondary/50 mt-2 uppercase tracking-wider font-bold">Indice di Volatilità del Mercato</p>
- </div>
+            <h1 className="text-3xl md:text-5xl font-black text-text tracking-tight flex items-baseline gap-3">
+              Terminale Quantitativo
+            </h1>
+            <p className="text-sm md:text-base text-text-secondary max-w-2xl font-medium leading-relaxed">
+              Algoritmo multi-fattoriale istantaneo a 4 pilastri: <strong className="text-text">Tecnico (35%)</strong>, <strong className="text-text">Fondamentale (25%)</strong>, <strong className="text-text">Stagionalità (20%)</strong> e <strong className="text-text">Macro (20%)</strong>.
+            </p>
+          </div>
 
- <div className="bg-slate-800/50 backdrop-blur-md p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
- <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
- <Shield className="w-12 h-12 text-success"/>
- </div>
- <h3 className="text-text-secondary font-medium text-sm mb-2 flex items-center gap-2">
- <Shield className="w-4 h-4 text-success"/> Opportunità Alpha
- </h3>
- <div className="flex items-baseline gap-3">
- <div className="text-2xl font-bold text-text">
- {overview?.highScoresCount ?? 0}
- </div>
- <div className="text-sm text-text-secondary">
- Score ≥ 70
- </div>
- </div>
- <p className="text-[10px] text-text-secondary/50 mt-2 uppercase tracking-wider font-bold">Rilevamento Segnali Quantitativi</p>
- </div>
- </>
- )}
- </div>
- </div>
+          <div className="flex items-center gap-4 shrink-0">
+            {/* Regime Macro Badge */}
+            <div className="p-4 rounded-3xl bg-black/40 border border-white/10 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shadow-lg shadow-amber-500/10">
+                <Compass className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-widest font-black text-text-secondary">Regime Globale</div>
+                <div className="text-lg font-black text-amber-400 uppercase tracking-tight flex items-center gap-2">
+                  {macroData?.regime || 'ATTESA'}
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono font-bold">
+                    {macroData?.score || 50}/100
+                  </span>
+                </div>
+              </div>
+            </div>
 
- <ErrorBoundary fallback={<WidgetErrorFallback title="Macro Cards Error" />}>
- <MacroCards data={macroData || { regime:'ATTESA', score: 0, recommendations: { prefer: [], avoid: [] }, trend6m: [], events: [] }} overview={overview} />
- </ErrorBoundary>
+            {/* Refresh Button */}
+            <button 
+              onClick={handleRefresh}
+              className="p-4 rounded-3xl bg-surface-hover hover:bg-primary/20 text-text-secondary hover:text-primary transition-all border border-white/5 shadow-xl group"
+              title="Aggiorna tutti i calcoli quantitativi"
+              disabled={loading}
+            >
+              <RefreshCw className={`w-6 h-6 ${loading ? 'animate-spin text-primary' : ''} group-hover:rotate-180 transition-transform duration-500`} />
+            </button>
+          </div>
+        </div>
 
- <section className="mb-12">
- <ErrorBoundary fallback={<WidgetErrorFallback title="Market Table Error" />}>
- <MarketTable 
- assets={filteredAssets} 
- loading={loading} 
- activeCategory={activeCategory}
- onCategoryChange={setActiveCategory}
- />
- </ErrorBoundary>
- </section>
+        {/* ── Algorithmic Ticker Ribbon ────────────────────────────────────── */}
+        {topQuantPick && (
+          <div className="mt-8 pt-6 border-t border-white/10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-primary/20 text-primary flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div className="text-xs">
+                <span className="font-black uppercase tracking-wider text-text-secondary">Top Alpha Setup Rilevato: </span>
+                <strong className="text-white font-mono text-sm ml-1 cursor-pointer hover:underline" onClick={() => navigate(`/asset/${topQuantPick.ticker}`)}>
+                  {topQuantPick.ticker} ({topQuantPick.smartScoreLabel} - {topQuantPick.smartScore} pts)
+                </strong>
+                <span className="ml-2 text-primary font-medium">[{topQuantPick.tradeSetup?.setupName || 'High-Alpha Breakout'}]</span>
+              </div>
+            </div>
 
- <section className="mb-12">
- <GoogleAd />
- </section>
+            <div className="flex items-center gap-2 text-xs text-text-secondary font-mono">
+              <span>Target: <strong className="text-emerald-400">${topQuantPick.tradeSetup?.targetPrice || '---'}</strong></span>
+              <span className="opacity-40">•</span>
+              <span>Stop Loss: <strong className="text-rose-400">${topQuantPick.tradeSetup?.stopLoss || '---'}</strong></span>
+              <button 
+                onClick={() => navigate(`/asset/${topQuantPick.ticker}`)}
+                className="ml-3 px-3 py-1 rounded-xl bg-primary text-white text-[11px] font-black uppercase tracking-wider hover:bg-primary/90 transition-all flex items-center gap-1 shadow-lg shadow-primary/20"
+              >
+                Esamina Setup <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
 
- <ErrorBoundary fallback={<WidgetErrorFallback title="Custom Calendar Error" />}>
- <CustomCalendar />
- </ErrorBoundary>
- </div>
- );
+      {/* ── 2. Real-time Market HUD (4 Core Cards) ────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Card 1: S&P 500 Benchmark */}
+        <div className="bg-surface p-6 rounded-3xl shadow-xl relative overflow-hidden border border-white/5 group hover:border-primary/30 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <TrendingUp className="w-16 h-16 text-primary" />
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-black">Benchmark Globale</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${overview?.sp500?.isUp ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+              {overview?.sp500?.isUp ? 'BULL' : 'BEAR'}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black text-text tracking-tighter">
+              {overview?.sp500?.price ? Number(overview.sp500.price).toLocaleString() : '---'}
+            </span>
+            <span className="text-xs text-text-secondary uppercase font-bold">SPY</span>
+          </div>
+          <div className={`flex items-center gap-1 text-xs font-bold ${overview?.sp500?.isUp ? 'text-success' : 'text-danger'}`}>
+            {overview?.sp500?.isUp ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+            {overview?.sp500?.change ? `${overview.sp500.isUp ? '+' : ''}${overview.sp500.change.toFixed(2)}%` : '0.00%'} (24H)
+          </div>
+        </div>
+
+        {/* Card 2: VIX Fear Index */}
+        <div className="bg-surface p-6 rounded-3xl shadow-xl relative overflow-hidden border border-white/5 group hover:border-yellow-500/30 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Activity className="w-16 h-16 text-yellow-500" />
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-black">Indice di Paura (VIX)</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${overview?.vix?.isScary ? 'bg-danger/20 text-danger' : 'bg-success/20 text-success'}`}>
+              {overview?.vix?.isScary ? 'ELEVATO' : 'COMPRESSO'}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black text-text tracking-tighter">
+              {overview?.vix?.price ? overview.vix.price.toFixed(2) : '---'}
+            </span>
+            <span className="text-xs text-text-secondary uppercase font-bold">PTS</span>
+          </div>
+          <div className="text-xs text-text-secondary font-medium">
+            {overview?.vix?.price < 16 ? 'Clima ideale per Risk-On & Long' : overview?.vix?.price > 22 ? 'Volatilità alta: proteggere posizioni' : 'Volatilità nella norma istituzionale'}
+          </div>
+        </div>
+
+        {/* Card 3: SmartQuant Alpha Signals */}
+        <div className="bg-surface p-6 rounded-3xl shadow-xl relative overflow-hidden border border-white/5 group hover:border-emerald-500/30 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Shield className="w-16 h-16 text-emerald-500" />
+          </div>
+          <div className="flex justify-between items-start mb-4">
+            <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-black">Opportunità Alpha</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500/10 text-emerald-400">
+              SCORE ≥ 65
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-3xl font-black text-emerald-400 tracking-tighter font-mono">
+              {assets.filter(a => (a.smartScore || 0) >= 65).length}
+            </span>
+            <span className="text-xs text-text-secondary uppercase font-bold">Setup Attivi</span>
+          </div>
+          <div className="text-xs text-text-secondary font-medium">
+            Segnali con allineamento favorevole dei 4 Pilastri
+          </div>
+        </div>
+
+        {/* Card 4: Algorithmic Market Breadth */}
+        <div className="bg-surface p-6 rounded-3xl shadow-xl relative overflow-hidden border border-white/5 group hover:border-purple-500/30 transition-all">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+            <Gauge className="w-16 h-16 text-purple-500" />
+          </div>
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-[10px] text-text-secondary uppercase tracking-[0.2em] font-black">Market Breadth</span>
+            <span className="text-[10px] font-mono text-purple-400 font-bold">{marketSentiment.bullishPct}% BULL</span>
+          </div>
+
+          <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden flex my-2 border border-white/5">
+            <div 
+              className="bg-emerald-500 transition-all duration-1000" 
+              style={{ width: `${marketSentiment.bullishPct}%` }}
+              title={`Bullish: ${marketSentiment.bullishCount}`}
+            />
+            <div 
+              className="bg-rose-500 transition-all duration-1000" 
+              style={{ width: `${marketSentiment.bearishPct}%` }}
+              title={`Bearish: ${marketSentiment.bearishCount}`}
+            />
+          </div>
+
+          <div className="flex justify-between text-[11px] font-mono font-bold text-text-secondary mt-1">
+            <span className="text-emerald-400">{marketSentiment.bullishCount} Long</span>
+            <span className="text-text-secondary">{marketSentiment.neutralCount} Hold</span>
+            <span className="text-rose-400">{marketSentiment.bearishCount} Short</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. AI Briefing Section (Master/Admin) ─────────────────────────── */}
+      {user?.role === 'admin' && (
+        <section className="mb-8">
+          <PremiumGate>
+            <ErrorBoundary fallback={<WidgetErrorFallback title="AI Market Briefing Error" />}>
+              <AIMarketBriefing 
+                data={briefing} 
+                loading={briefingLoading}
+                onSubscribe={() => window.location.href = '/daily-news'} 
+              />
+            </ErrorBoundary>
+          </PremiumGate>
+        </section>
+      )}
+
+      {/* ── 4. Global Macro Cards ────────────────────────────────────────── */}
+      <ErrorBoundary fallback={<WidgetErrorFallback title="Macro Cards Error" />}>
+        <MacroCards 
+          data={macroData || { regime: 'ATTESA', score: 0, recommendations: { prefer: [], avoid: [] }, trend6m: [], events: [] }} 
+          overview={overview} 
+        />
+      </ErrorBoundary>
+
+      {/* ── 5. Market Scanner & SmartQuant Table ──────────────────────────── */}
+      <section className="mb-10 space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black text-text tracking-tight flex items-center gap-2">
+              <Crosshair className="w-5 h-5 text-primary" />
+              Scanner Multimercato SmartQuant
+            </h2>
+            <p className="text-xs text-text-secondary font-medium mt-0.5">
+              Filtra gli asset per classe e livello di segnale quantitativo. Clicca su un titolo per il breakdown completo dei 4 pilastri.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Cerca asset o ticker..."
+                className="px-4 py-2 rounded-xl bg-surface border border-white/10 text-xs text-text placeholder:text-text-secondary/50 focus:outline-none focus:border-primary w-48 md:w-64"
+              />
+              {searchTerm && (
+                <button 
+                  onClick={() => setSearchTerm('')} 
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-text-secondary hover:text-white"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <ErrorBoundary fallback={<WidgetErrorFallback title="Market Table Error" />}>
+          <MarketTable 
+            assets={filteredAssets} 
+            loading={loading} 
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
+        </ErrorBoundary>
+      </section>
+
+      {/* ── 6. Ad Banner ─────────────────────────────────────────────────── */}
+      <section className="mb-10">
+        <GoogleAd />
+      </section>
+
+      {/* ── 7. Real-Time Economic Calendar ───────────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-black text-text tracking-tight flex items-center gap-2">
+              <Compass className="w-5 h-5 text-amber-500" />
+              Calendario Economico Istituzionale
+            </h2>
+            <p className="text-xs text-text-secondary font-medium mt-0.5">
+              Eventi macro in tempo reale ad alto impatto con dati effettivi (Actuals) sincronizzati.
+            </p>
+          </div>
+        </div>
+
+        <ErrorBoundary fallback={<WidgetErrorFallback title="Custom Calendar Error" />}>
+          <CustomCalendar />
+        </ErrorBoundary>
+      </section>
+    </div>
+  );
 };
 
 export default Dashboard;
