@@ -4,6 +4,7 @@ const YahooFinance = require('yahoo-finance2').default;
 // suppressNotices silences the survey prompt; validateResult is passed per-call
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
 const macroCalculator = require('./macroCalculator');
+const smartQuantEngine = require('./smartQuantEngine');
 
 class MarketDataService {
   constructor() {
@@ -103,9 +104,9 @@ class MarketDataService {
       const assetEntries = Object.entries(assets);
       const rawResults = await this._processInChunks(assetEntries, 4, async ([name, yahooTicker]) => {
         try {
-          // 1. Fetch 7D history for sparkline
+          // 1. Fetch 60D history for sparkline and technical analysis
           const history = await yf.chart(yahooTicker, {
-            period1: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+            period1: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
             interval: '1d'
           }).catch(() => null);
 
@@ -113,9 +114,10 @@ class MarketDataService {
             console.log(`Discarding ${name}: Insufficient history (${history?.quotes?.length || 0} quotes)`);
             return null;
           }
-          const sparklineData = history.quotes.map(q => q.close).filter(c => c !== null);
+          const validQuotes = history.quotes.filter(q => q.close !== null);
+          const sparklineData = validQuotes.slice(-7).map(q => q.close);
 
-          // 2. Call JS-native Smart Score proxy
+          // 2. Quote and fundamentals
           const quote = await yf.quote(yahooTicker).catch(() => null);
           if (!quote || quote.regularMarketPrice === undefined) {
              console.log(`Discarding ${name}: Could not fetch quote`);
@@ -123,55 +125,45 @@ class MarketDataService {
           }
           
           let var1W = 0; let var1M = 0;
-          const history1M = await yf.chart(yahooTicker, {
-            period1: new Date(Date.now() - 32 * 24 * 60 * 60 * 1000),
-            interval: '1d'
-          }).catch(() => null);
-
-          if (history1M && history1M.quotes.length >= 2) {
-             const qs = history1M.quotes.filter(q => q.close !== null);
-             if (qs.length > 5) {
-                const last = qs[qs.length-1].close;
-                const week = qs[Math.max(0, qs.length-6)].close;
-                const month = qs[0].close;
-                var1W = (last - week) / week * 100;
-                var1M = (last - month) / month * 100;
-             }
+          if (validQuotes.length >= 2) {
+             const last = validQuotes[validQuotes.length - 1].close;
+             const week = validQuotes[Math.max(0, validQuotes.length - 6)].close;
+             const month = validQuotes[0].close;
+             if (week) var1W = (last - week) / week * 100;
+             if (month) var1M = (last - month) / month * 100;
           }
           
-          const momentum = (var1W * 0.4) + (var1M * 0.6);
-          const score = Math.min(100, Math.max(0, Math.round(50 + (momentum * 5))));
-
+          const momentumVal = (var1W * 0.4) + (var1M * 0.6);
           const currentPrice = quote.regularMarketPrice;
           const var1D = quote.regularMarketChangePercent || 0;
 
+          // 3. Multi-Factor SmartQuant Engine Scoring
+          let macroData = null;
+          try {
+            macroData = await macroCalculator.calculateCurrentRegime();
+          } catch (e) {}
+
+          const quantResult = smartQuantEngine.calculateSmartScore({
+            ticker: name,
+            quote,
+            quotes: validQuotes,
+            sector: quote.quoteType || 'EQUITY',
+            macroData
+          });
+
+          const score = quantResult.smartScore;
+          const label = quantResult.smartScoreLabel;
+
           // ── SmartScore Variation Logic ────────────────────────────────────
-          // Compare current score with the last value sent to the frontend.
-          // scoreDelta > 0 → rising, < 0 → falling, 0 → unchanged.
           const prevScore = this.lastKnownScores[name];
           const scoreDelta = (prevScore !== undefined) ? (score - prevScore) : 0;
           this.lastKnownScores[name] = score; // persist for next refresh
 
           if (scoreDelta !== 0) {
-            console.log(`[SmartQuant] ${name}: Score ${prevScore} → ${score} (${scoreDelta > 0 ? '+' : ''}${scoreDelta})`);
+            console.log(`[SmartQuant] ${name}: Score ${prevScore} → ${score} (${scoreDelta > 0 ? '+' : ''}${scoreDelta}) | Bias: ${label} | Setup: ${quantResult.tradeSetup.setupName}`);
           } else {
-            console.log(`Keeping ${name}: Score ${score}`);
+            console.log(`Keeping ${name}: Score ${score} | ${label}`);
           }
-
-          let label = 'Hold';
-          if (score >= 80) label = 'Strong Buy';
-          else if (score >= 60) label = 'Buy';
-          else if (score >= 40) label = 'Hold';
-          else if (score >= 20) label = 'Sell';
-          else label = 'Strong Sell';
-
-          // (Rimossa sovrascrittura: SPY manterrà il suo score tecnico indipendente dal Global Macro Score)
-          let finalScore = score;
-          let finalLabel = label;
-
-          const momentumVal = sparklineData.length >= 2 
-            ? ((sparklineData[sparklineData.length - 1] - sparklineData[0]) / sparklineData[0]) * 100 
-            : 0;
 
           return {
             ticker: name,
@@ -179,25 +171,21 @@ class MarketDataService {
             name: name,
             prezzo: currentPrice,
             var1D: var1D,
-            momentum: momentumVal,
+            momentum: parseFloat(momentumVal.toFixed(2)),
             is7DUp: momentumVal >= 0,
             settore: quote.quoteType || 'EQUITY',
-            rsi: '-',
-            pe: quote.forwardPE ? quote.forwardPE.toFixed(2) : '-',
-            smartScore: finalScore,
-            smartScoreLabel: finalLabel,
-            // scoreDelta: variation vs last refresh (+N/-N/0) — use in UI for ▲▼ badges
+            rsi: quantResult.pillars.technical.data.rsi || '-',
+            pe: quantResult.pillars.fundamental.data.pe || '-',
+            smartScore: score,
+            smartScoreLabel: label,
             scoreDelta: scoreDelta,
             sparkline: sparklineData,
-            trend: momentumVal >= 0 ? 'Long' : 'Short',
+            trend: quantResult.pillars.technical.data.trend || (momentumVal >= 0 ? 'Long' : 'Short'),
             fib_level_touched: 'None',
             volume_vs_avg: 1.0,
-            breakdown: {
-              tech_score: Math.round(finalScore * 0.4),
-              seasonality_score: Math.round(finalScore * 0.3),
-              asset_score: Math.round(finalScore * 0.3),
-              macro_reason: 'Trend Momentum'
-            }
+            tradeSetup: quantResult.tradeSetup,
+            pillars: quantResult.pillars,
+            breakdown: quantResult.breakdown
           };
         } catch (error) {
           console.error(`Error processing ${name}:`, error.message);

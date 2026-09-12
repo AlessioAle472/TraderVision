@@ -69,6 +69,15 @@ const apiClient = {
       throw error;
     }
   },
+  getSmartQuantAnalysis: async (ticker) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/smart-quant/${ticker}`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to load smart quant analysis via direct API', error);
+      throw error;
+    }
+  },
   getMacroOutlook: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/macro-outlook`);

@@ -209,10 +209,22 @@ const MarketTable = ({ assets = [], loading = false, activeCategory, onCategoryC
  </div>
  </td>
  <td className="p-4 text-center">
- <span className={`px-3 py-1.5 rounded-xl text-xs font-black tracking-wider transition-all ${getSmartScoreColor(asset.smartScore)}`}>
- {asset.smartScore || 0}
- </span>
- </td>
+    <div className="flex flex-col items-center gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className={`px-2.5 py-1 rounded-xl text-xs font-black tracking-wider transition-all ${getSmartScoreColor(asset.smartScore)}`}>
+          {asset.smartScore || 0}
+        </span>
+        <span className="text-[10px] font-black uppercase text-text-secondary">
+          {asset.smartScoreLabel || (asset.smartScore >= 60 ? 'BUY' : asset.smartScore <= 40 ? 'SELL' : 'HOLD')}
+        </span>
+      </div>
+      {asset.tradeSetup?.setupName && (
+        <span className="text-[9px] px-1.5 py-0.2 rounded bg-primary/10 text-primary font-bold uppercase tracking-wider">
+          {asset.tradeSetup.setupName}
+        </span>
+      )}
+    </div>
+  </td>
  </tr>
  ))
  )}

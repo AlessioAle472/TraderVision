@@ -3,6 +3,7 @@ const MarketConfig = require('../models/MarketConfig');
 const PreloadedMarketData = require('../models/PreloadedMarketData');
 const macroCalculator = require('./macroCalculator');
 const economicCalendar = require('./economicCalendar');
+const smartQuantEngine = require('./smartQuantEngine');
 const YF = require('yahoo-finance2').default;
 const yf = new YF({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
 const path = require('path');
@@ -47,37 +48,39 @@ class MarketCronJob {
         // Silently use 0s
       }
 
-      // 3. Sparkline (7-day)
+      // 3. Sparkline (7-day) & Technical Quotes
       let sparkline = [];
+      let validQuotes = [];
       try {
         const hist7 = await yf.chart(yahooTicker, {
-          period1: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+          period1: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
           interval: '1d'
         });
-        sparkline = (hist7?.quotes || []).map(q => q.close).filter(c => c !== null && c !== undefined);
+        validQuotes = (hist7?.quotes || []).filter(q => q.close !== null && q.close !== undefined);
+        sparkline = validQuotes.slice(-7).map(q => q.close);
       } catch (e) {}
 
-      // 4. Smart Score via JS (No Python)
+      // 4. Smart Score via Multi-Factor SmartQuant Engine
       let smartScore = 50;
       let smartScoreLabel = 'Hold';
-      let momentum = 0;
+      let momentum = (var1W * 0.4) + (var1M * 0.6);
+      let tradeSetup = null;
+      let breakdown = null;
+      let pillars = null;
       
       try {
-        // Simple momentum proxy based on 1W and 1M returns
-        // Normally RSI is used, but we can approximate momentum
-        momentum = (var1W * 0.4) + (var1M * 0.6);
-        
-        // Base score 50, add momentum scaled
-        // For example, if var1M is 5%, momentum is ~5.
-        // Let's map momentum (-10 to 10) to score (0 to 100)
-        smartScore = Math.min(100, Math.max(0, Math.round(50 + (momentum * 5))));
-        
-        if (smartScore >= 80) smartScoreLabel = 'Strong Buy';
-        else if (smartScore >= 60) smartScoreLabel = 'Buy';
-        else if (smartScore > 40) smartScoreLabel = 'Hold';
-        else if (smartScore > 20) smartScoreLabel = 'Sell';
-        else smartScoreLabel = 'Strong Sell';
-        
+        const quantResult = smartQuantEngine.calculateSmartScore({
+          ticker: displayName || yahooTicker,
+          quote,
+          quotes: validQuotes,
+          sector: quote.quoteType || 'EQUITY'
+        });
+
+        smartScore = quantResult.smartScore;
+        smartScoreLabel = quantResult.smartScoreLabel;
+        tradeSetup = quantResult.tradeSetup;
+        breakdown = quantResult.breakdown;
+        pillars = quantResult.pillars;
       } catch (e) {
         console.error(`[MarketCronJob] Smart score failed for ${yahooTicker}: ${e.message}`);
       }
@@ -92,7 +95,10 @@ class MarketCronJob {
         momentum: parseFloat(momentum.toFixed(2)),
         smartScore,
         smartScoreLabel,
-        sparkline
+        sparkline,
+        tradeSetup,
+        pillars,
+        breakdown
       };
     } catch (error) {
       console.error(`[MarketCronJob] Error fetching ${yahooTicker}:`, error.message);

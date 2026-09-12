@@ -280,6 +280,56 @@ router.post('/admin/force-refresh', protect, master, async (req, res) => {
 // GET /api/asset-details/:ticker — completely standalone endpoint for Full Analysis page
 router.get('/asset-details/:ticker', getAssetDetails);
 
+// GET /api/smart-quant/:ticker — deep quantitative diagnostic breakdown
+router.get('/smart-quant/:ticker', async (req, res) => {
+  try {
+    const { ticker } = req.params;
+    const smartQuantEngine = require('../services/smartQuantEngine');
+    const YahooFinance = require('yahoo-finance2').default;
+    const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+    const macroCalculator = require('../services/macroCalculator');
+
+    // Resolve symbol
+    let yfSymbol = ticker.toUpperCase();
+    const mapping = await TickerMapping.findOne({ yfSymbol }).catch(() => null);
+    if (mapping && mapping.yfSymbol) yfSymbol = mapping.yfSymbol;
+
+    const [quote, history, macroData] = await Promise.all([
+      yf.quote(yfSymbol).catch(() => null),
+      yf.chart(yfSymbol, {
+        period1: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+        interval: '1d'
+      }).catch(() => null),
+      macroCalculator.calculateCurrentRegime().catch(() => null)
+    ]);
+
+    if (!quote) {
+      return res.status(404).json({ error: `Ticker ${ticker} not found` });
+    }
+
+    const validQuotes = (history?.quotes || []).filter(q => q.close !== null);
+    const result = smartQuantEngine.calculateSmartScore({
+      ticker,
+      quote,
+      quotes: validQuotes,
+      sector: quote.quoteType || 'EQUITY',
+      macroData
+    });
+
+    res.json({
+      ticker,
+      name: quote.shortName || quote.longName || ticker,
+      price: quote.regularMarketPrice,
+      currency: quote.currency || 'USD',
+      change24h: quote.regularMarketChangePercent || 0,
+      ...result
+    });
+  } catch (err) {
+    console.error(`Error in /api/smart-quant/${req.params.ticker}:`, err);
+    res.status(500).json({ error: 'Failed to calculate SmartQuant diagnostics', details: err.message });
+  }
+});
+
 // GET /api/quick-insight/:ticker — returns a quick AI insight using Gemini
 router.get('/quick-insight/:ticker', protect, verifyAdmin, aiLimiter, async (req, res) => {
   try {
