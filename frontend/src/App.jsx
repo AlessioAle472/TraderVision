@@ -22,6 +22,7 @@ import Settings from './pages/Settings';
 import Admin from './pages/Admin';
 import Pricing from './pages/Pricing';
 import Watchlist from './pages/Watchlist';
+import Portfolio from './pages/Portfolio';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -56,6 +57,7 @@ function App() {
  <Route path="/admin"element={<Admin />} />
  <Route path="/pricing"element={<Pricing />} />
  <Route path="/watchlist"element={<Watchlist />} />
+ <Route path="/portfolio" element={<Portfolio />} />
  </Routes>
  </DashboardLayout>
  </ProtectedRoute>

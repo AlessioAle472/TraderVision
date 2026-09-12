@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   LogIn, LogOut, LayoutDashboard, LineChart, Settings,
   MessageSquare, Calendar, Globe, Coins, Radar, BarChart2,
-  TrendingUp, ChevronDown, Zap, Bookmark
+  TrendingUp, ChevronDown, Zap, Bookmark, PieChart
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -97,6 +97,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/global-macro" icon={Globe} label="Macro Globale" onClick={closeMobile} />
             <NavItem to="/cot" icon={BarChart2} label="COT" onClick={closeMobile} />
             <NavItem to="/watchlist" icon={Bookmark} label="Watchlist" onClick={closeMobile} />
+            <NavItem to="/portfolio" icon={PieChart} label="Portafoglio" onClick={closeMobile} />
           </NavGroup>
 
           {/* Gruppo Strumenti */}

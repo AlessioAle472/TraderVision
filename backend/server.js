@@ -102,6 +102,7 @@ const socialRoutes = require('./routes/social');
 const groupsRoutes = require('./routes/groups');
 const adsRoutes    = require('./routes/ads');
 const cotRoutes    = require('./routes/cot');
+const portfolioRoutes = require('./routes/portfolioRoutes');
 const { router: stripeRouter } = require('./routes/stripe');
 const { initAIJobs }      = require('./services/aiBriefingJob');
 const marketCronJob       = require('./services/marketCronJob');
@@ -113,6 +114,7 @@ app.use('/api/social', socialRoutes);
 app.use('/api/groups', groupsRoutes);
 app.use('/api/ads',    adsRoutes);
 app.use('/api',        cotRoutes);
+app.use('/api/portfolio', portfolioRoutes);
 app.use('/api/stripe', stripeRouter);
 
 // ── Health Check ───────────────────────────────────────────────────────────
