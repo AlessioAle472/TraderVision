@@ -21,3 +21,8 @@ build/
 
 # --- Runtime Cache Data ---
 backend/data/*.json
+
+# --- Local Backups & Archives ---
+archives/
+*.tar.gz
+*.zip
