@@ -78,6 +78,15 @@ const apiClient = {
       throw error;
     }
   },
+  getWorldNews: async (params = {}) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/world-news`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch world news', error);
+      throw error;
+    }
+  },
   getMacroOutlook: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/macro-outlook`);

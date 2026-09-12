@@ -48,7 +48,7 @@ function App() {
 
  <Route path="/community"element={<Community />} />
  <Route path="/community/topic/:id"element={<TopicDetail />} />
- <Route path="/daily-news"element={<AdminRoute><DailyNews /></AdminRoute>} />
+ <Route path="/daily-news"element={<DailyNews />} />
  <Route path="/macro-deep-dive"element={<MacroDeepDive />} />
  <Route path="/analysis/:ticker"element={<AssetDetail />} />
  <Route path="/macro-analysis/:region"element={<MacroRegionDetail />} />

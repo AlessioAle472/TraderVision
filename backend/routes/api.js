@@ -179,6 +179,28 @@ router.get('/history', getHistory);
 // GET /api/economic-calendar — fetch live economic calendar via Finnhub
 router.get('/economic-calendar', optionalAuth, softRequirePro, getEconomicCalendar);
 
+// GET /api/world-news — breaking international & financial newspaper stories
+router.get('/world-news', async (req, res) => {
+  try {
+    const worldNewsService = require('../services/worldNewsService');
+    const { category, search, limit } = req.query;
+    const stories = await worldNewsService.getLatestWorldNews({
+      category,
+      search,
+      limit: parseInt(limit, 10) || 30
+    });
+    res.json({
+      success: true,
+      timestamp: new Date().toISOString(),
+      count: stories.length,
+      stories
+    });
+  } catch (err) {
+    console.error('Error fetching world news:', err);
+    res.status(500).json({ error: 'Failed to fetch world news', details: err.message });
+  }
+});
+
 // GET /api/community — returns mock community data
 router.get('/community', (req, res) => {
   res.json({

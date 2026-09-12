@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   LogIn, LogOut, LayoutDashboard, LineChart, Settings,
   MessageSquare, Calendar, Globe, Coins, Radar, BarChart2,
-  TrendingUp, ChevronDown, Zap, Bookmark, PieChart
+  TrendingUp, ChevronDown, Zap, Bookmark, PieChart, Newspaper
 } from 'lucide-react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -106,13 +106,11 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             <NavItem to="/osint" icon={Radar} label="Geopolitica OSINT" onClick={closeMobile} />
           </NavGroup>
 
-          {/* Community + Admin (senza sezione) */}
-          <div className="pt-2 space-y-0.5">
+          {/* Informazione & Community */}
+          <NavGroup label="Informazione & Feed">
+            <NavItem to="/daily-news" icon={Newspaper} label="Notizie dal Mondo" onClick={closeMobile} />
             <NavItem to="/community" icon={MessageSquare} label={t('sidebar.community')} onClick={closeMobile} />
-            {(user?.role === 'admin' || user?.isMaster) && (
-              <NavItem to="/daily-news" icon={Calendar} label={t('sidebar.dailyNews')} onClick={closeMobile} />
-            )}
-          </div>
+          </NavGroup>
         </nav>
 
         {/* Bottom: Upgrade + Settings + Logout */}
