@@ -107,6 +107,7 @@ const { router: stripeRouter } = require('./routes/stripe');
 const { initAIJobs }      = require('./services/aiBriefingJob');
 const marketCronJob       = require('./services/marketCronJob');
 const cotCronJob          = require('./services/cotCronJob');
+const worldNewsCronJob    = require('./services/worldNewsCronJob');
 
 app.use('/api',        apiRoutes);
 app.use('/api/auth',   authRoutes);
@@ -142,6 +143,7 @@ function startBackgroundJobs() {
   initAIJobs();
   marketCronJob.init();
   cotCronJob.init();
+  worldNewsCronJob.init();
 }
 
 app.listen(PORT, '0.0.0.0', () => {

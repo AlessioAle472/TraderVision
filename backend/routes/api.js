@@ -187,7 +187,7 @@ router.get('/world-news', async (req, res) => {
     const stories = await worldNewsService.getLatestWorldNews({
       category,
       search,
-      limit: parseInt(limit, 10) || 30
+      limit: parseInt(limit, 10) || 60
     });
     res.json({
       success: true,

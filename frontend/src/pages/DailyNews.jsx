@@ -208,8 +208,13 @@ const DailyNews = () => {
                 <span className="w-2 h-2 rounded-full bg-white animate-ping"></span>
                 SKY TG TRADERVISION 24
               </span>
-              <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 text-[10px] font-black tracking-widest uppercase font-mono">
-                EDIZIONE CONTINUA IN TEMPO REALE
+              <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 text-[10px] font-black tracking-widest uppercase font-mono flex items-center gap-1.5">
+                <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
+                14 PROVIDER GLOBALI ATTIVI
+              </span>
+              <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black tracking-widest uppercase font-mono flex items-center gap-1.5">
+                <Clock className="w-3 h-3" />
+                SYNC ORARIO AUTOMATICO
               </span>
             </div>
 
@@ -217,22 +222,25 @@ const DailyNews = () => {
               Quotidiano Notizie del Mondo
             </h1>
             <p className="text-xs md:text-sm text-white/70 max-w-2xl font-medium leading-relaxed">
-              Le notizie più calde e rilevanti dal pianeta in tempo reale: geopolitica, decisioni dei governi, banche centrali e mercati finanziari.
+              Le notizie più calde e rilevanti dal pianeta sincronizzate ogni ora da 14 testate globali: geopolitica, decisioni dei governi, banche centrali, mercati finanziari e asset digitali.
             </p>
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
             {lastUpdated && (
               <div className="text-right hidden sm:block">
-                <div className="text-[10px] font-black uppercase tracking-widest text-white/50">Ultimo Dispaccio</div>
-                <div className="text-xs font-mono font-bold text-white">{lastUpdated}</div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/50">Ultimo Aggiornamento</div>
+                <div className="text-xs font-mono font-bold text-white flex items-center justify-end gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  {lastUpdated}
+                </div>
               </div>
             )}
             <button
               onClick={fetchNews}
               disabled={loading}
               className="p-3.5 rounded-2xl bg-white/10 hover:bg-white/20 text-white transition-all border border-white/10 shadow-xl group"
-              title="Aggiorna Notizie"
+              title="Forza Sincronizzazione Notizie"
             >
               <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''} group-hover:rotate-180 transition-transform duration-500`} />
             </button>
@@ -245,7 +253,7 @@ const DailyNews = () => {
             <Flame className="w-3.5 h-3.5 fill-white" /> FLASH ORA
           </span>
           <div className="truncate font-medium text-white/90">
-            {leadStory ? leadStory.title : 'Aggiornamento costante dei flussi d\'agenzia Reuters, Bloomberg e internazionali.'}
+            {leadStory ? leadStory.title : 'Aggiornamento costante dei flussi d\'agenzia Reuters, Bloomberg, ANSA, Sole 24 Ore, BBC e internazionali.'}
           </div>
         </div>
       </div>
