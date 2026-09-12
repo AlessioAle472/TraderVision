@@ -28,6 +28,8 @@ const detectAssetType = (ticker) => {
   if (t.includes('=F') || ['GC=F', 'CL=F', 'SI=F', 'GOLD', 'WTI'].includes(t)) return 'commodity';
   if (t.includes('=X') || ['EURUSD', 'GBPUSD', 'USDJPY'].includes(t)) return 'forex';
   if (t.startsWith('^')) return 'index';
+  if (['SPY', 'QQQ', 'VOO', 'VTI', 'IWM', 'VWCE', 'SWDA', 'CSSPX', 'QDVE'].some(etf => t.startsWith(etf)) || t.includes('ETF')) return 'etf';
+  if (['SGLD', 'PHAU', 'CRUD', '4GLD', 'COPA', 'XGDU'].some(etc => t.startsWith(etc)) || t.includes('ETC')) return 'etc';
   return 'stock';
 };
 
@@ -457,6 +459,30 @@ router.post('/sample', protect, async (req, res) => {
         notes: 'Hedge inflazione e geopolitica',
         targetPrice: 2600,
         stopLoss: 2280,
+      },
+      {
+        user: req.user._id,
+        ticker: 'SPY',
+        name: 'SPDR S&P 500 ETF Trust',
+        assetType: 'etf',
+        buyDate: new Date(now - 80 * dayMs),
+        buyPrice: 530.00,
+        quantity: 10,
+        notes: 'Esposizione indice azionario USA',
+        targetPrice: 600,
+        stopLoss: 500,
+      },
+      {
+        user: req.user._id,
+        ticker: 'SGLD.L',
+        name: 'WisdomTree Core Physical Gold ETC',
+        assetType: 'etc',
+        buyDate: new Date(now - 45 * dayMs),
+        buyPrice: 220.00,
+        quantity: 20,
+        notes: 'ETC Oro Fisico con replica fisica',
+        targetPrice: 260,
+        stopLoss: 200,
       },
       {
         user: req.user._id,

@@ -21,7 +21,7 @@ const PortfolioPositionSchema = new mongoose.Schema(
     },
     assetType: {
       type: String,
-      enum: ['stock', 'crypto', 'commodity', 'forex', 'etf', 'index', 'other'],
+      enum: ['stock', 'crypto', 'commodity', 'forex', 'etf', 'etc', 'index', 'other'],
       default: 'stock',
     },
     buyDate: {

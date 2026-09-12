@@ -21,10 +21,11 @@ const ASSET_COLORS = [
 
 const TYPE_LABELS = {
   stock: 'Azione',
+  etf: 'ETF',
+  etc: 'ETC',
   crypto: 'Crypto',
   commodity: 'Materia Prima',
   forex: 'Forex / Valuta',
-  etf: 'ETF',
   index: 'Indice',
   other: 'Altro',
 };
@@ -634,10 +635,12 @@ const Portfolio = () => {
               </div>
 
               {/* Type Filter */}
-              <div className="flex items-center gap-1 bg-black/40 border border-white/[0.06] p-1 rounded-xl">
+              <div className="flex flex-wrap items-center gap-1 bg-black/40 border border-white/[0.06] p-1 rounded-xl">
                 {[
                   { id: 'all', label: 'Tutti' },
                   { id: 'stock', label: 'Azioni' },
+                  { id: 'etf', label: 'ETF' },
+                  { id: 'etc', label: 'ETC' },
                   { id: 'crypto', label: 'Crypto' },
                   { id: 'commodity', label: 'Materie P.' },
                   { id: 'forex', label: 'Forex' },
@@ -819,10 +822,11 @@ const Portfolio = () => {
                     className="w-full px-3.5 py-2.5 bg-slate-800 border border-white/[0.08] rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 transition-colors"
                   >
                     <option value="stock">Azione (Stock)</option>
+                    <option value="etf">ETF (Exchange Traded Fund)</option>
+                    <option value="etc">ETC (Exchange Traded Commodity)</option>
                     <option value="crypto">Criptovaluta</option>
-                    <option value="commodity">Materia Prima</option>
+                    <option value="commodity">Materia Prima (Futures)</option>
                     <option value="forex">Forex / Valuta</option>
-                    <option value="etf">ETF</option>
                     <option value="index">Indice</option>
                   </select>
                 </div>
