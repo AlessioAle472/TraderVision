@@ -12,29 +12,71 @@ router.post('/create-checkout-session', protect, async (req, res) => {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
       return res.status(503).json({ 
-        error: 'Payment system is not configured. Please contact support.',
+        error: 'Sistema di pagamento non configurato (chiavi Stripe non impostate in ambiente).',
       });
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const { interval } = req.body; // 'month' or 'year'
+    const priceId = interval === 'year' 
+      ? (process.env.STRIPE_YEARLY_PRICE_ID || process.env.STRIPE_PRICE_ID)
+      : process.env.STRIPE_PRICE_ID;
+
+    if (!priceId) {
+      return res.status(500).json({ error: 'Identificativo prezzo Stripe non configurato.' });
+    }
+
+    const sessionParams = {
       payment_method_types: ['card'],
       mode: 'subscription',
       customer_email: req.user.email,
       client_reference_id: req.user._id.toString(),
       line_items: [
         {
-          price: process.env.STRIPE_PRICE_ID, // Es: price_1xyz... (Piano da 10,99€)
+          price: priceId,
           quantity: 1,
         },
       ],
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/markets?payment_success=true`,
+      subscription_data: {
+        trial_period_days: 7,
+      },
+      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings?payment_success=true`,
       cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/pricing`,
-    });
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     res.json({ url: session.url });
   } catch (error) {
     console.error('Stripe session creation error:', error);
     res.status(500).json({ error: 'Errore durante la creazione della sessione di pagamento.' });
+  }
+});
+
+// Endpoint to create a Stripe Customer Portal Session
+router.post('/create-portal-session', protect, async (req, res) => {
+  try {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      return res.status(503).json({
+        error: 'Stripe non è configurato. Gestione abbonamento disponibile solo in produzione.',
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user || !user.stripeCustomerId) {
+      return res.status(400).json({
+        error: 'Nessun account cliente Stripe associato a questo utente.',
+      });
+    }
+
+    const portalSession = await stripe.billingPortal.sessions.create({
+      customer: user.stripeCustomerId,
+      return_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/settings`,
+    });
+
+    res.json({ url: portalSession.url });
+  } catch (error) {
+    console.error('Stripe Portal session error:', error);
+    res.status(500).json({ error: 'Impossibile aprire il portale di fatturazione Stripe.' });
   }
 });
 

@@ -36,12 +36,28 @@ const softRequirePro = (req, res, next) => {
   next();
 };
 
-// ─── Helper: resolve effective plan (handles master / admin bypass) ──────────
+// ─── Helper: resolve effective plan (handles master / admin bypass & 7-day trial) ──────────
 const _getEffectivePlan = (user) => {
   if (!user) return 'free';
   if (user.isMaster || user.role === 'admin') return 'pro';
-  // Prefer subscriptionPlan, fall back to plan for backward compat
-  return user.subscriptionPlan || user.plan || 'free';
+
+  // 1. Check 7-day free trial
+  if (user.trialEndsAt && new Date(user.trialEndsAt) > new Date()) {
+    return 'pro';
+  }
+
+  // 2. Check active subscription status
+  if (user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing') {
+    return 'pro';
+  }
+
+  // 3. Check expiration date
+  if (user.subscriptionExpiresAt && new Date(user.subscriptionExpiresAt) > new Date()) {
+    return 'pro';
+  }
+
+  // 4. Fallback to explicit subscriptionPlan / plan
+  return (user.subscriptionPlan === 'pro' || user.plan === 'pro') ? 'pro' : 'free';
 };
 
-module.exports = { requirePro, softRequirePro, FREE_LIMIT };
+module.exports = { requirePro, softRequirePro, FREE_LIMIT, _getEffectivePlan };

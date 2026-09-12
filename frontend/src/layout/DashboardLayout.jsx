@@ -63,12 +63,30 @@ const DashboardLayout = ({ children }) => {
  )}
  </div>
  </header>
- {/* Page Content */}
- <div className="flex-1 overflow-y-auto p-4 md:p-8">
- {children}
- </div>
- </main>
- </div>
+      {/* Page Content */}
+      <div className="flex-1 overflow-y-auto flex flex-col justify-between">
+        <div className="p-4 md:p-8">
+          {children}
+        </div>
+
+        {/* Regulatory & Financial Risk Disclaimer Footer */}
+        <footer className="mt-auto px-4 py-6 md:px-8 border-t border-white/[0.04] bg-surface/30 backdrop-blur-sm text-slate-500 text-[11px] leading-relaxed space-y-2">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+            <p className="max-w-4xl">
+              <strong className="text-slate-400">AVVISO GENERALE DI RISCHIO:</strong> Il trading e gli investimenti sui mercati finanziari (azioni, indici, materie prime, valute e criptovalute) comportano un elevato rischio di perdita del capitale. Le analisi quantitative, gli algoritmi Smart Quant e i contenuti di TraderVision hanno scopo esclusivamente didattico ed informativo e non costituiscono in alcun caso consulenza finanziaria o sollecitazione al pubblico risparmio ai sensi del D.Lgs. 58/1998 (TUF) e della Direttiva MiFID II.
+            </p>
+            <div className="flex items-center gap-4 text-xs shrink-0">
+              <a href="/settings" className="hover:text-indigo-400 transition-colors">Termini & Disclaimer</a>
+              <span>•</span>
+              <a href="/settings" className="hover:text-indigo-400 transition-colors">Privacy GDPR</a>
+              <span>•</span>
+              <span>v1.0 Launch</span>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </main>
+  </div>
  );
 };
 

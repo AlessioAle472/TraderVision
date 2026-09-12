@@ -103,6 +103,7 @@ const Pricing = () => {
   const isAlreadyPro = effectivePlan === 'pro';
 
   const [loading, setLoading] = React.useState(false);
+  const [interval, setInterval] = React.useState('month'); // 'month' or 'year'
 
   const handleCheckout = async () => {
     try {
@@ -115,8 +116,10 @@ const Pricing = () => {
       const res = await fetch(`${apiBase}/stripe/create-checkout-session`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        }
+        },
+        body: JSON.stringify({ interval })
       });
       const data = await res.json();
       if (data.url) {
@@ -132,7 +135,7 @@ const Pricing = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto py-12 px-4 space-y-16 animate-in fade-in duration-700">
+    <div className="max-w-5xl mx-auto py-12 px-4 space-y-12 animate-in fade-in duration-700">
 
       {/* ── Header ────────────────────────────────────────────────────── */}
       <div className="text-center space-y-4">
@@ -141,15 +144,44 @@ const Pricing = () => {
           Monetizzazione Trader Vision
         </div>
         <h1 className="text-4xl md:text-5xl font-black tracking-tight text-white leading-tight">
-          Un piano.<br />
+          Un unico terminale quantitativo.<br />
           <span className="bg-gradient-to-r from-indigo-400 to-blue-400 bg-clip-text text-transparent">
-            Tutto ciò che ti serve.
+            Tutto ciò che ti serve per il trading.
           </span>
         </h1>
         <p className="text-slate-400 max-w-xl mx-auto text-base font-medium leading-relaxed">
-          Trader Vision PRO ti dà accesso illimitato a tutti i mercati, segnali quantitativi,
-          COT Report e AI insights — senza pubblicità.
+          Inizia con <strong>7 giorni di prova gratuita</strong>. Sblocca oltre 120+ asset, Smart Quant score,
+          COT Report CFTC in tempo reale e AI insights — senza pubblicità.
         </p>
+
+        {/* Interval Selector Toggle */}
+        <div className="pt-4 flex justify-center">
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-900 border border-white/[0.08]">
+            <button
+              onClick={() => setInterval('month')}
+              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
+                interval === 'month' 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Fatturazione Mensile
+            </button>
+            <button
+              onClick={() => setInterval('year')}
+              className={`px-5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+                interval === 'year' 
+                  ? 'bg-indigo-600 text-white shadow-md' 
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>Fatturazione Annuale</span>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                -25%
+              </span>
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* ── Plan Cards ────────────────────────────────────────────────── */}
@@ -161,17 +193,17 @@ const Pricing = () => {
             <p className="text-[11px] font-black text-slate-500 uppercase tracking-widest mb-2">Piano Free</p>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-white">€0</span>
-              <span className="text-slate-500 text-sm">/mese</span>
+              <span className="text-slate-500 text-sm">/per sempre</span>
             </div>
-            <p className="text-xs text-slate-500 mt-2">Perfetto per esplorare la piattaforma.</p>
+            <p className="text-xs text-slate-500 mt-2">Ideale per dare uno sguardo iniziale alla piattaforma.</p>
           </div>
 
           <ul className="space-y-3">
             {[
-              'Accesso a 3 asset per categoria',
+              'Accesso a soli 3 asset per categoria',
               'Smart Quant Score di base',
               'Calendario economico limitato',
-              'Dashboard generale',
+              'Dashboard informativa',
             ].map((f) => (
               <li key={f} className="flex items-start gap-2 text-sm text-slate-400">
                 <CheckCircle2 className="w-4 h-4 text-slate-600 shrink-0 mt-0.5" />
@@ -193,24 +225,30 @@ const Pricing = () => {
         </div>
 
         {/* PRO Card */}
-        <div className="relative rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/60 via-slate-900/80 to-slate-900/60 backdrop-blur-xl p-8 space-y-6 shadow-2xl shadow-indigo-900/20">
+        <div className="relative rounded-2xl border border-indigo-500/40 bg-gradient-to-br from-indigo-950/70 via-slate-900/80 to-slate-900/70 backdrop-blur-xl p-8 space-y-6 shadow-2xl shadow-indigo-900/25">
           {/* Badge */}
           <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-            <span className="px-4 py-1 rounded-full bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/30">
-              Consigliato
+            <span className="px-4 py-1 rounded-full bg-gradient-to-r from-indigo-600 to-blue-600 text-white text-[10px] font-black uppercase tracking-widest shadow-lg shadow-indigo-600/30">
+              {interval === 'year' ? 'Miglior Valore (-25%)' : '7 Giorni di Prova Inclusi'}
             </span>
           </div>
 
           {/* Ambient glow */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/10 rounded-full blur-[60px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/15 rounded-full blur-[60px] pointer-events-none" />
 
           <div className="relative">
             <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mb-2">Trader Vision PRO</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-black text-white">€10,99</span>
-              <span className="text-slate-400 text-sm">/mese</span>
+              <span className="text-4xl font-black text-white">
+                {interval === 'year' ? '€99,99' : '€10,99'}
+              </span>
+              <span className="text-slate-400 text-sm">
+                {interval === 'year' ? '/anno (€8,33/m)' : '/mese'}
+              </span>
             </div>
-            <p className="text-xs text-slate-400 mt-2">Cancella in qualsiasi momento.</p>
+            <p className="text-xs text-slate-400 mt-2">
+              7 giorni gratuiti inclusi. Cancella in qualsiasi momento con un clic.
+            </p>
           </div>
 
           <ul className="space-y-3 relative">
@@ -224,7 +262,7 @@ const Pricing = () => {
 
           {isAlreadyPro ? (
             <div className="relative w-full py-3 rounded-xl bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-sm font-black text-center">
-              ✓ Sei già PRO
+              ✓ Sei già abbonato a PRO
             </div>
           ) : (
             <button
@@ -233,12 +271,12 @@ const Pricing = () => {
               className="relative w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               <Zap className="w-4 h-4" />
-              {loading ? 'Elaborazione in corso...' : 'Passa a PRO — €10,99/mese'}
+              {loading ? 'Elaborazione...' : `Inizia la prova gratuita (${interval === 'year' ? '€99,99/anno' : '€10,99/mese'})`}
             </button>
           )}
 
-          <p className="text-[10px] text-slate-500 text-center relative">
-            7 giorni gratuiti — nessuna carta richiesta per iniziare.
+          <p className="text-[10px] text-slate-400 text-center relative">
+            7 giorni gratuiti — nessuna spesa fino al termine del periodo di prova.
           </p>
         </div>
       </div>

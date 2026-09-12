@@ -303,6 +303,27 @@ const apiClient = {
       console.error('Failed to fetch ads', error);
       throw error;
     }
+  },
+
+  // STRIPE & SUBSCRIPTION
+  createCheckoutSession: async (interval = 'month') => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/stripe/create-checkout-session`, { interval });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create checkout session', error);
+      throw error;
+    }
+  },
+
+  createPortalSession: async () => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/stripe/create-portal-session`);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create portal session', error);
+      throw error;
+    }
   }
 };
 

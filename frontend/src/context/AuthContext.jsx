@@ -81,6 +81,111 @@ export const AuthProvider = ({ children }) => {
  localStorage.setItem('theme', 'dark');
  };
 
+ const refreshUser = async () => {
+ const token = localStorage.getItem('token');
+ if (!token) return;
+ try {
+ const res = await axios.get(`${API_BASE_URL}/auth/me`, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
+ setUser(res.data);
+ } catch (err) {
+ console.warn('Failed to refresh user:', err.message);
+ }
+ };
+
+ const updateProfile = async (profileData) => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.put(`${API_BASE_URL}/auth/profile`, profileData, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
+ if (res.data?.user) {
+ setUser(prev => ({ ...prev, ...res.data.user }));
+ }
+ return { success: true, message: res.data.message };
+ } catch (error) {
+ return { success: false, message: error.response?.data?.message || 'Errore durante l\'aggiornamento del profilo' };
+ }
+ };
+
+ const changePassword = async (currentPassword, newPassword) => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.put(`${API_BASE_URL}/auth/change-password`, {
+ currentPassword,
+ newPassword
+ }, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
+ return { success: true, message: res.data.message };
+ } catch (error) {
+ return { success: false, message: error.response?.data?.message || 'Errore durante la modifica della password' };
+ }
+ };
+
+ const updatePreferences = async (preferencesData) => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.put(`${API_BASE_URL}/auth/preferences`, preferencesData, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
+ setUser(prev => ({ ...prev, preferences: res.data.preferences, theme: res.data.theme || prev.theme }));
+ return { success: true, message: res.data.message };
+ } catch (error) {
+ return { success: false, message: error.response?.data?.message || 'Errore salvataggio preferenze' };
+ }
+ };
+
+ const changeSubscription = async (action, interval = 'month') => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.post(`${API_BASE_URL}/auth/subscription/change`, { action, interval }, {
+ headers: { Authorization: `Bearer ${token}` }
+ });
+ await refreshUser();
+ return { success: true, message: res.data.message, data: res.data };
+ } catch (error) {
+ return { success: false, message: error.response?.data?.message || 'Errore gestione abbonamento' };
+ }
+ };
+
+ const exportUserData = async () => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.get(`${API_BASE_URL}/auth/export-data`, {
+ headers: { Authorization: `Bearer ${token}` },
+ responseType: 'blob'
+ });
+ const blob = new Blob([res.data], { type: 'application/json' });
+ const url = window.URL.createObjectURL(blob);
+ const a = document.createElement('a');
+ a.href = url;
+ a.download = `tradervision_gdpr_export_${user?._id || 'user'}.json`;
+ document.body.appendChild(a);
+ a.click();
+ window.URL.revokeObjectURL(url);
+ document.body.removeChild(a);
+ return { success: true };
+ } catch (error) {
+ return { success: false, message: 'Errore durante l\'esportazione dei dati' };
+ }
+ };
+
+ const deleteAccount = async (password) => {
+ try {
+ const token = localStorage.getItem('token');
+ const res = await axios.delete(`${API_BASE_URL}/auth/delete-account`, {
+ headers: { Authorization: `Bearer ${token}` },
+ data: { password }
+ });
+ logout();
+ return { success: true, message: res.data.message };
+ } catch (error) {
+ return { success: false, message: error.response?.data?.message || 'Errore eliminazione account' };
+ }
+ };
+
  const updateSettings = async (settingsData) => {
  try {
  const token = localStorage.getItem('token');
@@ -101,12 +206,31 @@ export const AuthProvider = ({ children }) => {
  }
  };
 
-  const effectivePlan = simulatedPlan ? simulatedPlan : (user?.isMaster || user?.role === 'admin' ? 'pro' : user?.plan);
-  const effectiveIsMaster = simulatedPlan ? false : (user?.isMaster || user?.role === 'admin');
+ // Check 7-day trial validity
+ const isTrialActive = Boolean(user?.trialEndsAt && new Date(user.trialEndsAt).getTime() > Date.now());
+ const trialDaysRemaining = isTrialActive 
+ ? Math.max(1, Math.ceil((new Date(user.trialEndsAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+ : 0;
+
+ // Effective plan calculation
+ const hasProPrivileges = Boolean(
+ user?.isMaster || 
+ user?.role === 'admin' || 
+ user?.plan === 'pro' || 
+ user?.subscriptionPlan === 'pro' || 
+ user?.subscriptionStatus === 'active' || 
+ isTrialActive
+ );
+
+ const effectivePlan = simulatedPlan ? simulatedPlan : (hasProPrivileges ? 'pro' : 'free');
+ const effectiveIsMaster = simulatedPlan ? false : (user?.isMaster || user?.role === 'admin');
 
  return (
  <AuthContext.Provider value={{ 
  user, loading, login, logout, theme, changeTheme, updateSettings, 
+ updateProfile, changePassword, updatePreferences, changeSubscription,
+ exportUserData, deleteAccount, refreshUser,
+ isTrialActive, trialDaysRemaining,
  simulatedPlan, setSimulatedPlan, effectivePlan, effectiveIsMaster
  }}>
  {!loading && children}
