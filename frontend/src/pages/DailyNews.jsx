@@ -3,17 +3,19 @@ import {
   Newspaper, Sparkles, TrendingUp, TrendingDown, Clock, 
   ExternalLink, Flame, Globe, Filter, Search, RefreshCw, 
   Radio, ShieldAlert, ChevronRight, Bookmark, Share2, Layers,
-  Eye, X, ArrowUpRight
+  Eye, X, ArrowUpRight, Swords, AlertOctagon, Twitter
 } from 'lucide-react';
 import apiClient from '../services/apiClient';
+import VipMarketMoversTwitter from '../components/VipMarketMoversTwitter';
 
 const CATEGORIES = [
   { id: 'ALL', label: 'Tutte le Notizie', icon: Globe },
+  { id: 'WARS_DISASTERS', label: 'Guerre & Crisi / Catastrofi', icon: Swords },
   { id: 'GEOPOLITICS', label: 'Geopolitica & Mondo', icon: ShieldAlert },
   { id: 'MARKETS', label: 'Mercati & Finanza', icon: TrendingUp },
   { id: 'ECONOMY', label: 'Economia & Banche Centrali', icon: Layers },
   { id: 'TECH', label: 'Tech & AI', icon: Sparkles },
-  { id: 'COMMODITIES', label: 'Materie Prime', icon: Flame },
+  { id: 'COMMODITIES', label: 'Materie Prime & Energia', icon: Flame },
   { id: 'CRYPTO', label: 'Crypto Assets', icon: Radio }
 ];
 
@@ -210,11 +212,11 @@ const DailyNews = () => {
               </span>
               <span className="px-3 py-1 rounded-full bg-white/10 text-white/80 border border-white/10 text-[10px] font-black tracking-widest uppercase font-mono flex items-center gap-1.5">
                 <Radio className="w-3 h-3 text-emerald-400 animate-pulse" />
-                14 PROVIDER GLOBALI ATTIVI
+                18+ PROVIDER GLOBALI & CRISI ATTIVI
               </span>
               <span className="px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-black tracking-widest uppercase font-mono flex items-center gap-1.5">
                 <Clock className="w-3 h-3" />
-                SYNC ORARIO AUTOMATICO
+                SYNC ORARIO & RETENTION 15 GG
               </span>
             </div>
 
@@ -222,7 +224,7 @@ const DailyNews = () => {
               Quotidiano Notizie del Mondo
             </h1>
             <p className="text-xs md:text-sm text-white/70 max-w-2xl font-medium leading-relaxed">
-              Le notizie più calde e rilevanti dal pianeta sincronizzate ogni ora da 14 testate globali: geopolitica, decisioni dei governi, banche centrali, mercati finanziari e asset digitali.
+              Le notizie più calde dal pianeta sincronizzate ogni ora da 18+ testate globali: guerre, catastrofi naturali (USGS, ReliefWeb ONU), geopolitica, banche centrali e mercati finanziari.
             </p>
           </div>
 
@@ -490,7 +492,12 @@ const DailyNews = () => {
         )}
       </section>
 
-      {/* ── 5. Full Story In-App Modal / Reader ──────────────────────────── */}
+      {/* ── 5. X / Twitter Market Movers Feed ─────────────────────────────── */}
+      <section className="pt-8">
+        <VipMarketMoversTwitter />
+      </section>
+
+      {/* ── 6. Full Story In-App Modal / Reader ──────────────────────────── */}
       {selectedStory && (
         <div 
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300"

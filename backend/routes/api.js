@@ -201,6 +201,19 @@ router.get('/world-news', async (req, res) => {
   }
 });
 
+// GET /api/vip-tweets — market moving tweets & statements from top investors and politicians
+router.get('/vip-tweets', async (req, res) => {
+  try {
+    const vipTweetsService = require('../services/vipTweetsService');
+    const { category, search, ticker } = req.query;
+    const result = await vipTweetsService.getVipTweets({ category, search, ticker });
+    res.json(result);
+  } catch (err) {
+    console.error('Error fetching VIP tweets:', err);
+    res.status(500).json({ error: 'Failed to fetch VIP tweets', details: err.message });
+  }
+});
+
 // GET /api/community — returns mock community data
 router.get('/community', (req, res) => {
   res.json({

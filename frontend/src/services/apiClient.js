@@ -87,6 +87,15 @@ const apiClient = {
       throw error;
     }
   },
+  getVipTweets: async (params = {}) => {
+    try {
+      const response = await axios.get(`${API_BASE_URL}/vip-tweets`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Failed to fetch VIP tweets', error);
+      throw error;
+    }
+  },
   getMacroOutlook: async () => {
     try {
       const response = await axios.get(`${API_BASE_URL}/macro-outlook`);

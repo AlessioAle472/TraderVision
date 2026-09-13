@@ -1,17 +1,14 @@
 /**
  * WorldNewsService - TraderVision
  * 
- * Aggregates live top-tier international & financial news from multiple trusted sources:
+ * Aggregates live top-tier international, financial, war, and crisis news from 18+ trusted sources:
  * - Financial & Markets: Reuters, Yahoo Finance, CNBC Business, MarketWatch, Il Sole 24 Ore Finanza
  * - Global Geopolitics & World: BBC World, NYT World, NYT Business, Al Jazeera, ANSA Mondo, ANSA Economia, Il Sole 24 Ore Mondo
- * - Digital Assets & Tech: CoinDesk, CoinTelegraph, TechCrunch
+ * - Wars, Conflicts & Disasters: USGS Earthquakes, ReliefWeb Disasters & Conflicts, The Guardian Natural Disasters, Defense News Military, BBC Middle East & Conflicts
+ * - Digital Assets & Tech: CoinDesk, CoinTelegraph
  * 
- * Includes:
- * - In-memory and MongoDB persistent cache (WorldNewsArchive)
- * - Automatic background hourly refresh cycle via WorldNewsCronJob
- * - Deduplication by normalized title and link
- * - Smart sentiment and impact tags
- * - Rich fallback dataset with in-app editorial previews
+ * Retention:
+ * - Automatically purges articles older than 15 days on every cycle to keep server storage lean and optimal.
  */
 
 const Parser = require('rss-parser');
@@ -29,8 +26,15 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 let cachedNews = null;
 let lastFetchTime = 0;
 
-// Curated Top Global RSS Providers (14 Verified Active Endpoints)
+// Curated Top Global RSS Providers (18 Active Endpoints)
 const NEWS_PROVIDERS = [
+  // Wars, Conflicts & Natural Disasters (NEW)
+  { source: 'USGS Earthquakes', category: 'WARS_DISASTERS', url: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_month.atom' },
+  { source: 'ReliefWeb Global Crisis', category: 'WARS_DISASTERS', url: 'https://reliefweb.int/updates/rss.xml' },
+  { source: 'Guardian Climate & Disasters', category: 'WARS_DISASTERS', url: 'https://www.theguardian.com/world/natural-disasters/rss' },
+  { source: 'Defense News Military', category: 'WARS_DISASTERS', url: 'https://www.defensenews.com/arc/outboundfeeds/rss/' },
+  { source: 'BBC Middle East & Conflicts', category: 'WARS_DISASTERS', url: 'https://feeds.bbci.co.uk/news/world/middle_east/rss.xml' },
+
   // Markets & Finance
   { source: 'Reuters Business', category: 'MARKETS', url: 'https://www.reutersagency.com/feed/?best-topics=business-finance&post_type=best' },
   { source: 'Yahoo Finance', category: 'MARKETS', url: 'https://finance.yahoo.com/news/rss' },
@@ -55,6 +59,34 @@ const NEWS_PROVIDERS = [
 // Fallback curated editorial stories with guaranteed full preview content
 const FALLBACK_STORIES = [
   {
+    id: 'story-crisis-1',
+    title: 'Monitor Conflitti: Escalation nello Stretto di Hormuz e rotte marittime globali sotto allerta massima',
+    summary: 'Le autorità di sicurezza navale e le agenzie di intelligence segnalano droni e manovre ostili vicino ai terminal petroliferi chiave. I costi di nolo e le coperture assicurative registrano picchi record.',
+    fullContent: 'La sicurezza degli stretti strategici globali affronta una delle fasi di maggiore tensione dell\'anno. Oltre il 20% del transito petrolifero mondiale e un terzo del GNL passano attraverso l\'area a rischio. Le principali flotte commerciali stanno deviando rotte verso il Capo di Buona Speranza, con ripercussioni immediate sui tempi di consegna delle merci e sui costi della supply chain globale.',
+    source: 'Defense News Military',
+    category: 'WARS_DISASTERS',
+    url: 'https://www.defensenews.com',
+    publishedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    image: 'https://images.unsplash.com/photo-1579975096649-e773152b04cb?w=800&auto=format&fit=crop&q=80',
+    isBreaking: true,
+    impact: 'HIGH',
+    sentiment: 'BEARISH'
+  },
+  {
+    id: 'story-crisis-2',
+    title: 'Catastrofi Naturali: Terremoto sottomarino di magnitudo 6.5 registrato nell\'Oceano Pacifico',
+    summary: 'I sismografi dell\'USGS hanno rilevato un forte sisma con allerta onde anomale per le zone costiere limitrofe. Verifiche in corso sulle infrastrutture energetiche offshore.',
+    fullContent: 'L\'USGS (United States Geological Survey) ha localizzato l\'epicentro a profondità intermedia. Le autorità di protezione civile hanno attivato i protocolli di monitoraggio maremoto. Al momento non si registrano danni maggiori agli impianti portuali o ai cavi sottomarini di trasmissione dati internet, ma i mercati regionali rimangono in fase di monitoraggio precauzionale.',
+    source: 'USGS Earthquakes',
+    category: 'WARS_DISASTERS',
+    url: 'https://earthquake.usgs.gov',
+    publishedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+    isBreaking: true,
+    impact: 'HIGH',
+    sentiment: 'NEUTRAL'
+  },
+  {
     id: 'story-1',
     title: 'Banche Centrali: La Federal Reserve segnala cautela sui tagli dei tassi mentre l\'inflazione core si stabilizza',
     summary: 'I mercati obbligazionari globali registrano volatilità dopo le ultime dichiarazioni del FOMC. Gli analisti evidenziano la necessità di ulteriori conferme dai dati sul lavoro prima di una svolta accomodante.',
@@ -62,9 +94,9 @@ const FALLBACK_STORIES = [
     source: 'Bloomberg Macro',
     category: 'ECONOMY',
     url: 'https://www.bloomberg.com',
-    publishedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
-    isBreaking: true,
+    isBreaking: false,
     impact: 'HIGH',
     sentiment: 'NEUTRAL'
   },
@@ -76,9 +108,9 @@ const FALLBACK_STORIES = [
     source: 'Reuters Energy',
     category: 'GEOPOLITICS',
     url: 'https://www.reuters.com',
-    publishedAt: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 85 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80',
-    isBreaking: true,
+    isBreaking: false,
     impact: 'HIGH',
     sentiment: 'BEARISH'
   },
@@ -90,7 +122,7 @@ const FALLBACK_STORIES = [
     source: 'Financial Times',
     category: 'COMMODITIES',
     url: 'https://www.ft.com',
-    publishedAt: new Date(Date.now() - 85 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 110 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=800&auto=format&fit=crop&q=80',
     isBreaking: false,
     impact: 'MEDIUM',
@@ -104,7 +136,7 @@ const FALLBACK_STORIES = [
     source: 'Wall Street Journal',
     category: 'TECH',
     url: 'https://www.wsj.com',
-    publishedAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 140 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
     isBreaking: false,
     impact: 'HIGH',
@@ -118,50 +150,8 @@ const FALLBACK_STORIES = [
     source: 'CoinDesk Pro',
     category: 'CRYPTO',
     url: 'https://www.coindesk.com',
-    publishedAt: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 190 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&auto=format&fit=crop&q=80',
-    isBreaking: false,
-    impact: 'MEDIUM',
-    sentiment: 'BULLISH'
-  },
-  {
-    id: 'story-6',
-    title: 'Crescita Economica in Europa: La BCE valuta l\'impatto della debolezza manifatturiera tedesca sui prossimi tagli',
-    summary: 'Gli indici PMI segnalano divergenza tra il settore servizi in espansione e l\'industria pesante in fase di ristrutturazione.',
-    fullContent: 'Il consiglio direttivo della Banca Centrale Europea mantiene una posizione vigile. La divergenza di performance tra il settore manifatturiero dell\'Europa settentrionale e il dinamismo turistico-finanziario dei paesi del Sud Europa crea una sfida complessa per la calibrazione dei tassi sui depositi.',
-    source: 'ANSA Economia',
-    category: 'ECONOMY',
-    url: 'https://www.ansa.it',
-    publishedAt: new Date(Date.now() - 240 * 60 * 1000).toISOString(),
-    image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&auto=format&fit=crop&q=80',
-    isBreaking: false,
-    impact: 'MEDIUM',
-    sentiment: 'NEUTRAL'
-  },
-  {
-    id: 'story-7',
-    title: 'Dollaro USA e Valute Emergenti: Il DXY consolida attorno a 104 punti con spread dei tassi favorevole',
-    summary: 'Gli investitori mantengono posizioni lunghe sul dollaro rispetto allo yen giapponese e all\'euro, sostenuti dalla resilienza economica statunitense.',
-    fullContent: 'La valuta americana continua a beneficiare della combinazione tra crescita solida del PIL statunitense e tassi di rendimento reali superiori rispetto ai principali partner commerciali del G10. I flussi cross-currency confermano un saldo positivo a favore della divisa statunitense.',
-    source: 'Bloomberg FX',
-    category: 'FOREX',
-    url: 'https://www.bloomberg.com',
-    publishedAt: new Date(Date.now() - 300 * 60 * 1000).toISOString(),
-    image: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=800&auto=format&fit=crop&q=80',
-    isBreaking: false,
-    impact: 'LOW',
-    sentiment: 'BULLISH'
-  },
-  {
-    id: 'story-8',
-    title: 'Transizione Energetica e Materie Prime: Rame e Litio vedono un aumento della domanda da mobilità elettrica',
-    summary: 'I contratti futures sul rame al London Metal Exchange (LME) toccano massimi di periodo sostenuti dalla transizione alle energie rinnovabili.',
-    fullContent: 'L\'elettrificazione della rete globale e la produzione di veicoli a zero emissioni stanno assorbendo quantitativi crescenti di metalli industriali. Gli analisti prevedono un deficit strutturale di offerta per il rame raffinato entro il prossimo triennio.',
-    source: 'Reuters Commodities',
-    category: 'COMMODITIES',
-    url: 'https://www.reuters.com',
-    publishedAt: new Date(Date.now() - 360 * 60 * 1000).toISOString(),
-    image: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop&q=80',
     isBreaking: false,
     impact: 'MEDIUM',
     sentiment: 'BULLISH'
@@ -184,10 +174,11 @@ class WorldNewsService {
     try {
       const archived = await WorldNewsArchive.findOne({ dataId: 'latest_world_news' });
       if (archived && archived.stories && archived.stories.length > 0) {
-        // If the DB archive was updated recently, use it
         const dbAge = now - new Date(archived.lastUpdated).getTime();
         if (dbAge < 60 * 60 * 1000) { // Less than 1 hour old
-          cachedNews = archived.stories;
+          // Clean memory of any stories older than 15 days
+          const freshStories = this.purgeOldStories(archived.stories);
+          cachedNews = freshStories;
           lastFetchTime = now;
           return this._filterNews(cachedNews, options);
         }
@@ -202,7 +193,19 @@ class WorldNewsService {
   }
 
   /**
-   * Scrapes all 14 providers, parses, deduplicates, and saves to MongoDB and in-memory cache.
+   * Purges stories older than 15 days to save memory and database resources.
+   */
+  purgeOldStories(stories = []) {
+    const FIFTEEN_DAYS_MS = 15 * 24 * 60 * 60 * 1000;
+    const cutoffTime = Date.now() - FIFTEEN_DAYS_MS;
+    return stories.filter(story => {
+      const pubDate = new Date(story.publishedAt).getTime();
+      return isNaN(pubDate) ? true : (pubDate >= cutoffTime);
+    });
+  }
+
+  /**
+   * Scrapes all providers, parses, deduplicates, and purges articles older than 15 days.
    */
   async refreshAllProviders() {
     let allArticles = [];
@@ -215,15 +218,17 @@ class WorldNewsService {
         return parsed.items.slice(0, 8).map((item, idx) => {
           let img = item.enclosure?.url || item['media:content']?.$.url || null;
           if (!img) {
-            const placeholders = [
+            const crisisPlaceholders = [
+              'https://images.unsplash.com/photo-1579975096649-e773152b04cb?w=800&auto=format&fit=crop&q=80',
+              'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+              'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=800&auto=format&fit=crop&q=80',
               'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
               'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=80',
               'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=800&auto=format&fit=crop&q=80',
               'https://images.unsplash.com/photo-1610375461246-83df859d849d?w=800&auto=format&fit=crop&q=80',
-              'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80',
-              'https://images.unsplash.com/photo-1518546305927-5a555bb7020d?w=800&auto=format&fit=crop&q=80'
+              'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=80'
             ];
-            img = placeholders[idx % placeholders.length];
+            img = crisisPlaceholders[idx % crisisPlaceholders.length];
           }
 
           const rawSnippet = (item.contentSnippet || item.content || item.summary || '').trim();
@@ -234,7 +239,7 @@ class WorldNewsService {
 
           const titleLower = title.toLowerCase();
           const isBullish = titleLower.includes('rally') || titleLower.includes('gain') || titleLower.includes('surge') || titleLower.includes('record') || titleLower.includes('salita') || titleLower.includes('crescita');
-          const isBearish = titleLower.includes('drop') || titleLower.includes('fall') || titleLower.includes('crash') || titleLower.includes('slump') || titleLower.includes('crollo') || titleLower.includes('calo');
+          const isBearish = titleLower.includes('war') || titleLower.includes('crisis') || titleLower.includes('attack') || titleLower.includes('earthquake') || titleLower.includes('disaster') || titleLower.includes('drop') || titleLower.includes('fall') || titleLower.includes('crash') || titleLower.includes('slump') || titleLower.includes('crollo') || titleLower.includes('calo');
 
           return {
             id: item.guid || item.link || `news-${feed.source.replace(/\s+/g, '-').toLowerCase()}-${idx}-${Date.now()}`,
@@ -243,11 +248,11 @@ class WorldNewsService {
             fullContent: fullContent.length > 50 ? fullContent : cleanSnippet,
             source: feed.source,
             category: feed.category,
-            url: item.link || 'https://finance.yahoo.com',
+            url: item.link || 'https://news.google.com',
             publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
             image: img,
-            isBreaking: idx === 0,
-            impact: idx === 0 ? 'HIGH' : 'MEDIUM',
+            isBreaking: idx === 0 && (feed.category === 'WARS_DISASTERS' || feed.category === 'GEOPOLITICS'),
+            impact: (feed.category === 'WARS_DISASTERS' || idx === 0) ? 'HIGH' : 'MEDIUM',
             sentiment: isBullish ? 'BULLISH' : (isBearish ? 'BEARISH' : 'NEUTRAL')
           };
         });
@@ -264,11 +269,10 @@ class WorldNewsService {
       console.warn('[WorldNewsService] Multi-provider fetch warning:', e.message);
     }
 
-    // Merge with fallback stories for coverage
+    // Deduplicate stories
     const seenTitles = new Set();
-    const finalStories = [];
+    let finalStories = [];
 
-    // Filter valid titles and deduplicate
     for (const article of allArticles) {
       if (!article.title) continue;
       const key = article.title.toLowerCase().substring(0, 50);
@@ -278,7 +282,7 @@ class WorldNewsService {
       }
     }
 
-    // Ensure fallback stories are included if list is short
+    // Ensure fallback stories are included
     for (const fallback of FALLBACK_STORIES) {
       const key = fallback.title.toLowerCase().substring(0, 50);
       if (!seenTitles.has(key)) {
@@ -286,6 +290,9 @@ class WorldNewsService {
         finalStories.push(fallback);
       }
     }
+
+    // AUTOMATIC 15-DAY RETENTION PURGE: Remove any news published > 15 days ago
+    finalStories = this.purgeOldStories(finalStories);
 
     // Sort descending by date
     finalStories.sort((a, b) => new Date(b.publishedAt) - new Date(a.publishedAt));
@@ -306,7 +313,7 @@ class WorldNewsService {
         },
         { upsert: true, new: true }
       );
-      console.log(`[WorldNewsService] Sincronizzazione completata: ${finalStories.length} notizie da ${NEWS_PROVIDERS.length} provider archiviate nel database.`);
+      console.log(`[WorldNewsService] Sincronizzazione completata: ${finalStories.length} notizie da ${NEWS_PROVIDERS.length} provider archiviate (purga 15 giorni attiva).`);
     } catch (dbErr) {
       console.warn('[WorldNewsService] Warning saving to MongoDB WorldNewsArchive:', dbErr.message);
     }
@@ -314,7 +321,7 @@ class WorldNewsService {
     return finalStories;
   }
 
-  _filterNews(articles, { category, search, limit = 50 }) {
+  _filterNews(articles, { category, search, limit = 60 }) {
     let filtered = [...articles];
 
     if (category && category !== 'ALL') {
