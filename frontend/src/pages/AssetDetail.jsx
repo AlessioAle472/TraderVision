@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, RefreshCw, TrendingUp, TrendingDown, AlertCircle, Star, 
-  Crosshair, ShieldCheck, Activity, BarChart2, Calendar, Layers, ChevronRight, Zap
+  Crosshair, ShieldCheck, Activity, BarChart2, Calendar, Layers, ChevronRight, Zap, Lock
 } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import apiClient from '../services/apiClient';
 import TradingViewWidget from '../components/TradingViewWidget';
 import { useWatchlist } from '../context/WatchlistContext';
+import { useAuth } from '../context/AuthContext';
 import InfoTooltip from '../components/InfoTooltip';
 
 // --- SVG Donut Chart for Smart Score ---
@@ -106,41 +107,64 @@ const AssetDetail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isWatched, toggleWatchlist } = useWatchlist();
+  const { effectivePlan } = useAuth();
+  const isPro = effectivePlan === 'pro';
 
-  const [asset, setAsset] = useState(null);
-  const [quantData, setQuantData] = useState(null);
+  const [asset, setAsset] = useState(() => {
+    if (location.state?.asset) {
+      return {
+        ...location.state.asset,
+        tvSymbol: location.state.tvSymbol || location.state.asset.tvSymbol,
+        category: location.state.category || location.state.asset.category
+      };
+    }
+    return null;
+  });
+  const [quantData, setQuantData] = useState(() => location.state?.asset || null);
   const [histData, setHistData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!location.state?.asset);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     let active = true;
     const loadData = async () => {
-      setLoading(true);
+      // If we don't already have asset from location state, show loader
+      if (!location.state?.asset && !asset) {
+        setLoading(true);
+      }
       setError(null);
 
       try {
-        const [detail, quant] = await Promise.all([
-          apiClient.getAssetDetail(ticker).catch(() => null),
-          apiClient.getSmartQuantAnalysis(ticker).catch(() => null)
-        ]);
-
-        if (!active) return;
-        if (!detail && !quant) throw new Error(`Ticker "${ticker}" not found.`);
-        setAsset(detail || quant);
-        setQuantData(quant || detail);
-
         const yahooMap = {
           'EURUSD': 'EURUSD=X', 'Gold': 'GC=F', 'WTI': 'CL=F', 'SP500': '^GSPC', 'BTC': 'BTC-USD'
         };
-        const chartTicker = detail?.yahooTicker || quant?.yahooTicker || yahooMap[ticker] || ticker;
-
+        const initialYahoo = location.state?.asset?.yahooTicker || yahooMap[ticker] || ticker;
         const to = Math.floor(Date.now() / 1000);
         const from = to - (365 * 24 * 60 * 60);
-        const data = await apiClient.getHistoricalData(chartTicker, 'D', from, to);
-        if (active) setHistData(data || []);
+
+        // Fetch detail, quant analysis, and historical chart IN PARALLEL
+        const [detail, quant, hist] = await Promise.all([
+          apiClient.getAssetDetail(ticker).catch(() => null),
+          apiClient.getSmartQuantAnalysis(ticker).catch(() => null),
+          apiClient.getHistoricalData(initialYahoo, 'D', from, to).catch(() => [])
+        ]);
+
+        if (!active) return;
+
+        const resolvedAsset = detail || quant || location.state?.asset;
+        if (!resolvedAsset) {
+          throw new Error(`Ticker "${ticker}" non trovato.`);
+        }
+
+        setAsset(prev => ({ ...(prev || {}), ...(detail || quant || location.state?.asset) }));
+        setQuantData(prev => ({ ...(prev || {}), ...(quant || detail || location.state?.asset) }));
+        if (hist && hist.length > 0) {
+          setHistData(hist);
+        }
       } catch (err) {
-        if (active) setError(err.message || 'Failed to load asset data');
+        if (active && !asset && !location.state?.asset) {
+          setError(err.message || 'Failed to load asset data');
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -312,54 +336,70 @@ const AssetDetail = () => {
             </div>
 
             {/* Target Price & Stop Loss HUD */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5">
-              <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
-                <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
-                  Zona di Entrata
-                  <InfoTooltip text="Range di prezzo ottimale calcolato tramite scarto ATR" />
+            <div className="relative mt-5">
+              <div className={`grid grid-cols-2 md:grid-cols-4 gap-4 ${!isPro ? 'filter blur-[4px] select-none pointer-events-none opacity-40' : ''}`}>
+                <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
+                  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
+                    Zona di Entrata
+                    <InfoTooltip text="Range di prezzo ottimale calcolato tramite scarto ATR" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-text">{tradeSetup.entryZone}</div>
                 </div>
-                <div className="text-sm font-black font-mono text-text">{tradeSetup.entryZone}</div>
+
+                <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
+                  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
+                    Target Price
+                    <InfoTooltip text="Obiettivo di prezzo stimato basato su 3x ATR" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-emerald-400">
+                    ${typeof tradeSetup.targetPrice === 'number' ? tradeSetup.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : tradeSetup.targetPrice}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
+                  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
+                    Stop Loss ATR
+                    <InfoTooltip text="Livello di stop loss protettivo calibrato su 1.5x ATR" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-rose-400">
+                    ${typeof tradeSetup.stopLoss === 'number' ? tradeSetup.stopLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : tradeSetup.stopLoss}
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
+                  <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
+                    Risk / Reward
+                    <InfoTooltip text="Rapporto rischio/rendimento stimato per l'operazione" />
+                  </div>
+                  <div className="text-sm font-black font-mono text-primary">{tradeSetup.riskRewardRatio}</div>
+                </div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
-                <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
-                  Target Price
-                  <InfoTooltip text="Obiettivo di prezzo stimato basato su 3x ATR" />
+              {/* Free User Upgrade Overlay */}
+              {!isPro && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[2px] rounded-2xl border border-indigo-500/20 p-4">
+                  <div className="text-center space-y-2">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold">
+                      <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                      Setup Algoritmico Riservato a Trader Vision PRO
+                    </div>
+                    <div>
+                      <button
+                        onClick={() => navigate('/pricing')}
+                        className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30"
+                      >
+                        Sblocca Target & Stop Loss a 16,99€/mese
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-sm font-black font-mono text-emerald-400">
-                  ${typeof tradeSetup.targetPrice === 'number' ? tradeSetup.targetPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : tradeSetup.targetPrice}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
-                <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
-                  Stop Loss ATR
-                  <InfoTooltip text="Livello di stop loss protettivo calibrato su 1.5x ATR" />
-                </div>
-                <div className="text-sm font-black font-mono text-rose-400">
-                  ${typeof tradeSetup.stopLoss === 'number' ? tradeSetup.stopLoss.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : tradeSetup.stopLoss}
-                </div>
-              </div>
-
-              <div className="p-3 rounded-2xl bg-black/20 border border-white/5">
-                <div className="text-[10px] text-text-secondary uppercase font-black tracking-widest mb-1 flex items-center gap-1">
-                  Risk / Reward
-                  <InfoTooltip text="Rapporto rischio/rendimento stimato per l'operazione" />
-                </div>
-                <div className="text-sm font-black font-mono text-primary">{tradeSetup.riskRewardRatio}</div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* SECTION 1: TradingView Advanced Chart */}
-          <div className="bg-surface rounded-3xl overflow-hidden shadow-xl border border-white/5">
-            <div className="p-4 flex justify-between items-center bg-surface-hover/10">
-              <h2 className="text-xs font-black text-text uppercase tracking-widest">Grafico Avanzato in Tempo Reale</h2>
-              <span className="text-[10px] font-mono text-text-secondary uppercase">Powered by TradingView</span>
-            </div>
-            <div className="p-0 h-[480px]">
-              <TradingViewWidget symbol={asset?.yahooTicker || ticker} />
-            </div>
+          <div className="h-[540px]">
+            <TradingViewWidget symbol={asset?.tvSymbol || location.state?.tvSymbol || asset?.yahooTicker || ticker} />
           </div>
 
           {/* SECTION 2: Yahoo Finance Historical Area Chart */}
@@ -415,57 +455,85 @@ const AssetDetail = () => {
               <span className="text-[10px] font-mono text-emerald-400 font-black px-2 py-0.5 rounded bg-emerald-500/10">PRECISION ALGO</span>
             </div>
 
-            <div className="flex flex-col items-center">
-              <SmartScoreDonut score={score} delta={asset?.scoreDelta || 0} />
-              <div className={`mt-5 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-wider border ${tradeSetup.directionBg} ${tradeSetup.directionColor}`}>
-                {tradeSetup.direction}
+            <div className="relative">
+              <div className={`space-y-6 ${!isPro ? 'filter blur-[5px] select-none pointer-events-none opacity-30' : ''}`}>
+                <div className="flex flex-col items-center">
+                  <SmartScoreDonut score={score} delta={asset?.scoreDelta || 0} />
+                  <div className={`mt-5 px-5 py-2 rounded-2xl font-black text-sm uppercase tracking-wider border ${tradeSetup.directionBg} ${tradeSetup.directionColor}`}>
+                    {tradeSetup.direction}
+                  </div>
+                  <div className="text-[11px] text-text-secondary mt-2 font-medium">
+                    Confidenza: <strong className="text-emerald-400">{tradeSetup.confidence}%</strong> • {tradeSetup.setupName}
+                  </div>
+                </div>
+
+                {/* The 4 Pillars */}
+                <div className="space-y-3 pt-2">
+                  <div className="text-[11px] font-black text-text-secondary uppercase tracking-wider mb-2">
+                    I 4 Pilastri Quantitativi
+                  </div>
+
+                  <PillarBar
+                    label="1. Tecnico"
+                    score={pillars.technical?.score || 50}
+                    weight={pillars.technical?.weight || '35%'}
+                    color="#6366f1"
+                    icon={Activity}
+                    details={pillars.technical?.data?.signals}
+                  />
+
+                  <PillarBar
+                    label="2. Fondamentale"
+                    score={pillars.fundamental?.score || 50}
+                    weight={pillars.fundamental?.weight || '25%'}
+                    color="#3b82f6"
+                    icon={BarChart2}
+                    details={pillars.fundamental?.data?.signals}
+                  />
+
+                  <PillarBar
+                    label="3. Stagionalità"
+                    score={pillars.seasonality?.score || 50}
+                    weight={pillars.seasonality?.weight || '20%'}
+                    color="#10b981"
+                    icon={Calendar}
+                    details={pillars.seasonality?.data?.signals}
+                  />
+
+                  <PillarBar
+                    label="4. Macro"
+                    score={pillars.macro?.score || 50}
+                    weight={pillars.macro?.weight || '20%'}
+                    color="#f59e0b"
+                    icon={Layers}
+                    details={pillars.macro?.data?.signals}
+                  />
+                </div>
               </div>
-              <div className="text-[11px] text-text-secondary mt-2 font-medium">
-                Confidenza: <strong className="text-emerald-400">{tradeSetup.confidence}%</strong> • {tradeSetup.setupName}
-              </div>
-            </div>
 
-            {/* The 4 Pillars */}
-            <div className="space-y-3 pt-2">
-              <div className="text-[11px] font-black text-text-secondary uppercase tracking-wider mb-2">
-                I 4 Pilastri Quantitativi
-              </div>
-
-              <PillarBar
-                label="1. Tecnico"
-                score={pillars.technical?.score || 50}
-                weight={pillars.technical?.weight || '35%'}
-                color="#6366f1"
-                icon={Activity}
-                details={pillars.technical?.data?.signals}
-              />
-
-              <PillarBar
-                label="2. Fondamentale"
-                score={pillars.fundamental?.score || 50}
-                weight={pillars.fundamental?.weight || '25%'}
-                color="#3b82f6"
-                icon={BarChart2}
-                details={pillars.fundamental?.data?.signals}
-              />
-
-              <PillarBar
-                label="3. Stagionalità"
-                score={pillars.seasonality?.score || 50}
-                weight={pillars.seasonality?.weight || '20%'}
-                color="#10b981"
-                icon={Calendar}
-                details={pillars.seasonality?.data?.signals}
-              />
-
-              <PillarBar
-                label="4. Macro"
-                score={pillars.macro?.score || 50}
-                weight={pillars.macro?.weight || '20%'}
-                color="#f59e0b"
-                icon={Layers}
-                details={pillars.macro?.data?.signals}
-              />
+              {/* Free User Gating Overlay */}
+              {!isPro && (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center space-y-4 bg-slate-950/60 backdrop-blur-[3px] rounded-2xl border border-indigo-500/20">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center">
+                    <Lock className="w-6 h-6 text-indigo-400" />
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="text-sm font-black text-white uppercase tracking-wider">
+                      SmartQuant PRO
+                    </h3>
+                    <p className="text-xs text-slate-400 max-w-xs">
+                      Visualizza lo score a 4 pilastri (Tecnico, Fondamentale, Stagionale, Macro) e i segnali quantitativi in tempo reale.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => navigate('/pricing')}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-600/30"
+                  >
+                    Passa a PRO (16,99€/mese)
+                  </button>
+                  <span className="text-[10px] text-slate-500">7 giorni di prova gratuiti inclusi</span>
+                </div>
+              )}
             </div>
 
             {/* Summary Highlights */}

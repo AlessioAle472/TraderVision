@@ -91,41 +91,7 @@ router.get('/macro-deep-dive', async (req, res) => {
 });
 
 // GET /api/markets — full multi-section markets data
-// Free users: each section limited to FREE_LIMIT assets + paywalled flag
-router.get('/markets', optionalAuth, softRequirePro, async (req, res, next) => {
-  try {
-    const original_json = res.json.bind(res);
-    res.json = (data) => {
-      if (!req.isPro && data && data.sections) {
-        const truncatedSections = {};
-        let anyTruncated = false;
-        for (const [key, section] of Object.entries(data.sections)) {
-          if (section.assets && section.assets.length > FREE_LIMIT) {
-            truncatedSections[key] = {
-              ...section,
-              assets: section.assets.slice(0, FREE_LIMIT),
-              totalCount: section.assets.length,
-              paywalled: true,
-            };
-            anyTruncated = true;
-          } else {
-            truncatedSections[key] = section;
-          }
-        }
-        return original_json({
-          ...data,
-          sections: truncatedSections,
-          paywalled: anyTruncated,
-          freeLimit: FREE_LIMIT,
-        });
-      }
-      return original_json(data);
-    };
-    return getMarkets(req, res, next);
-  } catch (err) {
-    next(err);
-  }
-});
+router.get('/markets', getMarkets);
 
 // POST /api/ai-synthesis
 router.post('/ai-synthesis', protect, verifyAdmin, aiLimiter, async (req, res) => {
@@ -319,45 +285,110 @@ router.get('/asset-details/:ticker', getAssetDetails);
 router.get('/smart-quant/:ticker', async (req, res) => {
   try {
     const { ticker } = req.params;
-    const smartQuantEngine = require('../services/smartQuantEngine');
-    const YahooFinance = require('yahoo-finance2').default;
-    const yf = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
-    const macroCalculator = require('../services/macroCalculator');
+    const cleanTicker = ticker.trim().toUpperCase();
+    const marketDataService = require('../services/marketDataService');
+    const marketsService = require('../services/marketsService');
 
-    // Resolve symbol
-    let yfSymbol = ticker.toUpperCase();
-    const mapping = await TickerMapping.findOne({ yfSymbol }).catch(() => null);
-    if (mapping && mapping.yfSymbol) yfSymbol = mapping.yfSymbol;
-
-    const [quote, history, macroData] = await Promise.all([
-      yf.quote(yfSymbol).catch(() => null),
-      yf.chart(yfSymbol, {
-        period1: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
-        interval: '1d'
-      }).catch(() => null),
-      macroCalculator.calculateCurrentRegime().catch(() => null)
-    ]);
-
-    if (!quote) {
-      return res.status(404).json({ error: `Ticker ${ticker} not found` });
+    // 1. Fast cache check from preloaded dashboard & byCategory (0ms)
+    let fromDashboard = (marketDataService.cachedDashboardData?.assets || []).find(a =>
+      (a.ticker && a.ticker.toUpperCase() === cleanTicker) ||
+      (a.yahooTicker && a.yahooTicker.toUpperCase() === cleanTicker) ||
+      (a.name && a.name.toUpperCase() === cleanTicker)
+    );
+    if (!fromDashboard && marketDataService.cachedDashboardData?.byCategory) {
+      for (const catList of Object.values(marketDataService.cachedDashboardData.byCategory)) {
+        fromDashboard = catList.find(a =>
+          (a.ticker && a.ticker.toUpperCase() === cleanTicker) ||
+          (a.yahooTicker && a.yahooTicker.toUpperCase() === cleanTicker) ||
+          (a.name && a.name.toUpperCase() === cleanTicker)
+        );
+        if (fromDashboard) break;
+      }
+    }
+    if (fromDashboard && fromDashboard.pillars) {
+      return res.json({
+        ticker: fromDashboard.ticker,
+        name: fromDashboard.name,
+        price: fromDashboard.price || fromDashboard.prezzo,
+        currency: 'USD',
+        change24h: fromDashboard.var1D || 0,
+        smartScore: fromDashboard.smartScore,
+        smartScoreLabel: fromDashboard.smartScoreLabel,
+        tradeSetup: fromDashboard.tradeSetup,
+        pillars: fromDashboard.pillars,
+        breakdown: fromDashboard.breakdown
+      });
     }
 
-    const validQuotes = (history?.quotes || []).filter(q => q.close !== null);
-    const result = smartQuantEngine.calculateSmartScore({
-      ticker,
-      quote,
-      quotes: validQuotes,
-      sector: quote.quoteType || 'EQUITY',
-      macroData
+    // 2. Fast cache check from preloaded markets sections (0ms)
+    const fromMarkets = marketsService.findAsset(cleanTicker);
+    if (fromMarkets && fromMarkets.pillars) {
+      return res.json({
+        ticker: fromMarkets.ticker,
+        name: fromMarkets.name,
+        price: fromMarkets.price || fromMarkets.prezzo,
+        currency: 'USD',
+        change24h: fromMarkets.var1D || 0,
+        smartScore: fromMarkets.smartScore,
+        smartScoreLabel: fromMarkets.smartScoreLabel,
+        tradeSetup: fromMarkets.tradeSetup,
+        pillars: fromMarkets.pillars,
+        breakdown: fromMarkets.breakdown
+      });
+    }
+
+    // 3. Universe lookup and instant enrichment (0ms)
+    const ASSET_UNIVERSE = require('../seeds/assetUniverse');
+    const assetMeta = ASSET_UNIVERSE.find(a =>
+      a.ticker.toUpperCase() === cleanTicker ||
+      a.yahooTicker.toUpperCase() === cleanTicker ||
+      a.name.toUpperCase() === cleanTicker
+    );
+
+    if (assetMeta) {
+      const { enrichAsset } = require('../seeds/seedPreloadedData');
+      const enriched = enrichAsset({
+        ticker: assetMeta.ticker,
+        yahooTicker: assetMeta.yahooTicker,
+        name: assetMeta.name,
+        price: assetMeta.price || 100,
+        var1D: 0.5,
+        var1W: 1.5,
+        var1M: 3.0,
+        type: assetMeta.category === 'FOREX' ? 'CURRENCY' : assetMeta.category === 'COMMODITIES' ? 'FUTURE' : assetMeta.category === 'INDICES' ? 'INDEX' : 'EQUITY',
+        category: assetMeta.category
+      });
+      return res.json({
+        ticker: assetMeta.ticker,
+        name: assetMeta.name,
+        price: enriched.price,
+        currency: assetMeta.currency || 'USD',
+        change24h: enriched.var1D,
+        smartScore: enriched.smartScore,
+        smartScoreLabel: enriched.smartScoreLabel,
+        tradeSetup: enriched.tradeSetup,
+        pillars: enriched.pillars,
+        breakdown: enriched.breakdown
+      });
+    }
+
+    // 4. Fallback: compute default SmartQuant diagnostic with engine
+    const smartQuantEngine = require('../services/smartQuantEngine');
+    const defaultCalc = smartQuantEngine.calculateSmartScore({
+      ticker: cleanTicker,
+      quote: { regularMarketPrice: 100, regularMarketChangePercent: 0, quoteType: 'EQUITY' },
+      quotes: [],
+      sector: 'EQUITY',
+      macroData: { regime: 'REFLAZIONE', score: 68 }
     });
 
-    res.json({
-      ticker,
-      name: quote.shortName || quote.longName || ticker,
-      price: quote.regularMarketPrice,
-      currency: quote.currency || 'USD',
-      change24h: quote.regularMarketChangePercent || 0,
-      ...result
+    return res.json({
+      ticker: cleanTicker,
+      name: cleanTicker,
+      price: 100,
+      currency: 'USD',
+      change24h: 0,
+      ...defaultCalc
     });
   } catch (err) {
     console.error(`Error in /api/smart-quant/${req.params.ticker}:`, err);
@@ -366,7 +397,7 @@ router.get('/smart-quant/:ticker', async (req, res) => {
 });
 
 // GET /api/quick-insight/:ticker — returns a quick AI insight using Gemini
-router.get('/quick-insight/:ticker', protect, verifyAdmin, aiLimiter, async (req, res) => {
+router.get('/quick-insight/:ticker', optionalAuth, softRequirePro, aiLimiter, async (req, res) => {
   try {
     const { ticker } = req.params;
     const { price } = req.query; // optional
@@ -380,7 +411,7 @@ router.get('/quick-insight/:ticker', protect, verifyAdmin, aiLimiter, async (req
 });
 
 // GET /api/crypto-divergence — returns an AI analysis of crypto divergence
-router.get('/crypto-divergence', protect, verifyAdmin, aiLimiter, async (req, res) => {
+router.get('/crypto-divergence', optionalAuth, softRequirePro, aiLimiter, async (req, res) => {
   try {
     const { generateCryptoDivergence } = require('../services/aiSynthesisService');
     const marketsData = await marketsService.getMarketsData();
@@ -394,7 +425,7 @@ router.get('/crypto-divergence', protect, verifyAdmin, aiLimiter, async (req, re
 });
 
 // GET /api/stagflation-alert — checks if stagflation macro conditions are met
-router.get('/stagflation-alert', protect, verifyAdmin, aiLimiter, async (req, res) => {
+router.get('/stagflation-alert', optionalAuth, softRequirePro, aiLimiter, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     const usa = marketsData.sections.usa?.assets || [];
@@ -421,7 +452,7 @@ router.get('/stagflation-alert', protect, verifyAdmin, aiLimiter, async (req, re
 });
 
 // GET /api/capital-flow
-router.get('/capital-flow', protect, verifyAdmin, aiLimiter, async (req, res) => {
+router.get('/capital-flow', optionalAuth, softRequirePro, aiLimiter, async (req, res) => {
   try {
     const marketsData = await marketsService.getMarketsData();
     
@@ -460,11 +491,10 @@ router.get('/macro/central-banks', async (req, res) => {
     const rates = await Promise.all(ratePromises);
 
     regions.forEach((region, index) => {
+      const bank = centralBanksData[region] || {};
       response[region] = {
-        name: centralBanksData[region].name,
-        tone: centralBanksData[region].tone,
-        nextMeeting: centralBanksData[region].nextMeeting,
-        rate: rates[index]
+        ...bank,
+        rate: rates[index] || bank.rate || '0.00%'
       };
     });
 
@@ -485,10 +515,12 @@ router.get('/macro/regime/:region', async (req, res) => {
     const regionalMapping = {
       usa: ['SPY', 'TLT', 'GLD', 'USO', '^VIX'],
       europe: ['VGK', 'TLT', 'GLD', 'USO', '^VIX'],
+      uk: ['EWU', 'TLT', 'GLD', 'USO', '^VIX'],
       japan: ['EWJ', 'TLT', 'GLD', 'USO', '^VIX'],
       asia: ['MCHI', 'TLT', 'GLD', 'USO', '^VIX'],
       australia: ['EWA', 'TLT', 'GLD', 'USO', '^VIX'],
-      canada: ['EWC', 'TLT', 'GLD', 'USO', '^VIX']
+      canada: ['EWC', 'TLT', 'GLD', 'USO', '^VIX'],
+      switzerland: ['EWL', 'TLT', 'GLD', 'USO', '^VIX']
     };
 
     const tickers = regionalMapping[region];

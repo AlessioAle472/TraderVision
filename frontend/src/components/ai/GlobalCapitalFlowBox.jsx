@@ -22,7 +22,6 @@ const GlobalCapitalFlowBox = () => {
  }
  };
 
- if (user?.role !== 'admin') return null;
 
  return (
  <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden group">

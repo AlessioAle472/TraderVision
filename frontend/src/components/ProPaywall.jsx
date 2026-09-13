@@ -1,5 +1,6 @@
 import { Lock, Sparkles, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 /**
  * ProPaywall
@@ -20,8 +21,10 @@ const ProPaywall = ({
   subtitle = 'Accesso illimitato a tutti i mercati, indicatori quantitativi, COT Report e zero pubblicità.',
 }) => {
   const navigate = useNavigate();
+  const { effectivePlan } = useAuth();
 
-  if (!isPaywalled) {
+  // If user is already PRO, never show the paywall
+  if (effectivePlan === 'pro' || !isPaywalled) {
     return <>{children}</>;
   }
 
@@ -77,7 +80,7 @@ const ProPaywall = ({
               className="w-full flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0"
             >
               <Sparkles className="w-4 h-4" />
-              Passa a PRO a 10,99€/mese
+              Passa a PRO a 16,99€/mese
               <ArrowRight className="w-4 h-4" />
             </button>
 

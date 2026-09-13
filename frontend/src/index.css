@@ -64,7 +64,13 @@
   border-radius: 0.75rem;
 }
 
-
+/* ─── TradingView Pure Black Institutional Theme Overrides ────────── */
+.tradingview-widget-container,
+.tradingview-widget-container__widget,
+.tradingview-widget-container iframe {
+  background-color: #000000 !important;
+  color-scheme: dark !important;
+}
 
 /* ─── Mobile Scrollable Tables ────────────────────────────────────── */
 .table-scroll {

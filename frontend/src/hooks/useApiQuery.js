@@ -5,10 +5,10 @@ import axios from 'axios';
 // The baseUrl from apiClient needs to be duplicated or we can just rely on apiClient methods directly.
 // In this case, we use apiClient methods directly for queries.
 
-export const useDashboardData = (tickers = null) => {
+export const useDashboardData = (tickers = null, category = null) => {
   return useQuery({
-    queryKey: ['dashboardData', tickers],
-    queryFn: () => apiClient.getDashboardData(tickers),
+    queryKey: ['dashboardData', category, tickers],
+    queryFn: () => apiClient.getDashboardData(tickers, category),
   });
 };
 

@@ -151,9 +151,23 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 mongoose.connect(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000 })
-  .then(() => {
+  .then(async () => {
     databaseStatus = 'connected';
     console.log('✅ Connected to MongoDB Atlas');
+
+    // Auto-seed financial asset universe if not yet seeded
+    try {
+      const FinancialAsset = require('./models/FinancialAsset');
+      const { seedFinancialAssets } = require('./scripts/seedAssets');
+      const count = await FinancialAsset.estimatedDocumentCount();
+      if (count === 0) {
+        console.log('🌱 FinancialAsset collection empty, auto-seeding asset universe...');
+        await seedFinancialAssets();
+      }
+    } catch (seedErr) {
+      console.warn('⚠️ Asset universe auto-seed warning:', seedErr.message);
+    }
+
     startBackgroundJobs();
   })
   .catch(err => {

@@ -23,7 +23,7 @@ const MacroAlertBanner = () => {
  checkAlert();
  }, [user]);
 
- if (user?.role !== 'admin' || !alert) return null;
+ if (!alert) return null;
 
  return (
  <div className="bg-rose-500/10 backdrop-blur-md rounded-2xl p-6 relative overflow-hidden shadow-[0_0_40px_rgba(244,63,94,0.1)] flex gap-4 items-start animate-in fade-in slide-in-from-top-4">

@@ -16,9 +16,11 @@ axios.interceptors.request.use((config) => {
 });
 
 const apiClient = {
-  getDashboardData: async (tickers = null) => {
+  getDashboardData: async (tickers = null, category = null) => {
     try {
-      const params = tickers ? { tickers: tickers.join(',') } : {};
+      const params = {};
+      if (tickers && tickers.length > 0) params.tickers = tickers.join(',');
+      if (category) params.category = category;
       const response = await axios.get(`${API_BASE_URL}/dashboard`, { params });
       return response.data;
     } catch (error) {

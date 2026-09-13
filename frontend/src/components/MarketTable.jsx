@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { 
   ArrowUpRight, ArrowDownRight, Star, AlertCircle, 
   X, ChevronRight, Zap, Filter, SlidersHorizontal, 
-  Search, ArrowUpDown, TrendingUp, TrendingDown, Target
+  Search, ArrowUpDown, TrendingUp, TrendingDown, Target, Lock
 } from 'lucide-react';
 import { useWatchlist } from '../context/WatchlistContext';
+import { useAuth } from '../context/AuthContext';
 import InfoTooltip from './InfoTooltip';
 
 // Mini Sparkline SVG
@@ -55,7 +56,8 @@ const MARKET_LABELS = {
   FOREX: 'Valute FX',
   CRYPTO: 'Criptovalute',
   COMMODITIES: 'Materie Prime',
-  INDICES: 'Indici Macro'
+  INDICES: 'Indici Macro',
+  WATCHLIST: '★ Watchlist'
 };
 
 const SCORE_RANGES = [
@@ -68,12 +70,14 @@ const SCORE_RANGES = [
 
 const MarketTable = ({ assets = [], loading, activeCategory, onCategoryChange }) => {
   const navigate = useNavigate();
+  const { effectivePlan } = useAuth();
+  const isPro = effectivePlan === 'pro';
   const { isWatched, toggleWatchlist } = useWatchlist();
   const [scoreFilter, setScoreFilter] = useState(0);
   const [sortBy, setSortBy] = useState('smartScore'); // 'smartScore', 'var1D', 'prezzo'
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc', 'asc'
 
-  const categories = ['EQUITY', 'FOREX', 'CRYPTO', 'COMMODITIES', 'INDICES'];
+  const categories = ['EQUITY', 'FOREX', 'CRYPTO', 'COMMODITIES', 'INDICES', 'WATCHLIST'];
 
   const filteredAndSortedAssets = useMemo(() => {
     let result = [...assets];
@@ -220,7 +224,13 @@ const MarketTable = ({ assets = [], loading, activeCategory, onCategoryChange })
                 return (
                   <tr
                     key={asset.ticker}
-                    onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
+                    onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`, {
+                      state: {
+                        asset,
+                        tvSymbol: asset.tvSymbol || asset.yahooTicker || asset.ticker,
+                        category: asset.category
+                      }
+                    })}
                     className="hover:bg-primary/[0.06] transition-all cursor-pointer group"
                   >
                     {/* Watchlist Star */}
@@ -272,32 +282,45 @@ const MarketTable = ({ assets = [], loading, activeCategory, onCategoryChange })
 
                     {/* SmartQuant Score & Pill */}
                     <td className="p-4 text-center">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all group-hover:scale-105" style={{ background: 'rgba(0,0,0,0.3)' }}>
-                        <span className={`text-base font-black font-mono tracking-tighter ${badge.bg.split(' ')[2]}`}>
-                          {asset.smartScore || 0}
-                        </span>
-                        <div className="h-3 w-px bg-white/10" />
-                        <span className={`text-[10px] font-black uppercase tracking-wider ${badge.bg.split(' ')[2]}`}>
-                          {asset.smartScoreLabel || badge.label}
-                        </span>
-                      </div>
+                      {isPro ? (
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl border backdrop-blur-md shadow-lg transition-all group-hover:scale-105" style={{ background: 'rgba(0,0,0,0.3)' }}>
+                          <span className={`text-base font-black font-mono tracking-tighter ${badge.bg.split(' ')[2]}`}>
+                            {asset.smartScore || 0}
+                          </span>
+                          <div className="h-3 w-px bg-white/10" />
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${badge.bg.split(' ')[2]}`}>
+                            {asset.smartScoreLabel || badge.label}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-bold" title="SmartQuant riservato al piano PRO">
+                          <Lock className="w-3 h-3" />
+                          <span>PRO</span>
+                        </div>
+                      )}
                     </td>
 
                     {/* Setup Detected */}
                     <td className="p-4 text-center">
-                      {asset.tradeSetup?.setupName ? (
-                        <div className="inline-flex flex-col items-center">
-                          <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shadow-sm">
-                            {asset.tradeSetup.setupName}
-                          </span>
-                          {asset.tradeSetup?.targetPrice && (
-                            <span className="text-[9px] font-mono text-text-secondary mt-0.5">
-                              TP: ${asset.tradeSetup.targetPrice}
+                      {isPro ? (
+                        asset.tradeSetup?.setupName ? (
+                          <div className="inline-flex flex-col items-center">
+                            <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 shadow-sm">
+                              {asset.tradeSetup.setupName}
                             </span>
-                          )}
-                        </div>
+                            {asset.tradeSetup?.targetPrice && (
+                              <span className="text-[9px] font-mono text-text-secondary mt-0.5">
+                                TP: ${asset.tradeSetup.targetPrice}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-text-secondary uppercase font-mono">Consolidamento</span>
+                        )
                       ) : (
-                        <span className="text-[10px] text-text-secondary uppercase font-mono">Consolidamento</span>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                          <Lock className="w-2.5 h-2.5 text-indigo-400" /> Riservato
+                        </span>
                       )}
                     </td>
 

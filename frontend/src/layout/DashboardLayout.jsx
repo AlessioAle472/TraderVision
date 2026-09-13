@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { Menu, Search } from 'lucide-react';
 import Sidebar from '../components/Sidebar';
 import MacroTicker from '../components/MacroTicker';
 import SearchBar from '../components/SearchBar';
@@ -10,27 +10,56 @@ const DashboardLayout = ({ children }) => {
  const { toggleWatchlist } = useWatchlist();
  const { user, simulatedPlan, setSimulatedPlan } = useAuth();
  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+ const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
 
  return (
  <div className="flex h-screen bg-background text-text overflow-hidden transition-colors duration-300">
  <Sidebar isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
  <main className="flex-1 flex flex-col overflow-hidden">
  {/* Top Navbar */}
- <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-10 w-full gap-4 md:gap-8 transition-colors duration-300">
- <div className="flex items-center gap-4 md:hidden">
+ <header className="h-16 flex items-center justify-between px-4 md:px-8 bg-background/80 backdrop-blur-md sticky top-0 z-50 w-full gap-4 md:gap-8 transition-colors duration-300">
+ <div className="flex items-center gap-2 md:hidden">
  <button 
  onClick={() => setIsSidebarOpen(true)}
  className="p-2 -ml-2 text-gray-400 hover:text-white focus:outline-none"
+ title="Menu"
  >
  <Menu className="w-6 h-6"/>
  </button>
+ <button
+ onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+ className="p-2 text-gray-400 hover:text-white focus:outline-none"
+ title="Cerca asset"
+ >
+ <Search className="w-5 h-5" />
+ </button>
  </div>
  
+ <div className={isMobileSearchOpen ? 'hidden' : 'block'}>
  <MacroTicker />
+ </div>
  
- <div className="hidden md:flex flex-1 justify-center">
+ <div className="hidden md:flex flex-1 justify-center max-w-xl">
  <SearchBar onAddTicker={(ticker) => toggleWatchlist(ticker)} />
  </div>
+
+ {/* Mobile Search Overlay */}
+ {isMobileSearchOpen && (
+ <div className="flex-1 md:hidden flex items-center gap-2 animate-in fade-in duration-200">
+ <div className="flex-1">
+ <SearchBar 
+ onAddTicker={(ticker) => toggleWatchlist(ticker)} 
+ onSelectAsset={() => setIsMobileSearchOpen(false)}
+ />
+ </div>
+ <button
+ onClick={() => setIsMobileSearchOpen(false)}
+ className="p-1.5 text-gray-400 hover:text-white text-xs font-bold"
+ >
+ Chiudi
+ </button>
+ </div>
+ )}
 
  <div className="flex items-center gap-4">
  {user?.isMaster && (

@@ -211,9 +211,27 @@ const fetchFinnhubCalendar = async (timeframe = 'today') => {
     }
 
     // Se esiste una cache precedente anche scaduta, servila prima di dare errore
-    if (cached && cached.data) {
+    if (cached && cached.data && cached.data.length > 0) {
         return cached.data;
     }
+
+    // Prova a leggere il file locale da disco (zero-lag offline mode)
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        const diskFile = path.join(__dirname, `../data/economic_calendar_${timeframe}.json`);
+        const altFile = path.join(__dirname, '../data/economic_calendar.json');
+        const targetPath = fs.existsSync(diskFile) ? diskFile : fs.existsSync(altFile) ? altFile : null;
+        if (targetPath) {
+            const raw = fs.readFileSync(targetPath, 'utf-8');
+            const parsed = JSON.parse(raw);
+            const events = parsed.data || (Array.isArray(parsed) ? parsed : null);
+            if (events && events.length > 0) {
+                setCache(cacheKey, { timestamp: Date.now(), data: events });
+                return events;
+            }
+        }
+    } catch (_) {}
 
     return [{
         id: 'fallback-0',

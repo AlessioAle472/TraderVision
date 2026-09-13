@@ -17,6 +17,21 @@ const FACTOR_TICKERS = {
   'DEF': 'Defensive'
 };
 
+const mongoose = require('mongoose');
+const marketsService = require('./marketsService');
+const marketDataService = require('./marketDataService');
+
+const DEFAULT_ASSET_GROUPS = {
+  usa: { label: 'USA', tickers: { '^GSPC': 'S&P 500', '^IXIC': 'Nasdaq', '^DJI': 'Dow Jones', '^RUT': 'Russell 2000', '^VIX': 'VIX' } },
+  europa: { label: 'Europa', tickers: { '^GDAXI': 'Germania', '^FCHI': 'Francia', '^FTSE': 'UK', 'FTSEMIB.MI': 'Italia', '^IBEX': 'Spagna', '^STOXX50E': 'Euro Stoxx 50' } },
+  asia: { label: 'Asia', tickers: { '^N225': 'Giappone', '^HSI': 'Hong Kong', '000001.SS': 'Cina', '^STI': 'Singapore', '^BSESN': 'India' } },
+  developed: { label: 'Developed', tickers: { '^GSPTSE': 'Canada', '^AS51': 'Australia', '^SSMI': 'Svizzera', '^OMX': 'Svezia', '^OSLO': 'Norvegia', '^TA125.TA': 'Israele' } },
+  emergenti: { label: 'Emergenti', tickers: { 'EEM': 'MSCI EM', '^BVSP': 'Brasile', '^MXX': 'Messico', '^KS11': 'Corea', 'RSX': 'Russia' } },
+  forex: { label: 'Forex', tickers: { 'USDCHF=X': 'USD/CHF', 'USDCAD=X': 'USD/CAD', 'USDJPY=X': 'USD/JPY', 'AUDJPY=X': 'AUD/JPY', 'CHFJPY=X': 'CHF/JPY', 'AUDUSD=X': 'AUD/USD', 'GBPUSD=X': 'GBP/USD', 'EURJPY=X': 'EUR/JPY', 'EURGBP=X': 'EUR/GBP', 'EURUSD=X': 'EUR/USD', 'NZDUSD=X': 'NZD/USD', 'EURAUD=X': 'EUR/AUD' } },
+  crypto: { label: 'Crypto', tickers: { 'BTC-USD': 'Bitcoin', 'ETH-USD': 'Ethereum', 'SOL-USD': 'Solana', 'BNB-USD': 'BNB', 'XRP-USD': 'XRP', 'TRX-USD': 'Tron', 'ADA-USD': 'Cardano', 'LINK-USD': 'Chainlink', 'MATIC-USD': 'Polygon', 'AVAX-USD': 'Avalanche', 'DOGE-USD': 'Dogecoin', 'DOT-USD': 'Polkadot', 'TON-USD': 'Toncoin', 'HBAR-USD': 'Hedera', 'XLM-USD': 'Stellar', 'NEAR-USD': 'NEAR', 'UNI-USD': 'Uniswap', 'LTC-USD': 'Litecoin' } },
+  commodities: { label: 'Commodities', tickers: { 'BZ=F': 'Brent Oil', 'CL=F': 'Crude Oil', 'NG=F': 'Nat Gas', 'GC=F': 'Gold', 'SI=F': 'Silver', 'HG=F': 'Copper', 'URA': 'Uranium ETF', 'DBA': 'Agriculture', 'DBC': 'Commodities', 'GSG': 'GSG Index' } }
+};
+
 class MarketCronJob {
   async _fetchAsset(yahooTicker, displayName) {
     try {
@@ -137,21 +152,26 @@ class MarketCronJob {
   }
 
   async runCalculations() {
-    console.log('[MarketCronJob] Running massive market data calculations (Zero Lag Cache Gen)...');
+    console.log('[MarketCronJob] Running massive market data calculations (Daily Preloaded Refresh)...');
     
     // 1. Get config
-    let config = await MarketConfig.findOne({ configId: 'default' });
-    if (!config) {
-        // Fallback or create default
-        config = new MarketConfig();
-        await config.save();
+    let assetGroups = DEFAULT_ASSET_GROUPS;
+    if (mongoose.connection && mongoose.connection.readyState === 1) {
+      try {
+        let config = await MarketConfig.findOne({ configId: 'default' });
+        if (config && config.assetGroups) {
+          assetGroups = config.assetGroups;
+        }
+      } catch (e) {
+        console.warn('[MarketCronJob] Could not read MarketConfig from DB, using defaults.');
+      }
     }
 
-    const groupKeys = Object.keys(config.assetGroups);
+    const groupKeys = Object.keys(assetGroups);
     
     // Process groups in parallel
     const resultsPromises = groupKeys.map(async (key) => {
-      const group = config.assetGroups[key];
+      const group = assetGroups[key];
       const entries = Object.entries(group.tickers);
       const groupAssets = await this._processInChunks(entries, 5, ([ticker, name]) => this._fetchAsset(ticker, name));
       return {
@@ -189,42 +209,49 @@ class MarketCronJob {
     ]);
 
     const sections = {};
+    let totalAssetsFetched = 0;
     groupResults.forEach((res) => {
-        sections[res.key] = res.data;
+      sections[res.key] = res.data;
+      totalAssetsFetched += (res.data.assets?.length || 0);
     });
 
-    const marketsData = {
+    // Only overwrite preloaded data if we fetched a meaningful number of assets
+    if (totalAssetsFetched > 5) {
+      const marketsData = {
         sections,
         factors,
         generatedAt: new Date().toISOString()
-    };
+      };
 
-    // 3. Save to PreloadedMarketData
-    await PreloadedMarketData.findOneAndUpdate(
-      { dataId: 'latest' },
-      { marketsData, macroOutlook, lastUpdated: new Date() },
-      { upsert: true, new: true }
-    );
-
-    console.log('[MarketCronJob] Finished calculations and saved to database successfully.');
+      await marketsService.saveMarketsData(marketsData, macroOutlook);
+      console.log(`[MarketCronJob] ✅ Saved ${totalAssetsFetched} freshly calculated assets to preloaded cache.`);
+    } else {
+      console.warn(`[MarketCronJob] ⚠️ Calculations yielded only ${totalAssetsFetched} assets (network or provider throttling). Preserving existing preloaded cache.`);
+    }
   }
 
   async init() {
-    // Run every day at 06:00 AM
+    // Run daily at 06:00 AM UTC
     cron.schedule('0 6 * * *', async () => {
-      console.log('[MarketCronJob] Triggered by cron schedule at 06:00 AM.');
-      await this.runCalculations();
-    });
-    console.log('[MarketCronJob] Scheduled at 06:00 AM daily.');
-
-    try {
-      const existing = await PreloadedMarketData.findOne({ dataId: 'latest' });
-      if (!existing || !existing.marketsData) {
-        console.log('[MarketCronJob] No existing market data found in DB, initiating initial calculation...');
-        this.runCalculations().catch(e => console.error('[MarketCronJob] Initial run error:', e.message));
+      console.log('[MarketCronJob] ⏰ Triggered by daily schedule at 06:00 AM.');
+      try {
+        await this.runCalculations();
+      } catch (err) {
+        console.error('[MarketCronJob] Daily run error:', err.message);
       }
-    } catch (err) {
-      console.warn('[MarketCronJob] Could not check preloaded data:', err.message);
+    });
+    console.log('[MarketCronJob] Scheduled daily update at 06:00 AM.');
+
+    // Check if preloaded cache exists; if not, generate it immediately
+    const existing = await marketsService.getMarketsData();
+    if (!existing || !existing.sections || Object.keys(existing.sections).length === 0) {
+      console.log('[MarketCronJob] No existing market data found in cache, generating initial preloaded dataset...');
+      try {
+        const { generateAll } = require('../seeds/seedPreloadedData');
+        generateAll();
+      } catch (e) {
+        console.error('[MarketCronJob] Initial seed generation error:', e.message);
+      }
     }
   }
 }

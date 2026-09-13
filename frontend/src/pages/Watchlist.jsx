@@ -10,32 +10,103 @@ const Watchlist = () => {
  const navigate = useNavigate();
  const { watchlist, toggleWatchlist, isWatched } = useWatchlist();
  const { user } = useAuth();
- 
- const [allAssets, setAllAssets] = useState([]);
- const [macroData, setMacroData] = useState(null);
- const [loading, setLoading] = useState(true);
- 
- const [selectedAsset, setSelectedAsset] = useState(null);
+  const [allAssets, setAllAssets] = useState([]);
+  const [macroData, setMacroData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
- useEffect(() => {
- Promise.all([
- apiClient.getDashboardData(),
- apiClient.getMacroOutlook()
- ])
- .then(([dashboardData, macroOutlook]) => {
- // Handle object wrapper fallback defensively
- const normalizedAssets = Array.isArray(dashboardData) 
- ? dashboardData 
- : (dashboardData?.assets || []);
- 
- setAllAssets(normalizedAssets);
- setMacroData(macroOutlook);
- })
- .catch((err) => console.error("Error loading watchlist data:", err))
- .finally(() => setLoading(false));
- }, []);
+  const [selectedAsset, setSelectedAsset] = useState(null);
 
- const watchedAssets = allAssets.filter((a) => watchlist.includes(a.ticker));
+  useEffect(() => {
+    if (watchlist.length === 0) {
+      setAllAssets([]);
+      setLoading(false);
+      if (!macroData) {
+        apiClient.getMacroOutlook()
+          .then((data) => setMacroData(data))
+          .catch((err) => console.error("Error loading macro outlook:", err));
+      }
+      return;
+    }
+
+    let isMounted = true;
+    setLoading(true);
+
+    Promise.all([
+      apiClient.getDashboardData(watchlist),
+      macroData ? Promise.resolve(macroData) : apiClient.getMacroOutlook().catch(() => null)
+    ])
+      .then(([dashboardData, macroOutlook]) => {
+        if (!isMounted) return;
+
+        const normalizedAssets = Array.isArray(dashboardData)
+          ? dashboardData
+          : (dashboardData?.assets || []);
+
+        const assetMap = new Map();
+        normalizedAssets.forEach((a) => {
+          if (a) {
+            if (a.ticker) assetMap.set(String(a.ticker).trim().toUpperCase(), a);
+            if (a.yahooTicker) assetMap.set(String(a.yahooTicker).trim().toUpperCase(), a);
+            if (a.name) assetMap.set(String(a.name).trim().toUpperCase(), a);
+          }
+        });
+
+        // Ensure every single ticker in watchlist is included
+        const combined = watchlist.map((sym) => {
+          const cleanSym = String(sym).trim().toUpperCase();
+          const found = assetMap.get(cleanSym);
+          if (found) {
+            return {
+              ...found,
+              ticker: found.ticker || cleanSym
+            };
+          }
+          return {
+            ticker: cleanSym,
+            name: cleanSym,
+            settore: 'EQUITY',
+            prezzo: 0,
+            var1D: 0,
+            momentum: 0,
+            smartScore: 50,
+            smartScoreLabel: 'NEUTRAL',
+            sparkline: []
+          };
+        });
+
+        setAllAssets(combined);
+        if (macroOutlook) setMacroData(macroOutlook);
+      })
+      .catch((err) => {
+        console.error("Error loading watchlist data:", err);
+        if (isMounted) {
+          const fallback = watchlist.map((sym) => ({
+            ticker: String(sym).trim().toUpperCase(),
+            name: String(sym).trim().toUpperCase(),
+            settore: 'EQUITY',
+            prezzo: 0,
+            var1D: 0,
+            momentum: 0,
+            smartScore: 50,
+            smartScoreLabel: 'NEUTRAL',
+            sparkline: []
+          }));
+          setAllAssets(fallback);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [watchlist.join(','), refreshKey]);
+
+  const watchedAssets = allAssets.filter((a) =>
+    watchlist.some((w) => w.toUpperCase() === (a.ticker || '').toUpperCase())
+  );
 
  const getSmartScoreColor = (score) => {
  if (score > 70) return'text-success bg-success/10';
@@ -103,7 +174,17 @@ const Watchlist = () => {
  Portafoglio Personale
  </h2>
  </div>
+ <div className="flex items-center gap-3">
+ <button
+ onClick={() => setRefreshKey((k) => k + 1)}
+ className="px-3 py-1.5 rounded-xl bg-slate-700/40 hover:bg-slate-700 text-gray-300 hover:text-white transition-all text-xs font-semibold flex items-center gap-1.5 border border-white/5"
+ title="Aggiorna dati di mercato"
+ >
+ <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-primary' : ''}`} />
+ <span>Aggiorna</span>
+ </button>
  <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">{watchedAssets.length} Tickers Attivi</span>
+ </div>
  </div>
  
  <div className="overflow-x-auto">
@@ -150,7 +231,11 @@ const Watchlist = () => {
  </div>
  </div>
  </td>
- <td className="p-4 text-right font-medium text-white">${asset.prezzo?.toFixed(2) || '---'}</td>
+  <td className="p-4 text-right font-medium text-white">
+    {asset.prezzo && Number(asset.prezzo) > 0
+      ? `$${Number(asset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
+      : '---'}
+  </td>
  <td className="p-4 text-right">
  <div className={`inline-flex items-center gap-1 font-bold text-sm ${asset.var1D >= 0 ?'text-success' :'text-danger'}`}>
  {asset.var1D >= 0 ? <ArrowUpRight className="w-3.5 h-3.5"/> : <ArrowDownRight className="w-3.5 h-3.5"/>}
@@ -263,7 +348,11 @@ const Watchlist = () => {
  <div className="grid grid-cols-2 gap-4 mb-6">
  <div className="bg-slate-800/50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Spot Price</span>
- <span className="text-xl font-black text-white">${selectedAsset.prezzo}</span>
+ <span className="text-xl font-black text-white">
+    {selectedAsset.prezzo && Number(selectedAsset.prezzo) > 0
+      ? `$${Number(selectedAsset.prezzo).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`
+      : '---'}
+  </span>
  </div>
  <div className="bg-slate-800/50 rounded-xl p-4 flex flex-col items-center justify-center text-center">
  <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-1">Momentum (1D)</span>

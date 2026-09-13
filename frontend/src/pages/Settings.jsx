@@ -582,7 +582,7 @@ const Settings = () => {
                 </div>
 
                 <div className="flex items-baseline gap-1.5 mb-5">
-                  <span className="text-3xl font-black text-white">€10,99</span>
+                  <span className="text-3xl font-black text-white">€16,99</span>
                   <span className="text-slate-400 text-xs font-medium">/mese con IVA</span>
                 </div>
 
@@ -622,7 +622,7 @@ const Settings = () => {
               }`}>
                 <div className="absolute -top-3 right-4">
                   <span className="px-3 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-black shadow-md">
-                    Risparmia il 25%
+                    Risparmia oltre il 50%
                   </span>
                 </div>
 
@@ -642,7 +642,7 @@ const Settings = () => {
                   <span className="text-3xl font-black text-white">€99,99</span>
                   <span className="text-slate-400 text-xs font-medium">/anno (pari a soli €8,33/mese)</span>
                 </div>
-                <p className="text-[11px] text-emerald-400 font-semibold mb-5">Risparmi oltre €31 all'anno rispetto al mensile</p>
+                <p className="text-[11px] text-emerald-400 font-semibold mb-5">Risparmi oltre €103 all'anno rispetto al mensile</p>
 
                 <ul className="space-y-2.5 text-xs text-slate-300 mb-6">
                   <li className="flex items-center gap-2">
@@ -918,7 +918,7 @@ const Settings = () => {
                 I nuovi utenti registrati hanno diritto a un <strong>periodo di prova gratuito di 7 (sette) giorni</strong>, decorrente dal momento della registrazione, con pieno accesso alle funzionalità PRO.
               </p>
               <p>
-                Al termine della prova gratuita o in qualsiasi momento, l'utente può attivare o disattivare il rinnovo dell'abbonamento con addebito mensile (€10,99/mese) o annuale (€99,99/anno). L'annullamento del rinnovo automatico può essere effettuato in qualunque momento dalle presenti impostazioni senza penali.
+                Al termine della prova gratuita o in qualsiasi momento, l'utente può attivare o disattivare il rinnovo dell'abbonamento con addebito mensile (€16,99/mese) o annuale (€99,99/anno). L'annullamento del rinnovo automatico può essere effettuato in qualunque momento dalle presenti impostazioni senza penali.
               </p>
             </div>
           </div>

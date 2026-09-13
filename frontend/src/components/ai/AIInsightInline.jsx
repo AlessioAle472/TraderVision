@@ -23,7 +23,6 @@ const AIInsightInline = ({ ticker, price }) => {
  }
  };
 
- if (user?.role !== 'admin') return null;
 
  return (
  <div className="mt-2" onClick={(e) => e.stopPropagation()}>

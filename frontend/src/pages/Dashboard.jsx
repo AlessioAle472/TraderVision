@@ -20,11 +20,33 @@ import WidgetErrorFallback from '../components/WidgetErrorFallback';
 import InfoTooltip from '../components/InfoTooltip';
 
 const TAB_CONFIG = {
-  EQUITY: null, // default trending
-  FOREX: ['EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCAD=X'],
-  CRYPTO: ['BTC-USD', 'ETH-USD', 'SOL-USD', 'XRP-USD'],
-  COMMODITIES: ['GC=F', 'SI=F', 'CL=F', 'HG=F', 'NG=F'],
-  INDICES: ['^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX']
+  EQUITY: [
+    'NVDA', 'AAPL', 'MSFT', 'AMZN', 'GOOGL', 'META', 'TSLA', 'BRK-B', 'LLY', 'AVGO', 
+    'JPM', 'V', 'WMT', 'XOM', 'MA', 'AMD', 'NFLX', 'ORCL', 'PLTR', 'TSM', 
+    'ASML', 'BABA', 'NVO', 'RACE', 'COST', 'HD', 'BAC', 'DIS', 'CRM', 'ADBE', 
+    'INTC', 'QCOM', 'UBER', 'NOW', 'IBM', 'GS', 'MS', 'MCD', 'NKE', 'PG',
+    'KO', 'PEP', 'UNH', 'JNJ', 'ABBV', 'MRK', 'CVX', 'CAT', 'GE', 'BA',
+    'SPY', 'QQQ', 'IWM', 'DIA', 'VOO', 'VUG', 'SMH', 'XLK', 'XLF', 'XLV'
+  ],
+  FOREX: [
+    'EURUSD=X', 'GBPUSD=X', 'USDJPY=X', 'USDCHF=X', 'USDCAD=X', 'AUDUSD=X', 'NZDUSD=X',
+    'EURGBP=X', 'EURJPY=X', 'EURCHF=X', 'EURCAD=X', 'EURAUD=X', 'EURNZD=X',
+    'GBPJPY=X', 'GBPCHF=X', 'GBPCAD=X', 'GBPAUD=X', 'GBPNZD=X',
+    'AUDJPY=X', 'AUDCAD=X', 'AUDCHF=X', 'AUDNZD=X',
+    'NZDJPY=X', 'NZDCAD=X', 'NZDCHF=X',
+    'CADJPY=X', 'CADCHF=X', 'CHFJPY=X'
+  ],
+  CRYPTO: [
+    'BTC-USD', 'ETH-USD', 'SOL-USD', 'BNB-USD', 'XRP-USD', 'ADA-USD', 'LINK-USD', 'AVAX-USD',
+    'DOGE-USD', 'DOT-USD', 'NEAR-USD', 'UNI-USD', 'LTC-USD', 'POL-USD', 'TON-USD'
+  ],
+  COMMODITIES: [
+    'GC=F', 'SI=F', 'CL=F', 'BZ=F', 'NG=F', 'HG=F', 'PL=F', 'PA=F', 'ALI=F', 'URA', 'DBA', 'DBC', 'GLD', 'SLV', 'USO'
+  ],
+  INDICES: [
+    '^GSPC', '^IXIC', '^DJI', '^RUT', '^VIX', '^GDAXI', '^FCHI', '^FTSE', 'FTSEMIB.MI', '^IBEX', '^STOXX50E',
+    '^N225', '^HSI', '000001.SS', '^STI', '^BSESN', '^GSPTSE', '^AS51', '^SSMI', '^OMX', '^OSLO', '^BVSP', '^MXX', '^KS11', 'EEM'
+  ]
 };
 
 const Dashboard = () => {
@@ -34,12 +56,12 @@ const Dashboard = () => {
   const [activeCategory, setActiveCategory] = useState('EQUITY');
   const [searchTerm, setSearchTerm] = useState('');
 
-  let tickers = TAB_CONFIG[activeCategory];
-  if (activeCategory === 'EQUITY' && watchlist.length > 0) {
-    tickers = watchlist;
-  }
+  // Azioni tab is NEVER hijacked by watchlist; Watchlist has its own dedicated tab view!
+  const isWatchlistTab = activeCategory === 'WATCHLIST';
+  const tickers = isWatchlistTab ? (watchlist && watchlist.length > 0 ? watchlist : ['NVDA', 'AAPL']) : TAB_CONFIG[activeCategory];
+  const queryCategory = isWatchlistTab ? null : activeCategory;
 
-  const { data, isLoading: loading, refetch: refetchDashboard } = useDashboardData(tickers);
+  const { data, isLoading: loading, refetch: refetchDashboard } = useDashboardData(tickers, queryCategory);
   const { data: macroData, refetch: refetchMacro } = useMacroOutlook();
   const { data: briefing, isLoading: briefingLoading, refetch: refetchBriefing } = useAiBriefing();
 
@@ -56,26 +78,59 @@ const Dashboard = () => {
     const search = (searchTerm || '').toLowerCase();
     const ticker = (asset.ticker || '').toLowerCase();
     const name = (asset.name || '').toLowerCase();
-    return ticker.includes(search) || name.includes(search);
+    const matchesSearch = ticker.includes(search) || name.includes(search);
+    if (!matchesSearch) return false;
+
+    // Professional Category Precision:
+    // Strictly isolate asset classes so Gold, VIX, currencies, and crypto NEVER appear under Azioni!
+    if (activeCategory === 'EQUITY') {
+      if (asset.category && asset.category !== 'EQUITY') return false;
+      const t = (asset.ticker || '').toUpperCase();
+      const yt = (asset.yahooTicker || '').toUpperCase();
+      const nm = (asset.name || '').toLowerCase();
+      // Absolute prohibition of gold, silver, oil, commodities, forex, crypto, or VIX in Azioni
+      if (t === 'GC=F' || t === 'SI=F' || t === 'CL=F' || t === 'BZ=F' || t === 'NG=F' || t === 'HG=F' || t === 'PL=F' || t === 'PA=F' || t === 'ALI=F' ||
+          t === 'XAUUSD' || t === 'XAGUSD' || t === 'GLD' || t === 'SLV' || t === 'USO' || t === 'URA' || t === 'DBA' || t === 'DBC' || t === 'VIX' || t === '^VIX' ||
+          yt.includes('GC=F') || yt.includes('SI=F') || yt.includes('CL=F') || yt.includes('=X') || yt.includes('-USD') ||
+          nm.includes('oro spot') || nm.includes('gold spot') || nm === 'oro' || nm === 'gold' || nm.includes('silver spot') || nm.includes('argento spot') || nm.includes('petrolio') || nm.includes('crude oil')) {
+        return false;
+      }
+    } else if (activeCategory === 'FOREX') {
+      if (asset.category && asset.category !== 'FOREX') return false;
+    } else if (activeCategory === 'CRYPTO') {
+      if (asset.category && asset.category !== 'CRYPTO') return false;
+    } else if (activeCategory === 'COMMODITIES') {
+      if (asset.category && asset.category !== 'COMMODITIES') return false;
+    } else if (activeCategory === 'INDICES') {
+      if (asset.category && asset.category !== 'INDICES') return false;
+    } else if (activeCategory === 'WATCHLIST') {
+      // In watchlist tab, show assets that match watched tickers
+      if (watchlist && watchlist.length > 0) {
+        const isWatched = watchlist.some(w => w.toUpperCase() === (asset.ticker || '').toUpperCase() || w.toUpperCase() === (asset.yahooTicker || '').toUpperCase());
+        if (!isWatched) return false;
+      }
+    }
+
+    return true;
   });
 
-  // Top Ranked Opportunities by SmartQuant Score
+  // Top Ranked Opportunities by SmartQuant Score (bound to currently filtered assets)
   const topQuantPick = useMemo(() => {
-    if (!assets || assets.length === 0) return null;
-    const sorted = [...assets].sort((a, b) => (b.smartScore || 0) - (a.smartScore || 0));
+    if (!filteredAssets || filteredAssets.length === 0) return null;
+    const sorted = [...filteredAssets].sort((a, b) => (b.smartScore || 0) - (a.smartScore || 0));
     return sorted[0];
-  }, [assets]);
+  }, [filteredAssets]);
 
-  // Market Breadth: Percentage of assets with Bullish/Bearish bias
+  // Market Breadth: Percentage of assets with Bullish/Bearish bias (bound to currently filtered assets)
   const marketSentiment = useMemo(() => {
-    if (!assets || assets.length === 0) return { bullishPct: 60, bearishPct: 40, neutralCount: 0 };
-    const bullish = assets.filter(a => (a.smartScore || 0) >= 60).length;
-    const bearish = assets.filter(a => (a.smartScore || 0) <= 40).length;
-    const neutral = assets.length - bullish - bearish;
-    const bullishPct = Math.round((bullish / assets.length) * 100);
-    const bearishPct = Math.round((bearish / assets.length) * 100);
+    if (!filteredAssets || filteredAssets.length === 0) return { bullishPct: 60, bearishPct: 40, neutralCount: 0, bullishCount: 0, bearishCount: 0 };
+    const bullish = filteredAssets.filter(a => (a.smartScore || 0) >= 60).length;
+    const bearish = filteredAssets.filter(a => (a.smartScore || 0) <= 40).length;
+    const neutral = filteredAssets.length - bullish - bearish;
+    const bullishPct = filteredAssets.length ? Math.round((bullish / filteredAssets.length) * 100) : 0;
+    const bearishPct = filteredAssets.length ? Math.round((bearish / filteredAssets.length) * 100) : 0;
     return { bullishPct, bearishPct, neutralCount: neutral, bullishCount: bullish, bearishCount: bearish };
-  }, [assets]);
+  }, [filteredAssets]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-12">
@@ -226,7 +281,7 @@ const Dashboard = () => {
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-3xl font-black text-emerald-400 tracking-tighter font-mono">
-              {assets.filter(a => (a.smartScore || 0) >= 65).length}
+              {filteredAssets.filter(a => (a.smartScore || 0) >= 65).length}
             </span>
             <span className="text-xs text-text-secondary uppercase font-bold">Setup Attivi</span>
           </div>

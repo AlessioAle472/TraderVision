@@ -240,7 +240,7 @@ const Pricing = () => {
             <p className="text-[11px] font-black text-indigo-400 uppercase tracking-widest mb-2">Trader Vision PRO</p>
             <div className="flex items-baseline gap-1">
               <span className="text-4xl font-black text-white">
-                {interval === 'year' ? '€99,99' : '€10,99'}
+                {interval === 'year' ? '€99,99' : '€16,99'}
               </span>
               <span className="text-slate-400 text-sm">
                 {interval === 'year' ? '/anno (€8,33/m)' : '/mese'}
@@ -271,7 +271,7 @@ const Pricing = () => {
               className="relative w-full flex items-center justify-center gap-2 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
             >
               <Zap className="w-4 h-4" />
-              {loading ? 'Elaborazione...' : `Inizia la prova gratuita (${interval === 'year' ? '€99,99/anno' : '€10,99/mese'})`}
+              {loading ? 'Elaborazione...' : `Inizia la prova gratuita (${interval === 'year' ? '€99,99/anno' : '€16,99/mese'})`}
             </button>
           )}
 

@@ -15,6 +15,12 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
+  Activity,
+  LineChart,
+  ExternalLink,
+  SlidersHorizontal,
+  Lock,
+  ShieldCheck
 } from 'lucide-react';
 import Sparkline from '../components/Sparkline';
 import { SkeletonCard, SkeletonRow } from '../components/SkeletonLoader';
@@ -28,6 +34,8 @@ import MacroAlertBanner from '../components/ai/MacroAlertBanner';
 import GlobalCapitalFlowBox from '../components/ai/GlobalCapitalFlowBox';
 import ProPaywall from '../components/ProPaywall';
 import AdBanner from '../components/AdBanner';
+import TradingViewWidget from '../components/TradingViewWidget';
+import { resolveTVSymbol } from '../utils/tickerUtils';
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
@@ -51,7 +59,21 @@ const getSetupLabel = (score, momentum) => {
 
 // ─── SmartQuant Indicator (Circle + Label) ────────────────────────────────────
 
-const SmartQuantIndicator = ({ score, label }) => {
+const SmartQuantIndicator = ({ score, label, isPro = true }) => {
+  if (!isPro) {
+    return (
+      <div className="flex items-center gap-2" title="SmartQuant riservato agli abbonati PRO">
+        <div className="relative w-10 h-10 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-full border border-dashed border-indigo-500/30 filter blur-[1px] opacity-40"></div>
+          <Lock className="w-3.5 h-3.5 text-indigo-400" />
+        </div>
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[9px] font-black uppercase tracking-wider">
+          PRO
+        </span>
+      </div>
+    );
+  }
+
   const styles = getScoreStyle(score);
   const circumference = 2 * Math.PI * 18; // r=18
   const offset = circumference - (score / 100) * circumference;
@@ -87,7 +109,16 @@ const SmartQuantIndicator = ({ score, label }) => {
 
 // ─── Bias Pill ────────────────────────────────────────────────────────────────
 
-const BiasPill = ({ score }) => {
+const BiasPill = ({ score, isPro = true }) => {
+  if (!isPro) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-300/80 border border-indigo-500/20">
+        <Lock className="w-2.5 h-2.5 text-indigo-400" />
+        Bias: PRO
+      </span>
+    );
+  }
+
   const styles = getScoreStyle(score);
   return (
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${styles.bgLight} ${styles.text}`}>
@@ -99,7 +130,15 @@ const BiasPill = ({ score }) => {
 
 // ─── Setup Badge ──────────────────────────────────────────────────────────────
 
-const SetupBadge = ({ score, momentum }) => {
+const SetupBadge = ({ score, momentum, isPro = true }) => {
+  if (!isPro) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-wider bg-slate-800/80 text-slate-400 border border-white/5" title="Sblocca i setup operativi con Trader Vision PRO">
+        <Lock className="w-2.5 h-2.5 text-indigo-400" /> PRO Only
+      </span>
+    );
+  }
+
   const label = getSetupLabel(score, momentum);
   const colorMap = {
     'Trend Following': 'text-indigo-400 bg-indigo-400/10',
@@ -140,16 +179,102 @@ const HeatMapCell = ({ value }) => {
 
 // ─── Expandable Table Row ─────────────────────────────────────────────────────
 
-const AssetRow = ({ asset }) => {
+const AssetRow = ({ asset, onSelectForChart, isSelectedForChart, isPro = true, isLocked = false }) => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const styles = getScoreStyle(asset.smartScore);
+  const canonicalTvSymbol = resolveTVSymbol(asset.yahooTicker || asset.ticker);
+
+  const handleRowClick = () => {
+    if (isLocked) {
+      navigate('/pricing');
+      return;
+    }
+    navigate(`/asset/${encodeURIComponent(asset.ticker)}`, {
+      state: {
+        asset,
+        tvSymbol: canonicalTvSymbol,
+        category: asset.category
+      }
+    });
+  };
+
+  if (isLocked) {
+    return (
+      <tr
+        className="group transition-all duration-200 cursor-pointer bg-slate-950/40 hover:bg-indigo-950/20 border-b border-white/[0.02]"
+        onClick={handleRowClick}
+      >
+        {/* Asset ticker with lock */}
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center font-black text-slate-500 text-xs">
+              <Lock className="w-4 h-4 text-indigo-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-slate-300 group-hover:text-indigo-300 transition-colors">
+                  {asset.ticker}
+                </span>
+                <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                  PRO
+                </span>
+              </div>
+              <span className="text-[10px] text-slate-500">Asset riservato al piano PRO</span>
+            </div>
+          </div>
+        </td>
+
+        {/* Obscured 1G */}
+        <td className="px-4 py-4 text-center">
+          <span className="text-xs font-mono font-bold text-slate-600 blur-[2px] select-none">
+            +0.00%
+          </span>
+        </td>
+
+        {/* Obscured Momentum */}
+        <td className="px-4 py-4 text-center">
+          <span className="text-xs font-mono font-bold text-slate-600 blur-[2px] select-none">
+            0.00%
+          </span>
+        </td>
+
+        {/* Locked SmartQuant */}
+        <td className="px-4 py-4 text-center">
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[10px] font-bold border border-indigo-500/20">
+              <Lock className="w-3 h-3" /> SmartQuant PRO
+            </span>
+          </div>
+        </td>
+
+        {/* Setup */}
+        <td className="px-4 py-4 text-center">
+          <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">
+            Riservato
+          </span>
+        </td>
+
+        {/* Unlock Button */}
+        <td className="px-4 py-4 text-center" onClick={(e) => e.stopPropagation()}>
+          <button
+            onClick={() => navigate('/pricing')}
+            className="px-3 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/40 text-indigo-300 text-xs font-bold border border-indigo-500/30 transition-all flex items-center gap-1 whitespace-nowrap"
+          >
+            Sblocca <ChevronRight className="w-3 h-3" />
+          </button>
+        </td>
+      </tr>
+    );
+  }
 
   return (
     <>
       <tr
-        className="group hover:bg-white/[0.035] transition-all duration-200 cursor-pointer relative"
-        onClick={() => navigate(`/asset/${encodeURIComponent(asset.ticker)}`)}
+        className={`group transition-all duration-200 cursor-pointer relative ${
+          isSelectedForChart ? 'bg-indigo-600/10 border-l-2 border-indigo-500' : 'hover:bg-white/[0.035]'
+        }`}
+        onClick={handleRowClick}
       >
         {/* Asset + Bias pill */}
         <td className="px-6 py-5">
@@ -158,10 +283,17 @@ const AssetRow = ({ asset }) => {
               {asset.ticker.charAt(0)}
             </div>
             <div className="space-y-1">
-              <div className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors tracking-tight">
-                {asset.ticker}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-white group-hover:text-indigo-400 transition-colors tracking-tight">
+                  {asset.ticker}
+                </span>
+                {asset.yahooTicker && asset.yahooTicker !== asset.ticker && (
+                  <span className="text-[10px] font-mono text-slate-500 hidden sm:inline">
+                    {asset.yahooTicker}
+                  </span>
+                )}
               </div>
-              <BiasPill score={asset.smartScore} />
+              <BiasPill score={asset.smartScore} isPro={isPro} />
             </div>
           </div>
         </td>
@@ -180,20 +312,33 @@ const AssetRow = ({ asset }) => {
         {/* Smart Quant */}
         <td className="px-4 py-5 text-center">
           <div className="flex justify-center">
-            <SmartQuantIndicator score={asset.smartScore} label={asset.smartScoreLabel} />
+            <SmartQuantIndicator score={asset.smartScore} label={asset.smartScoreLabel} isPro={isPro} />
           </div>
         </td>
 
         {/* Setup */}
         <td className="px-4 py-5 text-center">
-          <SetupBadge score={asset.smartScore} momentum={asset.momentum} />
+          <SetupBadge score={asset.smartScore} momentum={asset.momentum} isPro={isPro} />
         </td>
 
-        {/* Expand toggle */}
-        <td className="px-4 py-5 text-center" onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}>
-          <button className="p-1.5 rounded-lg hover:bg-white/10 text-slate-600 hover:text-white transition-colors">
-            {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
+        {/* Action icons: Quick Chart switch + Expand toggle */}
+        <td className="px-4 py-5 text-center" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center justify-center gap-1.5">
+            <button
+              onClick={() => onSelectForChart && onSelectForChart(asset)}
+              className="p-1.5 rounded-lg bg-white/5 hover:bg-indigo-600/30 text-slate-400 hover:text-indigo-400 transition-colors"
+              title="Visualizza nel Grafico TradingView in questa pagina"
+            >
+              <LineChart className="w-3.5 h-3.5" />
+            </button>
+            <button 
+              onClick={() => setExpanded(v => !v)}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-slate-600 hover:text-white transition-colors"
+              title={expanded ? 'Comprimi' : 'Espandi'}
+            >
+              {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
+          </div>
         </td>
       </tr>
 
@@ -201,41 +346,51 @@ const AssetRow = ({ asset }) => {
       {expanded && (
         <tr className="bg-white/[0.015]">
           <td colSpan="6" className="px-6 py-4">
-            <div className="flex items-center gap-8 text-xs">
-              {/* Sparkline */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">Trend 7G</span>
-                <div className="w-24 h-6 opacity-70">
-                  <Sparkline data={asset.sparkline} isPositive={asset.var1D >= 0} />
+            <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
+              <div className="flex items-center gap-6 flex-wrap">
+                {/* Sparkline */}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">Trend 7G</span>
+                  <div className="w-24 h-6 opacity-70">
+                    <Sparkline data={asset.sparkline} isPositive={asset.var1D >= 0} />
+                  </div>
+                </div>
+                {/* 1W */}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">1 Sett.</span>
+                  <span className={`font-black font-mono ${asset.var1W >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {asset.var1W >= 0 ? '+' : ''}{asset.var1W}%
+                  </span>
+                </div>
+                {/* 1M */}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">1 Mese</span>
+                  <span className={`font-black font-mono ${asset.var1M >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {asset.var1M >= 0 ? '+' : ''}{asset.var1M}%
+                  </span>
+                </div>
+                {/* Prezzo */}
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">Prezzo</span>
+                  <span className="font-black font-mono text-white">
+                    {(asset.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                  </span>
                 </div>
               </div>
-              {/* 1W */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">1 Sett.</span>
-                <span className={`font-black font-mono ${asset.var1W >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {asset.var1W >= 0 ? '+' : ''}{asset.var1W}%
-                </span>
+
+              <div className="flex items-center gap-3">
+                {/* AI Insight se score significativo & isPro */}
+                {isPro && asset.smartScore >= 70 && (
+                  <AIInsightInline ticker={asset.yahooTicker || asset.ticker} price={asset.price} />
+                )}
+
+                <button
+                  onClick={handleRowClick}
+                  className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-lg shadow-indigo-600/20"
+                >
+                  Analisi Completa <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-              {/* 1M */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">1 Mese</span>
-                <span className={`font-black font-mono ${asset.var1M >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {asset.var1M >= 0 ? '+' : ''}{asset.var1M}%
-                </span>
-              </div>
-              {/* Prezzo */}
-              <div className="flex items-center gap-2">
-                <span className="text-slate-500 uppercase tracking-wider font-black text-[9px]">Prezzo</span>
-                <span className="font-black font-mono text-white">
-                  {(asset.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              {/* AI Insight se score alto */}
-              {asset.smartScore >= 80 && (
-                <div className="ml-auto">
-                  <AIInsightInline ticker={asset.yahooTicker} price={asset.price} />
-                </div>
-              )}
             </div>
           </td>
         </tr>
@@ -246,7 +401,7 @@ const AssetRow = ({ asset }) => {
 
 // ─── Hero Card ────────────────────────────────────────────────────────────────
 
-const HeroCard = ({ asset }) => {
+const HeroCard = ({ asset, isPro = true }) => {
   const isPositive = asset.var1D >= 0;
   const styles = getScoreStyle(asset.smartScore);
 
@@ -269,27 +424,32 @@ const HeroCard = ({ asset }) => {
               </span>
             </div>
           </div>
-          <div className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.15em] ${styles.bgLight} ${styles.text}`}>
-            {styles.label}
-          </div>
+          {isPro ? (
+            <div className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.15em] ${styles.bgLight} ${styles.text}`}>
+              {styles.label}
+            </div>
+          ) : (
+            <div className="px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-[0.15em] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center gap-1">
+              <Lock className="w-2.5 h-2.5" /> PRO
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-4">
           {/* Mini circle */}
-          <SmartQuantIndicator score={asset.smartScore} />
+          <SmartQuantIndicator score={asset.smartScore} isPro={isPro} />
           <div className="flex-grow space-y-2">
             <div className="flex justify-between text-[8px] font-black text-slate-600 uppercase tracking-widest">
               <span>Signal Strength</span>
-              <span>{asset.smartScore}%</span>
+              <span>{isPro ? `${asset.smartScore}%` : 'PRO Only'}</span>
             </div>
             <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-1000 ${styles.bg}`}
-                style={{ width: `${asset.smartScore}%` }}
+                className={`h-full rounded-full transition-all duration-1000 ${isPro ? styles.bg : 'bg-indigo-600/30'}`}
+                style={{ width: isPro ? `${asset.smartScore}%` : '40%' }}
               />
             </div>
-            {/* Setup invece di testo generico */}
-            <SetupBadge score={asset.smartScore} momentum={asset.momentum || 0} />
+            <SetupBadge score={asset.smartScore} momentum={asset.momentum || 0} isPro={isPro} />
           </div>
         </div>
       </div>
@@ -344,13 +504,35 @@ const SkeletonHeroCard = () => (
   </div>
 );
 
+// ─── Preset Benchmarks for Live TradingView Terminal ─────────────────────────
+
+const CHART_BENCHMARKS = [
+  { label: 'S&P 500', symbol: 'FOREXCOM:SPXUSD', name: 'S&P 500 [SPX]' },
+  { label: 'Nasdaq 100', symbol: 'FOREXCOM:NSXUSD', name: 'Nasdaq 100 [NDX]' },
+  { label: 'Oro Spot', symbol: 'OANDA:XAUUSD', name: 'Oro Spot [XAUUSD]' },
+  { label: 'EUR / USD', symbol: 'OANDA:EURUSD', name: 'EUR / USD Forex' },
+  { label: 'DAX 40', symbol: 'INDEX:DEU40', name: 'DAX 40 Germania' },
+  { label: 'Petrolio WTI', symbol: 'TVC:USOIL', name: 'Crude Oil WTI' },
+  { label: 'Bitcoin', symbol: 'BINANCE:BTCUSDT', name: 'Bitcoin [BTC]' }
+];
+
 // ─── Markets Page ─────────────────────────────────────────────────────────────
 
 const Markets = () => {
   const navigate = useNavigate();
+  const { effectivePlan } = useAuth();
+  const isPro = effectivePlan === 'pro';
+  const FREE_PREVIEW_LIMIT = 4;
+
   const [activeTab, setActiveTab] = useState('usa');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedChartSymbol, setSelectedChartSymbol] = useState('FOREXCOM:SPXUSD');
+  const [selectedChartName, setSelectedChartName] = useState('S&P 500 Index');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [visibleCount, setVisibleCount] = useState(10);
+  const PAGE_SIZE = 10;
   const stickyHeaderRef = useRef(null);
+  const chartTerminalRef = useRef(null);
 
   const { data, isLoading: loading } = useMarkets();
 
@@ -358,6 +540,43 @@ const Markets = () => {
   const currentAssets = sections[activeTab]?.assets || [];
   const heroAssets = sections.usa?.assets?.slice(0, 3) || [];
   const isInitialLoad = loading && !sections.usa;
+
+  // Filtered assets by search
+  const filteredAssets = currentAssets.filter((a) =>
+    (a.ticker || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (a.name || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalAssetsCount = filteredAssets.length;
+  const totalPages = Math.ceil(totalAssetsCount / PAGE_SIZE) || 1;
+
+  // Reset pagination when switching tabs or typing search
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchTerm(val);
+    setCurrentPage(1);
+    setVisibleCount(PAGE_SIZE);
+  };
+
+  const handleShowMore = () => {
+    setVisibleCount(prev => Math.min(prev + PAGE_SIZE, totalAssetsCount));
+  };
+
+  // Assets to display: take up to visibleCount, and support page jumps
+  const displayedAssets = filteredAssets.slice(0, visibleCount);
+
+  const handleSelectForChart = (asset) => {
+    if (!asset) return;
+    const tv = resolveTVSymbol(asset.yahooTicker || asset.ticker);
+    setSelectedChartSymbol(tv);
+    setSelectedChartName(asset.ticker);
+    chartTerminalRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-24 animate-in fade-in duration-700">
@@ -390,19 +609,28 @@ const Markets = () => {
             indici, forex, crypto e commodities.
           </p>
 
-          {/* CTA */}
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            <button
-              onClick={() => navigate('/pricing')}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0"
-            >
-              <Zap className="w-4 h-4" />
-              Provalo gratis per 7 giorni
-            </button>
-            <span className="text-slate-500 text-xs font-medium">
-              Nessuna carta richiesta.
-            </span>
-          </div>
+          {/* CTA Banner: Visible ONLY in Free version */}
+          {!isPro ? (
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              <button
+                onClick={() => navigate('/pricing')}
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-black transition-all shadow-lg shadow-indigo-600/30 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:translate-y-0"
+              >
+                <Zap className="w-4 h-4" />
+                Passa a PRO (16,99€/mese) - Provalo gratis 7 giorni
+              </button>
+              <span className="text-slate-500 text-xs font-medium">
+                Nessuna carta richiesta nei primi 7 giorni.
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 pt-2">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black tracking-wide">
+                <ShieldCheck className="w-4 h-4" />
+                Piano PRO Attivo · Accesso Illimitato e SmartQuant in Tempo Reale
+              </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -425,7 +653,7 @@ const Markets = () => {
           </>
         ) : (
           heroAssets.map((asset) => (
-            <HeroCard key={asset.ticker} asset={asset} />
+            <HeroCard key={asset.ticker} asset={asset} isPro={isPro} />
           ))
         )}
       </div>
@@ -457,6 +685,68 @@ const Markets = () => {
         <GlobalCapitalFlowBox />
       </ErrorBoundary>
 
+      {/* ── Institutional TradingView Market Terminal ─────────────────── */}
+      <section ref={chartTerminalRef} className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+              <LineChart className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-black text-white tracking-wide">
+                  Terminale Grafico Istituzionale
+                </h2>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  Live TradingView Feed
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Asset attivo: <span className="font-bold text-indigo-300">{selectedChartName}</span> ({selectedChartSymbol}) · Setup pulito con EMA 20/50/200, Volume & RSI
+              </p>
+            </div>
+          </div>
+
+          {/* Benchmark Quick Switcher Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 lg:pb-0 scrollbar-none">
+            {CHART_BENCHMARKS.map((bm) => {
+              const isActive = selectedChartSymbol === bm.symbol;
+              return (
+                <button
+                  key={bm.symbol}
+                  onClick={() => {
+                    setSelectedChartSymbol(bm.symbol);
+                    setSelectedChartName(bm.name);
+                  }}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {bm.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* TradingView Embedded Container */}
+        <div className="h-[520px] rounded-3xl overflow-hidden border border-white/10 bg-black shadow-2xl relative">
+          <TradingViewWidget symbol={selectedChartSymbol} />
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] text-slate-500 px-2">
+          <span>
+            💡 Clicca sull'icona del grafico <LineChart className="w-3 h-3 inline-block mx-0.5 text-indigo-400" /> su qualunque riga della tabella per visualizzare l'asset in tempo reale in questo riquadro.
+          </span>
+          <span className="hidden sm:inline font-mono">
+            Provider: TradingView Advanced Real-Time
+          </span>
+        </div>
+      </section>
+
       {/* ── Main Table Section ───────────────────────────────────────────── */}
       <section className="space-y-4">
         {/* Sticky tab bar */}
@@ -465,19 +755,30 @@ const Markets = () => {
           className="sticky top-0 z-40 bg-slate-950/85 backdrop-blur-xl py-3 -mx-4 px-4 flex items-center justify-between gap-4 shadow-lg shadow-black/20 transition-all duration-300"
         >
           <div className="flex gap-1.5 flex-wrap">
-            {Object.entries(sections).map(([key, section]) => (
-              <button
-                key={key}
-                onClick={() => setActiveTab(key)}
-                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                  activeTab === key
-                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
-                    : 'bg-white/5 text-slate-500 hover:text-white hover:bg-white/10'
-                }`}
-              >
-                {section.label}
-              </button>
-            ))}
+            {Object.entries(sections).map(([key, section]) => {
+              const count = section.assets?.length || 0;
+              const isActive = activeTab === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => handleTabChange(key)}
+                  className={`px-3 sm:px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30'
+                      : 'bg-white/5 text-slate-400 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <span>{section.label}</span>
+                  {count > 0 && (
+                    <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold ${
+                      isActive ? 'bg-indigo-950 text-indigo-200' : 'bg-white/10 text-slate-400'
+                    }`}>
+                      {count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="hidden md:flex items-center">
@@ -487,7 +788,7 @@ const Markets = () => {
                 type="text"
                 placeholder="Cerca asset..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="bg-white/5 rounded-xl py-2 pl-9 pr-4 text-xs font-bold text-white focus:outline-none focus:ring-1 focus:ring-indigo-500/50 transition-all w-44"
               />
             </div>
@@ -502,9 +803,8 @@ const Markets = () => {
         )}
 
         {/* Table */}
-        <ProPaywall isPaywalled={sections[activeTab]?.paywalled}>
-          <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-2xl border border-white/[0.03]">
-            <div className="table-scroll">
+        <div className="bg-slate-900/40 backdrop-blur-2xl rounded-[2rem] overflow-hidden shadow-2xl border border-white/[0.03]">
+          <div className="table-scroll">
               <table className="w-full text-left min-w-[700px]">
                 <thead>
                   <tr className="bg-white/[0.02] border-b border-white/[0.04]">
@@ -529,16 +829,74 @@ const Markets = () => {
                 <tbody className="divide-y divide-white/[0.025]">
                   {isInitialLoad ? (
                     [...Array(8)].map((_, i) => <SkeletonRow key={i} />)
-                  ) : currentAssets
-                      .filter((a) => (a.ticker || '').toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((asset) => (
-                        <AssetRow key={asset.ticker} asset={asset} />
-                      ))}
+                  ) : displayedAssets.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-12 text-center text-slate-500 text-xs font-semibold">
+                        Nessun asset trovato per "{searchTerm}" nella sezione {sections[activeTab]?.label || activeTab}.
+                      </td>
+                    </tr>
+                  ) : (
+                    displayedAssets.map((asset, index) => {
+                      const isLocked = !isPro && index >= FREE_PREVIEW_LIMIT;
+                      return (
+                        <AssetRow
+                          key={asset.ticker}
+                          asset={asset}
+                          isPro={isPro}
+                          isLocked={isLocked}
+                          onSelectForChart={handleSelectForChart}
+                          isSelectedForChart={
+                            selectedChartName === asset.ticker ||
+                            selectedChartSymbol === resolveTVSymbol(asset.yahooTicker || asset.ticker)
+                          }
+                        />
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
+
+            {/* ── Dynamic Pagination & Progressive Load Footer ────────────── */}
+            {!isInitialLoad && totalAssetsCount > 0 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 bg-slate-900/60 border-t border-white/10 relative z-30">
+                {/* Visualized items counter */}
+                <div className="text-xs text-slate-400 font-medium">
+                  Visualizzati <span className="text-white font-bold">{Math.min(visibleCount, totalAssetsCount)}</span> di <span className="text-white font-bold">{totalAssetsCount}</span> ticker in <span className="text-indigo-400 font-bold uppercase">{sections[activeTab]?.label || activeTab}</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {/* "Mostra altri" Progressive Button */}
+                  {visibleCount < totalAssetsCount && (
+                    <button
+                      onClick={handleShowMore}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all border border-indigo-400/30 flex items-center gap-1.5 shadow-lg shadow-indigo-600/30 active:translate-y-0.5 cursor-pointer"
+                    >
+                      <span>Mostra altri (+{Math.min(PAGE_SIZE, totalAssetsCount - visibleCount)})</span>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+
+                  {/* Show All / Reset Toggle */}
+                  {visibleCount < totalAssetsCount ? (
+                    <button
+                      onClick={() => setVisibleCount(totalAssetsCount)}
+                      className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                    >
+                      Mostra tutti ({totalAssetsCount})
+                    </button>
+                  ) : totalAssetsCount > PAGE_SIZE ? (
+                    <button
+                      onClick={() => setVisibleCount(PAGE_SIZE)}
+                      className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white text-xs font-bold transition-all border border-white/10 cursor-pointer"
+                    >
+                      Riduci vista ({PAGE_SIZE})
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )}
           </div>
-        </ProPaywall>
       </section>
     </div>
   );
