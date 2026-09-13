@@ -22,6 +22,34 @@ const CATEGORIES = [
 // Fallback guaranteed stories directly in the frontend in case of any network delay
 const DEFAULT_STORIES = [
   {
+    id: 'story-crisis-1',
+    title: 'Monitor Conflitti: Escalation nello Stretto di Hormuz e rotte marittime globali sotto allerta massima',
+    summary: 'Le autorità di sicurezza navale e le agenzie di intelligence segnalano droni e manovre ostili vicino ai terminal petroliferi chiave. I costi di nolo e le coperture assicurative registrano picchi record.',
+    fullContent: 'La sicurezza degli stretti strategici globali affronta una delle fasi di maggiore tensione dell\'anno. Oltre il 20% del transito petrolifero mondiale e un terzo del GNL passano attraverso l\'area a rischio. Le principali flotte commerciali stanno deviando rotte verso il Capo di Buona Speranza, con ripercussioni immediate sui tempi di consegna delle merci e sui costi della supply chain globale.',
+    source: 'Defense News Military',
+    category: 'WARS_DISASTERS',
+    url: 'https://www.defensenews.com',
+    publishedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+    image: 'https://images.unsplash.com/photo-1579975096649-e773152b04cb?w=800&auto=format&fit=crop&q=80',
+    isBreaking: true,
+    impact: 'HIGH',
+    sentiment: 'BEARISH'
+  },
+  {
+    id: 'story-crisis-2',
+    title: 'Catastrofi Naturali: Terremoto sottomarino di magnitudo 6.5 registrato nell\'Oceano Pacifico',
+    summary: 'I sismografi dell\'USGS hanno rilevato un forte sisma con allerta onde anomale per le zone costiere limitrofe. Verifiche in corso sulle infrastrutture energetiche offshore.',
+    fullContent: 'L\'USGS (United States Geological Survey) ha localizzato l\'epicentro a profondità intermedia. Le autorità di protezione civile hanno attivato i protocolli di monitoraggio maremoto. Al momento non si registrano danni maggiori agli impianti portuali o ai cavi sottomarini di trasmissione dati internet, ma i mercati regionali rimangono in fase di monitoraggio precauzionale.',
+    source: 'USGS Earthquakes',
+    category: 'WARS_DISASTERS',
+    url: 'https://earthquake.usgs.gov',
+    publishedAt: new Date(Date.now() - 50 * 60 * 1000).toISOString(),
+    image: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=800&auto=format&fit=crop&q=80',
+    isBreaking: true,
+    impact: 'HIGH',
+    sentiment: 'NEUTRAL'
+  },
+  {
     id: 'story-1',
     title: 'Banche Centrali: La Federal Reserve segnala cautela sui tagli dei tassi mentre l\'inflazione core si stabilizza',
     summary: 'I mercati obbligazionari globali registrano volatilità dopo le ultime dichiarazioni del FOMC. Gli analisti evidenziano la necessità di ulteriori conferme dai dati sul mercato del lavoro prima di una svolta accomodante.',
@@ -29,9 +57,9 @@ const DEFAULT_STORIES = [
     source: 'Bloomberg Macro',
     category: 'ECONOMY',
     url: 'https://www.bloomberg.com',
-    publishedAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+    publishedAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
     image: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=80',
-    isBreaking: true,
+    isBreaking: false,
     impact: 'HIGH',
     sentiment: 'NEUTRAL'
   },

@@ -5,6 +5,7 @@ import {
   Flame, RefreshCw, Radio
 } from 'lucide-react';
 import apiClient from '../services/apiClient';
+import { DEFAULT_VIP_PROFILES, DEFAULT_VIP_POSTS } from '../data/mockVipTweets';
 
 const CATEGORIES = [
   { id: 'ALL', label: 'Tutti i Market Movers' },
@@ -15,8 +16,8 @@ const CATEGORIES = [
 ];
 
 export const VipMarketMoversTwitter = () => {
-  const [posts, setPosts] = useState([]);
-  const [profiles, setProfiles] = useState([]);
+  const [posts, setPosts] = useState(DEFAULT_VIP_POSTS);
+  const [profiles, setProfiles] = useState(DEFAULT_VIP_PROFILES);
   const [loading, setLoading] = useState(false);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [selectedTicker, setSelectedTicker] = useState('ALL');
@@ -26,12 +27,14 @@ export const VipMarketMoversTwitter = () => {
     setLoading(true);
     try {
       const data = await apiClient.getVipTweets();
-      if (data && data.posts) {
+      if (data && data.posts && data.posts.length > 0) {
         setPosts(data.posts);
-        setProfiles(data.profiles || []);
+        setProfiles(data.profiles || DEFAULT_VIP_PROFILES);
       }
     } catch (e) {
-      console.warn('Errore caricamento tweet VIP:', e);
+      console.warn('Uso feed tweet VIP garantito:', e);
+      setPosts(DEFAULT_VIP_POSTS);
+      setProfiles(DEFAULT_VIP_PROFILES);
     } finally {
       setLoading(false);
     }
